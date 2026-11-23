@@ -49,6 +49,11 @@ export interface OpenAiClientConfig {
   model: string;
   /** 测试注入；默认用全局 fetch。 */
   fetchImpl?: FetchLike;
+  /**
+   * 请求发出前的只读调试钩子（`MEWCODE_DEBUG=1` 用）。
+   * 传入的是最终请求体字符串：不含 apiKey，可安全打印。
+   */
+  onRequest?: (info: { url: string; body: string }) => void;
 }
 
 /** 请求失败（非 2xx）时抛出；UI 据此显示状态码与供应商摘要。 */
@@ -231,6 +236,9 @@ export function createOpenAiLlmClient(config: OpenAiClientConfig): LlmClient {
       };
       if (tools.length > 0) requestBody.tools = tools;
 
+      const body = JSON.stringify(requestBody);
+      config.onRequest?.({ url: endpoint, body });
+
       const response = await fetchImpl(endpoint, {
         method: "POST",
         headers: {
@@ -238,7 +246,7 @@ export function createOpenAiLlmClient(config: OpenAiClientConfig): LlmClient {
           Accept: "text/event-stream",
           Authorization: `Bearer ${config.apiKey}`,
         },
-        body: JSON.stringify(requestBody),
+        body,
         signal,
       });
 

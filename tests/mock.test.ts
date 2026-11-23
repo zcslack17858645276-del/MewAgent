@@ -16,6 +16,7 @@ import {
   createMockLlmClient,
   isMockFirstRound,
 } from "../src/llm/mock.js";
+import type { FetchLike } from "../src/llm/openai.js";
 import type { StartTuiOptions } from "../src/ui/start-tui.js";
 import type { Message } from "../src/types.js";
 
@@ -128,6 +129,7 @@ interface RunOptions {
   cwd: string;
   env?: NodeJS.ProcessEnv;
   startTui?: (options: StartTuiOptions) => Promise<void>;
+  fetchImpl?: FetchLike;
 }
 
 async function runCli(
@@ -142,6 +144,7 @@ async function runCli(
     stdinIsTTY: true,
     stdoutIsTTY: true,
     startTui: options.startTui ?? (async () => {}),
+    fetchImpl: options.fetchImpl,
     write: (text) => {
       stdout += text;
     },
@@ -174,17 +177,39 @@ test("main：--mock --print 走完两轮（工具调用 → 最终文本）", as
   }
 });
 
-test("main：非 mock 的 --print 仍是 S1 占位，不跑两轮", async () => {
+test("main：非 mock 的 --print 走真实 API 单轮流式（假 fetch，不跑两轮）", async () => {
   const cwd = mkdtempSync(path.join(tmpdir(), "mewagent-nomock-"));
   try {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode('data: {"choices":[{"delta":{"content":"收"}}]}\n\n'),
+        );
+        controller.enqueue(
+          encoder.encode('data: {"choices":[{"delta":{"content":"到"}}]}\n\n'),
+        );
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    const fetchImpl: FetchLike = async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      body,
+      text: async () => "",
+    });
+
     const result = await runCli(["--print", "hi"], {
       cwd,
       env: { MEWCODE_API_KEY: "sk-test", MEWCODE_MODEL: "deepseek-chat" },
+      fetchImpl,
     });
     assert.equal(result.code, 0);
-    assert.equal(result.err, "");
-    assert.ok(result.out.includes("真实 API 将在 S1 接入"));
-    assert.ok(!result.out.includes("第 1 轮"));
+    assert.equal(result.out, "收到\n", "headless 真实路径只输出模型文本");
+    assert.ok(!result.out.includes("第 1 轮"), "真实路径不应跑 mock 两轮剧本");
+    assert.match(result.err, /headless · model: deepseek-chat/);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

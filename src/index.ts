@@ -3,14 +3,14 @@
 // 边界（方案 §3.1）：本文件只做参数与 IO 编排，不直接调 LLM、不读输入循环；
 // 交互 TUI 在 src/ui/（S1-4），真实 API 客户端在 src/llm/openai.ts（S1-2）；
 // 本文件保证：`--help` / `--version` 可用、缺 key / 未知参数 / 无 TTY 的报错可操作、
-// `--print` 走 headless（S1-5 接真实 API）、`--mock --print` 走离线两轮（S0-4）。
+// `--print` 走 headless（S1-5：mock 两轮 / 真实 API 流式）、TUI 走交互渲染。
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
-import { buildSystemPrompt } from "./agent/prompt.js";
+import { buildSystemPrompt, withSystemPrompt } from "./agent/prompt.js";
 import {
   CliError,
   loadDotEnv,
@@ -21,7 +21,8 @@ import {
 } from "./config.js";
 import type { AppConfig } from "./config.js";
 import { createMockLlmClient } from "./llm/mock.js";
-import { createOpenAiLlmClient } from "./llm/openai.js";
+import { createOpenAiLlmClient, LlmHttpError } from "./llm/openai.js";
+import type { FetchLike } from "./llm/openai.js";
 import type { LlmClient, Message, ToolResult } from "./types.js";
 import type { SendMessage } from "./ui/App.js";
 import { startTui } from "./ui/start-tui.js";
@@ -41,6 +42,8 @@ export interface MainDeps {
   loadDotEnv?: (envPath: string) => void;
   /** 交互 TUI 启动钩子；测试注入假实现，避免真的进入 Ink 渲染。 */
   startTui?: (options: StartTuiOptions) => Promise<void>;
+  /** 真实 API 的 fetch 注入；测试用假 SSE 流，避免联网。 */
+  fetchImpl?: FetchLike;
 }
 
 function formatConfigLines(config: AppConfig): string[] {
@@ -164,6 +167,90 @@ function readMockDelayMs(env: NodeJS.ProcessEnv): number {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
 }
 
+/** `MEWCODE_DEBUG=1/true/yes` 时把请求体打到 stderr（不含 apiKey，可安全粘贴）。 */
+function readDebugEnabled(env: NodeJS.ProcessEnv): boolean {
+  const raw = env["MEWCODE_DEBUG"];
+  if (raw === undefined) return false;
+  const value = raw.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
+/** 把 HTTP 状态码翻译成"下一步怎么做"，避免用户只看到一串英文。 */
+function describeHttpFailure(status: number): string {
+  if (status === 401 || status === 403) {
+    return "检查 .env 里的 MEWCODE_API_KEY 是否有效、是否还有余额。";
+  }
+  if (status === 404) {
+    return "检查 MEWCODE_BASE_URL 是否正确（DeepSeek 为 https://api.deepseek.com，OpenAI 兼容服务通常以 /v1 结尾）。";
+  }
+  if (status === 429) {
+    return "供应商限流或额度不足：稍后重试，或检查账户额度。";
+  }
+  if (status >= 500) {
+    return "供应商服务暂时不可用：稍后重试。";
+  }
+  return "检查 API key、base-url 与模型名后重试。";
+}
+
+/** 区分"网络层失败"（代理/断网）与程序错误，给出可操作提示。 */
+function isNetworkFailure(error: unknown): error is TypeError {
+  return (
+    error instanceof TypeError &&
+    /fetch failed|network|ECONN|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up/i.test(
+      error.message,
+    )
+  );
+}
+
+/**
+ * S1-5 的 headless 真实链路：system prompt 放首位 → 一轮流式 chat → 文本写到 stdout。
+ *
+ * stdout 只放模型文本（便于管道/重定向），诊断信息走 stderr。
+ * 不执行工具（S2 接入 Agent Loop）；模型若仍返回 tool_calls 只提示、不执行。
+ */
+async function runRealHeadless(
+  prompt: string,
+  config: AppConfig,
+  version: string,
+  write: (text: string) => void,
+  writeError: (text: string) => void,
+  deps: MainDeps,
+  env: NodeJS.ProcessEnv,
+): Promise<number> {
+  const debug = readDebugEnabled(env);
+  const client = createOpenAiLlmClient({
+    baseUrl: config.baseUrl,
+    apiKey: config.apiKey,
+    model: config.model,
+    fetchImpl: deps.fetchImpl,
+    onRequest: debug
+      ? ({ url, body }) => {
+          writeError(`[debug] POST ${url}\n[debug] 请求体：${body}\n`);
+        }
+      : undefined,
+  });
+
+  const systemPrompt = buildSystemPrompt({ workspace: config.workspace });
+  const messages = withSystemPrompt(
+    [{ role: "user", content: prompt }],
+    systemPrompt,
+  );
+  writeError(
+    `mewagent ${version} · headless · model: ${config.model} · base-url: ${config.baseUrl}\n`,
+  );
+
+  const result = await client.chat(messages, [], {
+    onText: (delta) => write(delta),
+  });
+  if (result.content !== "" && !result.content.endsWith("\n")) write("\n");
+  if (result.content === "") writeError("（模型没有返回任何文本）\n");
+  if (result.toolCalls.length > 0) {
+    const names = result.toolCalls.map((call) => call.name).join("、");
+    writeError(`（模型请求调用工具：${names}；工具执行将在 S2 接入，本次未执行）\n`);
+  }
+  return 0;
+}
+
 /**
  * CLI 主流程：返回进程退出码（0 成功；2 用法/配置错误；1 未预期错误）。
  * 不调用 `process.exit`，方便测试与被其他入口复用。
@@ -215,15 +302,15 @@ export async function main(
         await runMockTwoRounds(prompt, write);
         return 0;
       }
-      write(
-        formatPrintHeader(
-          version,
-          config,
-          prompt,
-          "真实 API 将在 S1 接入；现在可用 --mock 离线跑通两轮",
-        ),
+      return await runRealHeadless(
+        prompt,
+        config,
+        version,
+        write,
+        writeError,
+        deps,
+        env,
       );
-      return 0;
     }
 
     const client: LlmClient = config.mock
@@ -246,6 +333,16 @@ export async function main(
     if (error instanceof CliError) {
       writeError(`${error.message}\n`);
       return error.exitCode;
+    }
+    if (error instanceof LlmHttpError) {
+      writeError(`${error.message}\n下一步：${describeHttpFailure(error.status)}\n`);
+      return 1;
+    }
+    if (isNetworkFailure(error)) {
+      writeError(
+        `网络请求失败：${error.message}\n下一步：检查网络连接与代理（本机可用 HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:7890）后重试。\n`,
+      );
+      return 1;
     }
     const message = error instanceof Error ? error.message : String(error);
     writeError(`内部错误：${message}\n`);

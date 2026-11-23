@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）、S1-2（`llm/openai.ts` 流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI，代码与 A 级冒烟完成；**补丁已完成**：`MEWCODE_MOCK_DELAY_MS` 慢速流式 + 多行输入 `ui/InputBox.tsx`（粘贴保留换行、Shift+Enter/Ctrl+J 换行）；**8 条 B 级手工项待用户验收**）已完成实现，下一任务 S1-5（`--print` 接真实 API）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示）已完成，下一任务 S1-6（S1 手工验收 + tag `v0.1-s1`）**。S1-5 的"真实 API 输出文本"行待用户换有效 key 后复验（当前 `.env` 的 key 被供应商判 401 invalid；401 错误链路已真机验证）。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；B 级 8 条待用户）｜ 🔄 S1-5（当前）｜ ⬜ S1-6 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API；"真实输出文本"行待用户换有效 key 复验）｜ 🔄 S1-6（当前）｜ ⬜ S2-1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -340,14 +340,26 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：TUI 尚未消费 `AgentEvent`（S2-7 接线工具事件）；`--mock` 的"两轮"是 S1 临时剧本（S2 起换成真正的 Agent Loop）；真实 API 的流式观感需 S1-5 接线后复验。
 
-#### S1-5 `--print` headless
+**B 级复核（用户 2026-11-23 已完成）**：8 条手工项全部通过（中文输入、流式无闪烁、生成中 Esc、空闲/生成中 Ctrl+C、缩放、多行粘贴、空回车、连发 3 条）；补丁项同时确认——Shift+Enter 换行生效（WT 1.25 Kitty 协议）、多行粘贴保留换行、`MEWCODE_MOCK_DELAY_MS=80` 下能观察慢速流式与中断。
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `"你好" \| npm run dev -- --print` | 输出最终文本，退出 0 | P0 |
-| 2 | A | 无 TTY 环境（管道/CI） | 不报 "raw mode" 之类错误 | P0 |
-| 3 | B | 输出重定向到文件再打开 | 中文无乱码 | P1 |
-| 4 | A | 错误 key 下运行 | 非 0 退出码 + 可读错误 | P1 |
+#### S1-5 `--print` headless（已完成 2026-11-23）
+
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `"你好" \| npm run dev -- --print` | 输出最终文本，退出 0 | P0 | ⏳ 待用户换有效 key 后复验（当前 `.env` 的 key 被供应商判 401 invalid）；假 fetch 单测已覆盖"只输出模型文本 + system 首位" |
+| 2 | A | 无 TTY 环境（管道/CI） | 不报 "raw mode" 之类错误 | P0 | ✅ `main()` 注入 IO 全程无 TTY；真实 pwsh 管道下运行无 raw mode 错误 |
+| 3 | B | 输出重定向到文件再打开 | 中文无乱码 | P1 | ⏳ 待 key 有效后验（Node stdout 为 UTF-8） |
+| 4 | A | 错误 key 下运行 | 非 0 退出码 + 可读错误 | P1 | ✅ 真机实测：DeepSeek 返回 HTTP 401 → stderr `LLM 请求失败（HTTP 401）…` + `下一步：检查 .env 里的 MEWCODE_API_KEY…`，exit 1，供应商摘要已脱敏 |
+
+**A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `src/llm/openai.ts` 新增只读调试钩子 `onRequest?: (info: { url; body })`：请求体在 fetch 前回调一次、不含 apiKey；`tests/openai.test.ts` 增 1 例（回调一次、body 与实际发送一致、无 key）。
+- `src/index.ts`：`--print` 非 mock 分支接真实链路 `runRealHeadless`（system prompt 首位 → 一轮流式 chat → stdout 只放模型文本、诊断走 stderr）；`MEWCODE_DEBUG=1` 打印 `[debug] POST <url>` 与请求体；`LlmHttpError` → 状态码 + `describeHttpFailure` 下一步、exit 1；网络失败 → 代理/网络提示、exit 1。
+- `tests/config.test.ts` 增 4 例（假 fetch 全离线）：真实流式 stdout 只含模型文本且 system 在首位、`MEWCODE_DEBUG=1` 请求体不泄露 key、401 → exit 1 + `[REDACTED]`、网络失败 → exit 1 + 代理提示；`tests/mock.test.ts` 原"非 mock --print 占位"改为"真实 API 单轮流式（假 fetch）"。
+- `npm run typecheck` exit 0；全量 `npm test` → **tests 104 / pass 104 / fail 0**（原 99 + 新增 5）；`npm run build` exit 0。
+- 真实 API 冒烟（用户 `.env`：`deepseek-flash` / `https://api.deepseek.com`）：容器外无代理也能直达 DeepSeek，返回 HTTP 401（key 无效）——证明 headless 接线、请求体（system 首位）与错误链路端到端可用。
+
+**已知限制**：headless 只跑一轮、不执行工具（S2 Agent Loop 后再扩展）；"真实输出文本"行依赖用户的 key 有效（当前 key 判 invalid，需更新 `.env` 后复验）；`--print` 不处理 SIGINT（管道场景直接结束进程）；`MEWCODE_DEBUG` 输出可能较长，勿在公开场合粘贴。
 
 #### S1-6 S1 收尾
 
