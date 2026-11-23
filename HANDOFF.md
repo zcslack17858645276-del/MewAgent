@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 进行中（S2-1、S2-2 完成）｜ 下一任务：S2-3
+> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 进行中（S2-1、S2-2、S2-3 完成）｜ 下一任务：S2-4
 
 ---
 
@@ -118,6 +118,7 @@ npm run build
 | CI 自查（S0-5 后） | 本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`，token scopes `gist, read:org, repo, workflow`）；agent 只用 `gh run list` / `gh run view <id> --json jobs` / `gh run view <id> --log` **只读**查询 Actions 自查 CI，**禁止用 gh 做 push/删除/PR 等写操作**；PR 仍由用户开（或用户明确授权后再说） |
 | 工具注册表（S2-2） | `src/tools/registry.ts` 导出 `ToolRegistry`（`register` / `has` / `get` / `names` / `size` / `specs()` / `run(call, ctx)`）：`specs()` 输出 OpenAI `tools` 格式（`{type:"function",function:{name,description,parameters}}`，parameters 直接透传工具定义的 JSON Schema）；`run` 是**模型输入的唯一收敛点且永不抛异常**——未知工具 → `Error: 未知工具 "x"。可用工具：…`；`arguments` 空串按 `{}`、非法 JSON / 非对象 / 非字符串 → 明确错误 + "下一步"；工具抛异常（含非 Error）→ `Error: 工具 X 执行失败：…`；工具返回非法结构 → `Error: … 返回了非法结果`。重复注册/非法定义属实现方 bug，`register` 直接抛错（启动期暴露）。v0.1 不在注册表层做 JSON Schema required/type 深度校验（各工具自己校验）；工具超时由 `bash` 自己处理（§6.4）；`createDefaultRegistry`（`tools/index.ts`）等 S2-3~S2-5 工具就位后再加 |
 | 工具路径边界（S2-1） | `src/tools/paths.ts` 是**所有工具路径的唯一入口**：`resolveInside(workspace, input): string` 返回工作区内绝对路径（正斜杠、保留原始大小写）；拒绝时抛 `UnsafePathError`（`name`、`readonly input/workspace/reason`，message 带"下一步"）。**两层校验**：① 词法 `path.resolve` + 前缀比较（拦 `..`、越界绝对路径）；② 真实路径 —— 对工作区与目标分别 `realpathSync` 向上找最近已存在祖先再拼回不存在部分（`canonicalizeWithAncestors`），拦 symlink/junction 逃逸（含"junction 下尚未创建的新文件"）。一律拒绝 `%VAR%`、`~`、Windows 盘符相对路径（不做展开，安全默认）；另导出 `isInsideWorkspace`、`toWorkspaceRelative`（根→`"."`）、`toPosixPath`、`resolveWorkspace`、`PathRejectionReason`。工具实现必须走这里，禁止手拼路径 |
+| 文件工具（S2-3） | `src/tools/fs.ts` 导出 `fsTools`（`read_file` / `write_file` / `edit_file`，常量 `MAX_TOOL_OUTPUT_BYTES=30*1024`、`DEFAULT_READ_LIMIT=500`）：三个工具都先 `resolveInside` 校验路径，失败统一 `Error: …` + "下一步"（`ToolInputError`/`UnsafePathError` 直接透传，其余经 `safeRun` 兜底）。`read_file` 输出 `    1│内容` 行号格式（CRLF 文件在头行标注"CRLF 换行"），支持 offset/limit，超 30KB 按行裁剪并提示"输出已截断：单次最多 30720 字节"与"还有 X 行未显示，用 offset=Y 继续读取"，默认最多 500 行。`write_file` 父目录不存在时自动 `mkdirSync({recursive:true})` 并报告"已创建目录：…"（不用返回值，Windows 上会带 `\\?\` 前缀），空内容写 0 字节，行数不计末尾换行。`edit_file` 按 §6.5：先原样找 `old_string`，找不到再按 LF 归一化匹配；0 次/多处未传 `replace_all` 均返回可操作错误（提示扩上下文或 `replace_all:true`）；`replace_all` 用 split/join 全替换；写回保留原换行风格（CRLF 文件整体转回 CRLF、LF 文件剥掉 CRLF），成功后返回替换点前后各 3 行带行号上下文；`old_string` 空/参数类型错/越界路径全部收敛为 `Error:`。v0.1 不做行号 patch 或正则替换，精确替换靠上下文唯一性 |
 
 ---
 
@@ -198,7 +199,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；下一步 S2-3（`tools/fs.ts` 文件工具）。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 14 单测）已完成，全量 `npm test` **141/141**、CI 全绿；下一步 S2-4（`tools/search.ts` glob/grep）。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -379,6 +380,18 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **CI**：`45199605857`（task/s2-2-registry, `2fe4998`）、`45199640913`（main, `f2b58e0`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 127 / # pass 127 / # fail 0`。
 - **坑**：`arguments` 是模型给的原始 JSON 字符串，不能假设合法——所有解析失败都要转成"模型能看懂并自我修正"的 `Error:` 文案；工具实现 bug（抛异常/返回非法结构）同样不能炸 loop，所以注册表统一兜底。
 - **下次第一步**：S2-3（`src/tools/fs.ts`：read / write / edit，唯一性 + CRLF 兼容）；文件操作一律先 `resolveInside(workspace, path)`，再走注册表；对照 `docs/testing.md` S2-3。
+
+
+### 2026-11-23 · 会话 17（S2-3：文件读写与精确替换）
+
+- **做了什么**：新建 `src/tools/fs.ts`（约 400 行）——`fsTools` 三个工具（`read_file` / `write_file` / `edit_file`；`MAX_TOOL_OUTPUT_BYTES=30*1024`、`DEFAULT_READ_LIMIT=500`）：路径一律先 `resolveInside`；`read_file` 输出 `    1│内容` 行号格式（CRLF 文件头部标注），支持 offset/limit，超 30KB 按行裁剪并提示"输出已截断：单次最多 30720 字节"与"还有 X 行未显示，用 offset=Y 继续读取"，默认 500 行上限；`write_file` 自动建父目录（报告"已创建目录：…"）、空内容写 0 字节、行数不计末尾换行；`edit_file` 按 §6.5：先原样匹配、失败再 LF 归一化匹配，0 次/多处未传 `replace_all` 均报可操作错误，`replace_all` 用 split/join 全替换，写回保留原换行风格，成功后返回替换点前后各 3 行带行号上下文。失败统一 `Error: …` + "下一步"（`ToolInputError`/`UnsafePathError` 直接透传，其余经 `safeRun` 包一层）。新建 `tests/fs.test.ts` 14 个 test（A 级：§6.5 四种匹配行为、CRLF 保留、write 建目录/覆盖/空文件、read 行号/空文件/offset/limit/默认 500 行/单行 40K 字节截断、不存在/目录/offset 越界、参数类型错误、三工具越界路径拒绝、readOnly + 注册表集成）。
+- **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 14 / pass 14 / fail 0（609.9ms）**；全量 `npm test` → **tests 141 / pass 141 / fail 0（1441.2ms）**；`src/` 中 `\bany\b` 0 匹配。证据：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`（均 gitignored）。
+- **B 级（待后续）**：testing.md S2-3 第 3–5 行（testbed 里读 sample.txt、改第 2 行、全部 line→row）需要工具真正接进 loop/TUI 并经过审批，留 S2-6（loop）/S2-7（TUI）+ S3（审批）；第 6/7 行的 CRLF 与截断已在单测覆盖，交互观感留用户复核。
+- **文档**：`docs/tasks.md` S2-3 done、焦点 S2-4；`docs/testing.md` L7/L128 进度、S2-3 小节已完成（结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 83 测试文件改十三个、§13 新增 S2-3 ✅ 行；`docs/checklist.md` 6 工具项加进度注；`HANDOFF.md` line 5 状态、§4「文件工具（S2-3）」决策行、§6 状态。
+- **提交**：分支 `task/s2-3-fs` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
+- **CI**：待补（push 后 gh 复核，预期 141/141）。
+- **坑**：①`write_file` 行数最初把末尾换行算成额外行 → 抽 `countTextLines`；②`mkdirSync` 返回值在 Windows 带 `\\?\` 前缀，不能直接展示 → 改输出父目录相对路径；③测试 helper 预建目录会让"已创建目录"分支永不触发 → helper 只 `mkdtempSync`；④测试里删掉 import 忘删触发 TS6133。
+- **下次第一步**：S2-4（`src/tools/search.ts`：`glob` 与 `grep`；glob 上限 200 条、输出截断；先读 `docs/testing.md` S2-4）。
 
 
 ```text
