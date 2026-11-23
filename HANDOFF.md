@@ -400,8 +400,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/search.test.ts` → **tests 11 / pass 11 / fail 0（2085.9ms）**；全量 `npm test` → **tests 153 / pass 153 / fail 0（1972.9ms）**；`src/` 中 `\bany\b` 0 匹配。证据：`spikes/.out/s2-4-typecheck.txt`、`s2-4-search.txt`、`s2-4-full.txt`（均 gitignored）。
 - **B 级（待后续）**：testing.md S2-4 第 2–4 行需要工具接进 loop/TUI（S2-6/S2-7）后自然语言触发，再交用户复核；行为本身已被单测覆盖。
 - **文档**：`docs/tasks.md` S2-4 done、焦点 S2-5；`docs/testing.md` L7/L128 进度、S2-3 第 6/7 行改为用户实测通过 + B 级段、S2-4 小节已完成（结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 3 状态、line 83 测试文件十四个、§13 新增 S2-4 ✅ 行；`docs/checklist.md` 6 工具项进度注；`HANDOFF.md` line 5、§4「搜索工具（S2-4）」决策行、§6 状态。
-- **提交**：分支 `task/s2-4-search` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
-- **CI**：`<待回填>`；job `typecheck + test (Node 22)` 预期日志 `# tests 153 / # pass 153 / # fail 0`。
+- **提交**：分支 `task/s2-4-search` 提交 `b523dec`（已 push，远端保留原始提交）→ squash 合并 main `929d3ca`；本条哈希回填提交并 push。
+- **CI**：`45204620484`（task/s2-4-search, `b523dec`）、`45204654597`（main, `929d3ca`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 153 / # pass 153 / # fail 0`。
 - **坑**：①`matchSegment` 忽略了 `matchCharacterClass` 返回的 `matched` 标志，`[ab].txt` 误匹配 `c.txt` → 不匹配时退回 `*` 回溯或直接失败；②`OutputBuilder.build(note)` 只在自身字节截断时追加注，导致"结果超过 200 条"注丢失 → 改为 `build("")` 出 body、调用方按需拼 notes；③测试 helper `dataLines` 把头部行（含 pattern 文本）算进结果计数；④`many.txt` 130 行命中会先占满 grep 100 条上限，中文/跳过用例要用更精确 pattern 或 `path` 限定。
 - **下次第一步**：S2-5（`src/tools/bash.ts`：shell 选择、超时 kill、30KB 截断、UTF-8/GBK；先读 `docs/testing.md` S2-5）。
 

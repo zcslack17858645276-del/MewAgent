@@ -471,6 +471,7 @@ git status --short        # 确认没有把测试产物提交
 - 全量 `npm test` → **tests 153 / pass 153 / fail 0**（1972.9ms；原 142 + 新增 11）
 - 覆盖点：glob `*.md`/`src/*.ts`/`src/**/b.ts`/`[ab].txt`/`?.txt`，`**/*` 结果不含 node_modules 与 .git；250 个文件时头部"只显示前 200 个"+ 恰好 200 行、250 个长文件名时"输出已截断"且 ≤30KB；无匹配/缺参/越界路径/不存在/路径是文件；grep 中文 `文件:行号:内容`、`TODO\b` 正则、跳过 node_modules/.git/二进制、130 行命中截断到 100 且有注、`path` 限定目录/单文件、200000 行 big.log 命中（断言 <5s）、坏正则/参数错误、`readOnly` + `ToolRegistry(searchTools)` 集成
 - 完整记录：`spikes/.out/s2-4-typecheck.txt`、`s2-4-search.txt`、`s2-4-full.txt`（均 gitignored）
+- CI（gh 只读）：`45204620484`（task/s2-4-search, `b523dec`）、`45204654597`（main, `929d3ca`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 153 / # pass 153 / # fail 0`
 
 **实现要点**：`walkFiles` 用 `readdirSync` 排序遍历、只 yield 文件、不跟随 symlink，`SKIP_DIR_NAMES` 跳过 node_modules/.git；glob 段级匹配支持 `*`/`?`/`**`（段级回溯）/`[abc]`/`[!abc]`，win32 下大小写不敏感；`OutputBuilder` 统一 30KB 字节预算。grep 逐文件先 `stat` 判 5MB、读前 8KB 判 NUL 二进制；命中行超 500 字符截断，结果上限 100 处。两工具均 `readOnly:true`，失败统一 `Error: …` + "下一步"。
 
