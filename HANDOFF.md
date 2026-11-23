@@ -202,6 +202,14 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **环境坑**：① 本机只有 Windows PowerShell 5.1（**无 pwsh 7**）；② 执行策略 `RemoteSigned`，未签名 `.ps1` 需 `-ExecutionPolicy Bypass`；③ PS 5.1 会把无 BOM 的 UTF-8 `.ps1` 按 GBK 解码，脚本内请只写 ASCII；④ npm 装包需 `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:7890`（npmmirror 可直连）；⑤ `npm test` 的 `tests/*.test.ts` glob 在 Node 26 + npm 下可直接用（npm 原样传给 node，由 node 展开）。
 - **下次第一步**：S0-2 `src/types.ts` 定契约（`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `LlmClient` / `Gate` / `AgentEvent`），先抄方案 §3.3 原文，禁止 `any` 逃逸。
 
+### 2026-11-23 · 会话 3（测试手册 `docs/testing.md`）
+
+- **做了什么**：为 `docs/tasks.md` 全部 29 个 task 写逐条测试小节（A 自动化 / B 手工 / C 回归，P0–P2 判定）；补测试沙盒数据脚本、IME 复验（引用 `spikes/`）、阶段回归清单、记录/缺陷模板、给 AI 的自测报告提示词、任务→测试文件矩阵；按 S0-1 后的真实环境（PowerShell 5.1 / WT 1.25 / Node 26.7）校准命令。
+- **产出/提交**：`docs/testing.md`（526 行）；`docs/tasks.md` 头部与 HANDOFF §2/§5.6/§8 加入测试入口；commit `fba6c67`。
+- **当前可运行状态**：S0-1 done；`npm run typecheck` 0 错误、`npm test` 3 passed、`npm run build` 成功。
+- **遗留/坑**：手册里的"预期测试文件"会随实现调整，以 `tests/` 实际为准；S0-2 起每个 task 完成时按手册对应小节留证据（自动输出 + 人工结论）再改 `done`。
+- **下次第一步**：S0-2 `src/types.ts` 契约，测试见 `docs/testing.md` S0-2 小节。
+
 ### 交接模板（每次会话结束复制填写）
 
 ```text
