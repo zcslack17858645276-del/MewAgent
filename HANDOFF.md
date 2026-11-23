@@ -291,7 +291,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **做了什么**：新建 `src/llm/sse.ts`（约 120 行）与 `tests/sse.test.ts`（13 个用例）；`docs/tasks.md` S1-1 doing→done、当前焦点切 S1-2；`docs/testing.md` 头部进度、进度行、S1-1 小节改为"已完成"并附实测证据、附录 C/D；`docs/checklist.md` S1-1 勾选；`HANDOFF.md` §4 新增「SSE 解析（S1-1）」决策行、§6 状态、§7 本条目。
 - **设计要点**：`parseSseStream(stream, { signal? }): AsyncGenerator<string>` 只产出 `data:` 负载字符串，不做 JSON.parse（留给 S1-2）；按空行分帧、同帧多行 `data:` 用 `\n` 连接；`\n`/`\r\n` 与跨 chunk 半行都支持；忽略 `:` 注释与 `event:`/`id:`/`retry:`；剥流首 BOM；`data: [DONE]` 不输出不报错并忽略后续数据；`TextDecoder(stream: true)` 处理多字节切断；流结束/尾部无换行提交最后一帧；已中止的 `signal` 抛 `name="AbortError"`。
 - **验收（A 级自动化，P0，全部通过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/sse.test.ts` → tests 13 / pass 13 / fail 0（384ms）；全量 `npm test` → tests 52 / pass 52 / fail 0（335ms，原 39 + 新增 13）；失败/边界用例覆盖分块、UTF-8 截断、CRLF、注释、多行 data、无空格 data、`[DONE]`、尾部残留、BOM、空 data、AbortError。证据 `spikes/.out/s1-1-test.txt`（gitignored）。
-- **提交**：分支 `task/s1-1-sse` 提交（待哈希回填）→ squash 合并为 `main` → push。
+- **提交**：分支 `task/s1-1-sse` 提交 `a1c0c88`（已 push，远端保留原始提交）→ squash 合并为 `main` 的 `9b1e08b` 并 push → 本条 docs 哈希回填提交并 push。
 - **下次第一步**：S1-2 `src/llm/openai.ts`：`fetch` 流式客户端 + `tool_calls` 按 index 聚合 + abort，见 `docs/testing.md` S1-2 小节与方案 §6.2。
 
 ### 交接模板（每次会话结束复制填写）
