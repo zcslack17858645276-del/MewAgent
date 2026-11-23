@@ -111,6 +111,20 @@ test("fs：read_file 默认行数上限与单行字节截断都有提示", async
   assert.ok(Buffer.byteLength(truncated, "utf8") <= MAX_TOOL_OUTPUT_BYTES + 300, `输出过大：${truncated.length}`);
 });
 
+test("fs：read_file 字节截断时续读 offset 按实际渲染行数给（不跳行）", async () => {
+  const longLines = Array.from({ length: 600 }, (_, index) => `row ${index + 1} ` + "z".repeat(120)).join("\n") + "\n";
+  writeFileSync(path.join(workspace, "long-lines.txt"), longLines, "utf8");
+  const output = expectOk(await runTool(readFileTool, { path: "long-lines.txt" }));
+  assert.ok(output.includes("输出已截断"), output);
+  const match = /第 1–(\d+) 行，共 600 行/.exec(output);
+  assert.ok(match !== null, output);
+  const lastLine = Number(match[1]);
+  assert.ok(lastLine < DEFAULT_READ_LIMIT, `应因字节预算提前截断，实际渲染到第 ${lastLine} 行`);
+  assert.ok(output.includes(`还有 ${600 - lastLine} 行未显示；用 offset=${lastLine + 1} 继续读取`), output);
+  const next = expectOk(await runTool(readFileTool, { path: "long-lines.txt", offset: lastLine + 1, limit: 2 }));
+  assert.ok(next.includes(`第 ${lastLine + 1}–${lastLine + 2} 行，共 600 行`), next);
+});
+
 test("fs：read_file 对不存在/目录/offset 越界返回可操作错误", async () => {
   expectFail(await runTool(readFileTool, { path: "nope.txt" }), "文件不存在", "下一步", "glob");
   expectFail(await runTool(readFileTool, { path: "src" }), "是目录", "下一步");
