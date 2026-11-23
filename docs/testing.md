@@ -410,6 +410,7 @@ git status --short        # 确认没有把测试产物提交
 - `node --import tsx --test tests/paths.test.ts` → **tests 10 / pass 10 / fail 0**（306.9ms）
 - 全量 `npm test` → **tests 114 / pass 114 / fail 0**（1360.97ms；原 104 + 新增 10）
 - 完整记录：`spikes/.out/s2-1-typecheck.txt`、`spikes/.out/s2-1-paths.txt`、`spikes/.out/s2-1-full.txt`（均 gitignored）
+- CI（gh 只读）：首轮 `45198168375`/`45198187978` **failure**（ubuntu 下 `..\x` 是合法文件名，测试按 Windows 语义断言拒绝；且 `toPosixPath` 无条件替换反斜杠）→ 修复 `dd49988` 后 `45198455287`（fix 分支）、`45198470990`（main, `e6fcbc2`）success，job `typecheck + test (Node 22)` 全步骤 success，日志 `# tests 114 / # pass 114 / # fail 0`。教训：涉及反斜杠的断言必须按 `process.platform` 分支。
 
 **实现要点**：`resolveInside(workspace, input)` 做两层包含校验——先按 `path.resolve` + 前缀比较拦 `..`/越界绝对路径，再用 `realpathSync` 向上找最近已存在祖先做真实路径比较，拦 symlink/junction 逃逸；拒绝时抛 `UnsafePathError`（含 reason 与"下一步"），输出统一正斜杠、保留用户原始大小写。**已知限制**：`%VAR%`/`~`/Windows 盘符相对路径一律拒绝（不做展开），这是有意的安全默认；B 级第 3、4 行的 TUI 级复验要等工具真正接入 TUI。
 

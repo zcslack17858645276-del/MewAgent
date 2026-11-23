@@ -363,7 +363,9 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/paths.test.ts` → **tests 10 / pass 10 / fail 0（306.9ms）**；全量 `npm test` → **tests 114 / pass 114 / fail 0（1360.97ms）**。证据：`spikes/.out/s2-1-typecheck.txt`、`s2-1-paths.txt`、`s2-1-full.txt`（均 gitignored）。
 - **B 级（待用户/后续）**：`docs/testing.md` S2-1 第 3/4 行需要在 TUI 里实际操作（"读取 ../secret.txt"、junction 指向 testbed 外），但工具尚未接入 TUI（S2-6/S2-7 才接线），按惯例延到那时验收；第 4 行的单元级（`tests/paths.test.ts` 第 9 例）已覆盖。
 - **文档**：`docs/tasks.md` S2-1 done、焦点 S2-2；`docs/testing.md` 当前进度/L128 进度行、S2-1 小节改为已完成（4 行结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C 行；`docs/checklist.md` S2 第一项勾选 + 证据；`docs/spec.md` line 83 测试文件改 11 个、§13 新增 S2-1 ✅ 行并把 S2 标 🔄。
-- **提交**：分支 `task/s2-1-paths` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>` → 本条哈希回填提交并 push。
+- **提交**：分支 `task/s2-1-paths` 提交 `ae6034e`（已 push，远端保留原始提交）→ squash 合并 main `109a61a`；CI 首次红（POSIX 语义问题，见下）→ 修复分支 `fix/s2-1-ci-paths` 提交 `dd49988` → squash 合并 main `e6fcbc2`；本条哈希回填提交并 push。
+- **CI**：首轮 `45198168375`（task/s2-1-paths, `ae6034e`）、`45198187978`（main, `109a61a`）均为 **failure**（tests 113 / fail 1：`paths：拒绝 ../ 与 ..\ 形式的越界` —— ubuntu 下 `..\x` 是合法文件名、不会越界，而测试按 Windows 语义断言"必须拒绝"；同时 `toPosixPath` 无条件替换反斜杠会把合法文件名改成另一个路径）。修复后 `45198455287`（fix/s2-1-ci-paths, `dd49988`）、`45198470990`（main, `e6fcbc2`）全部 success，job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 114 / # pass 114 / # fail 0`。
+- **坑**：跨平台语义——Windows 反斜杠是路径分隔符、POSIX 下是合法文件名字符；`toPosixPath` 只在 `path.sep === "\\"` 时替换，测试里涉及反斜杠的断言必须按 `process.platform` 分支，否则本地（Windows）绿而 CI（ubuntu）红。
 - **下次第一步**：S2-2（`src/tools/registry.ts`：工具注册表 + JSON Schema + 参数解析 + 异常兜底），对照 `docs/testing.md` S2-2 三行；注意 `ToolDefinition` 契约来自 `src/types.ts`，注册表只做"名字→定义/参数校验/统一错误包装"，不执行工具本身。
 
 
