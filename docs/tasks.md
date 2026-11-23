@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S0-4（`src/llm/mock.ts` + 离线两轮验证）**
+**当前焦点：S0-5（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + CI workflow）**
 **最后更新：2026-11-23**
 
 ---
@@ -17,7 +17,7 @@
 | S0-1 | 初始化工程：`package.json` / `tsconfig.json` / `.gitignore` / `.env.example` / npm scripts；**先做 Ink 中文 IME spike** | 3h | done | `npm run typecheck` 0 错误；IME 结论写入 HANDOFF §7（判定 A，证据 `spikes/RESULT.md`） |
 | S0-2 | `src/types.ts` 定契约（Message / ToolCall / ToolResult / ToolDefinition / LlmClient / Gate / AgentEvent） | 2h | done | 类型可编译；无 `any` 逃逸 |
 | S0-3 | `src/config.ts` + `src/index.ts`：加载 `.env`、CLI 参数、`--help` / `--version` / `--print` 骨架 | 2h | done | `npm run dev -- --help` 输出用法；缺 key 报错可操作（证据见 HANDOFF §7 会话 5） |
-| S0-4 | `src/llm/mock.ts` + 离线两轮验证 | 2h | todo | `--mock --print "你好"` 走完"工具调用→最终文本" |
+| S0-4 | `src/llm/mock.ts` + 离线两轮验证 | 2h | done | `--mock --print "你好"` 走完"工具调用→最终文本"（证据见 HANDOFF §7 会话 6） |
 | S0-5 | `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + CI workflow | 2h | todo | CI 跑通 typecheck+test |
 | S0-6 | S0 收尾：跑全部验收、打 tag `v0.1-s0` | 0.5h | todo | `git tag` 已推送 |
 

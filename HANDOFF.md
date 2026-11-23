@@ -102,6 +102,7 @@ npm run build
 | 输入法 | 中文输入走系统微软拼音（WT 实测可用）；候选框位置略偏属可接受项；S1 起在输入框用 ink 的 `useCursor` 把终端光标放到 caret 位置，改善候选框位置 |
 | 契约（S0-2） | 唯一契约文件 `src/types.ts`：`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `ToolSpec` / `LlmClient`（`LlmChatOptions`/`LlmChatResult`）/ `Gate`（`GateResult`）/ `AgentEvent`；形状以方案 §3.3 为准，禁止类型逃逸；改契约必须先改方案 §3.3 并在 §7 说明；`ToolSpec` 是 §3.3 初稿遗漏、S0-2 补齐的类型 |
 | 配置层（S0-3） | `.env` 用 Node 内置 `process.loadEnvFile`（不新增依赖），只读「工作区 cwd 下」的 `.env`，文件缺失静默跳过；优先级 **CLI 参数 > 环境变量/`.env` > 内置默认值**；`MEWCODE_BASE_URL` 默认 `https://api.deepseek.com`（客户端负责拼 `/chat/completions`，S1 实现），值去尾斜杠；`--mock` 时模型默认 `mock`、不需要 key；**apiKey 只从环境变量/`.env` 读，不进 CLI、不进任何输出**；退出码：0 成功 / 2 可操作错误（`CliError`，stderr 带"下一步"）/ 1 内部错误；`--help`、`--version` 在加载 `.env` 和校验 key 之前处理；非 `--print` 时要求 stdin+stdout 都是 TTY，否则报错并提示 `--print`；`--print` 的 prompt 取「位置参数 → 非 TTY 的 stdin」；版本号从 `package.json` 读（`src/` 与 `dist/` 通用） |
+| mock 层（S0-4） | `src/llm/mock.ts` 导出 `createMockLlmClient(): LlmClient`；固定剧本按历史里有无 `role:"tool"` 消息判定：无 → 第 1 轮返回 `read_file` 调用（`id=call_mock_read_file_1`，`arguments='{"path":"README.md"}'`，`finishReason="tool_calls"`）；有 → 第 2 轮返回最终总结（`finishReason="stop"`）；确定性输出、不依赖网络/随机/时间；`onText` 在最终文本回调一次；已中断的 `AbortSignal` 抛 `AbortError`；S0-4 的 `--print` 只做「两轮驱动骨架」（工具结果占位），真实工具执行 S2、真实 API S1 |
 
 ---
 
@@ -180,7 +181,7 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-3 已完成（`src/config.ts` + `src/index.ts` 配置层与 CLI 入口骨架落地，`npm run typecheck` 0 错误、`npm test` 31/31 全绿），下一任务 S0-4（`src/llm/mock.ts` + 离线两轮验证）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-4 已完成（`src/llm/mock.ts` 离线两轮落地，`--mock --print "你好"` 走通"工具调用 → 回填 → 最终文本"，`npm run typecheck` 0 错误、`npm test` 39/39 全绿），下一任务 S0-5（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + CI workflow）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -246,6 +247,14 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **坑/结论**：`workdir` 参数切到上级目录再删相对路径**不能**绕过（cc-safety-net 按会话工作区判断，不按命令 cwd）。
 - **提交**：`091c2e3 chore(env): 示例模型名改为 deepseek-flash`（工作树原有改动）、`docs: 任务分支 push 保留原始提交`（本次改动本文件 §5.1 / §7 / §10；早期一版 `ba0d2c3 docs: 调整任务分支远端策略与安全网说明` 已被本次策略反转覆盖）。
 - **下次第一步**：S0-4 `src/llm/mock.ts` + 离线两轮验证（`--mock --print "你好"` 走"工具调用 → 最终文本"），等用户下达。
+
+### 2026-11-23 · 会话 6（S0-4：`src/llm/mock.ts` + 离线两轮）
+
+- **做了什么**：新增 `src/llm/mock.ts`：`createMockLlmClient(): LlmClient` 固定剧本（历史无 `role:"tool"` 消息 → 第 1 轮返回 `read_file` 工具调用；历史有 tool 消息 → 第 2 轮返回最终总结）；确定性、无网络依赖、`onText` 在最终文本回调一次、`AbortSignal` 已中断时抛 `AbortError`。`src/index.ts` 的 `--print` 分支接入两轮驱动骨架 `runMockTwoRounds`（调 mock → 回填占位工具结果 → 再调 mock，stdout 用 `--- 第 1 轮/第 2 轮 ---` 分隔，末尾 `finish:`）；新增 `tests/mock.test.ts`（8 用例：两轮剧本、`isMockFirstRound` 判定、确定性、`onText`、`AbortError`、CLI 端到端、非 mock `--print` 占位回归）；按 `docs/testing.md` S0-4 小节留证据。
+- **验收（A 级自动化，P0 全过）**：`npm run typecheck` 退出 0；`npm test` → `tests 39 / pass 39 / fail 0`（原 31 + 8 mock）；`npm run dev -- --mock --print "你好"` 输出两轮、`exit: 0`；把 `HTTP_PROXY/HTTPS_PROXY` 指到 `http://127.0.0.1:1` 后仍成功（证明不依赖网络）；stdin 变体 `"你好" | node --import tsx src/index.ts --mock --print` 同样走完两轮。
+- **已知限制**：S0-4 的工具执行是占位（回填 `（S0-4 占位工具结果：read_file 将在 S2 实现）`）；真实工具/注册表在 S2，真实 API 客户端在 S1；非 mock 的 `--print` 仍是占位文案。
+- **提交**：分支 `task/s0-4-mock` 提交 `<待回填>`（已 push 到远端）→ squash 合并为 `main` 的 `<待回填>` 并 push；docs 哈希回填提交 `<待回填>`。
+- **下次第一步**：S0-5 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + `.github/workflows/ci.yml`，测试见 `docs/testing.md` S0-5 小节。
 
 ### 交接模板（每次会话结束复制填写）
 
