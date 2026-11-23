@@ -33,7 +33,7 @@
 ### S1 SSE + TUI（目标：tag `v0.1-s1`）
 
 - [x] `src/llm/sse.ts`：一行拆多块、`[DONE]`、空行、跨 chunk 半行、CRLF、`data:` 前缀解析（单测覆盖，方案 §7.1）。
-  - 证据：`tests/sse.test.ts` 13 用例全过（分块、UTF-8 截断、CRLF、注释、多行 data、无空格 data、`[DONE]`、尾部残留、BOM、空 data、AbortError）；`npm run typecheck` exit 0；全量 `npm test` 52/52（原 39 + 新增 13），见 `docs/testing.md` S1-1 与 HANDOFF §7 会话 9。
+  - 证据：`tests/sse.test.ts` 13 用例全过（分块、UTF-8 截断、CRLF、注释、多行 data、无空格 data、`[DONE]`、尾部残留、BOM、空 data、AbortError）；`npm run typecheck` exit 0；全量 `npm test` 52/52（原 39 + 新增 13），见 `docs/testing.md` S1-1 与 HANDOFF §7 会话 9。B 级复核（抽查边界用例，9 个非 happy path）已由用户于 2026-11-23 确认通过。
 - [ ] `src/llm/openai.ts`：`tools` 转 `ToolSpec`、`tool_calls` 增量聚合、错误映射、`AbortSignal` 中止。
 - [ ] `src/ui/App.tsx`：状态机 `idle/streaming/tool_running/awaiting_approval/error`；`Static` 历史；50ms 节流；Esc/Ctrl+C 中止。
 - [ ] 真实 API 冒烟（用户提供 key）：流式首字 < 2s、可中断、中文不乱码。

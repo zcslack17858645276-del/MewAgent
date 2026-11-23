@@ -252,7 +252,7 @@ git status --short        # 确认没有把测试产物提交
 |---|---|---|---|---|---|
 | 1 | A | `node --import tsx --test tests/sse.test.ts` | 全绿 | P0 | ✅ tests 13 / pass 13 / fail 0（384ms） |
 | 2 | A | 覆盖用例：一行拆 3 块、UTF-8 多字节被切断、`\r\n`、空行、`:` 注释、`[DONE]`、无结尾换行 | 全部断言通过 | P0 | ✅ 13 个用例覆盖全部场景，另加 BOM / 多行 data / 无空格 data / 空 data / AbortError |
-| 3 | B | 抽查测试代码，确认不是"只测 happy path" | 至少 3 个失败/边界用例 | P1 | ✅ 失败与边界用例 9 个（分块、UTF-8 截断、CRLF 拆分、注释、`[DONE]`、尾部残留、BOM、空 data、AbortError） |
+| 3 | B | 抽查测试代码，确认不是"只测 happy path" | 至少 3 个失败/边界用例 | P1 | ✅ 失败与边界用例 9 个（分块、UTF-8 截断、CRLF 拆分、注释、`[DONE]`、尾部残留、BOM、空 data、AbortError）；用户已复核（2026-11-23） |
 
 **实测证据（2026-11-23，本地 Node v26.7.0）**：
 
