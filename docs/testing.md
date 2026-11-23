@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：S0-1、S0-2、S0-3 已完成（S0-3 配置层与 CLI 入口落地，证据 `src/config.ts` + `src/index.ts` + `tests/config.test.ts`，`npm test` 31/31），下一任务 S0-4。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：S0-1 ~ S0-4 已完成（S0-4 离线 mock 客户端落地：`--mock --print "你好"` 走完"工具调用 → 回填 → 最终文本"两轮，`npm test` 39/39），下一任务 S0-5。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ 🔄 S0-4（当前）｜ ⬜ S0-5 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ 🔄 S0-5（当前）｜ ⬜ S0-6 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -187,14 +187,20 @@ git status --short        # 确认没有把测试产物提交
 
 **通过标准**：1–5 全过；6–9 无回归。
 
-#### S0-4 mock 离线两轮
+#### S0-4 mock 离线两轮（已完成 2026-11-23）
+
+复验命令与预期（P0 = 必须全过）：
 
 | # | 类型 | 步骤 | 预期 | 级别 |
 |---|---|---|---|---|
-| 1 | A | `npm run dev -- --mock --print "你好"` | 第一轮返回工具调用，第二轮返回最终文本，退出 0 | P0 |
-| 2 | A | 断网/关代理后再跑一次 | 不依赖网络，仍成功 | P0 |
-| 3 | B | 观察 stdout | 工具调用与最终文本可区分，不夹带调试噪音 | P1 |
-| 4 | A | `echo exit` 检查退出码 | 0 | P0 |
+| 1 | A | `npm run dev -- --mock --print "你好"` | 第 1 轮输出 `tool_call: read_file {"path":"README.md"}`，第 2 轮输出最终文本 + `finish: stop`，退出 0 | P0 |
+| 2 | A | `npm test` | 含 `tests/mock.test.ts` 8 个用例，全量 39/39 通过 | P0 |
+| 3 | B | 把代理环境变量指到无效端口（`$env:HTTP_PROXY='http://127.0.0.1:1'; $env:HTTPS_PROXY='http://127.0.0.1:1'`）后重跑第 1 项 | 仍成功（mock 不依赖网络） | P0 |
+| 4 | B | 观察 stdout | 两轮用 `--- 第 1 轮/第 2 轮 ---` 分隔、可区分；无旧骨架文案、无 `Error:` 噪音 | P1 |
+
+**实测证据（2026-11-23）**：命令 1 输出两轮、`exit: 0`；命令 3 在 `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:1` 下同样成功；`npm test` → `tests 39 / pass 39 / fail 0`（原 31 + 8 mock）；`npm run typecheck` 退出 0；stdin 变体 `"你好" | node --import tsx src/index.ts --mock --print` 也走完两轮。
+
+**已知限制**：S0-4 的工具执行是**占位**（回填 `（S0-4 占位工具结果：read_file 将在 S2 实现）`），真实工具/注册表在 S2 接入；真实 API 客户端在 S1。mock 客户端已实现 `LlmClient` 契约（含 `onText` / `AbortSignal`），S1 的 Agent Loop 可直接复用。
 
 #### S0-5 文档 + CI
 
@@ -600,7 +606,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S0-1 ✅ | typecheck + `tests/core.test.ts`；IME 复验见附录 B |
 | S0-2 ✅ | typecheck + `tests/types.test.ts`（`npm test`） |
 | S0-3 ✅ | typecheck + `tests/config.test.ts`（`npm test`）+ 手工命令集 |
-| S0-4 | `--mock --print` 端到端 |
+| S0-4 ✅ | typecheck + `tests/mock.test.ts`（`npm test`）+ `--mock --print` 端到端 |
 | S0-5 | CI 运行记录 |
 | S1-1 | `tests/sse.test.ts` |
 | S1-2 | `tests/openai.test.ts` + 真实流式 |
@@ -631,3 +637,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | 对齐 S0-1 完成后的实际仓库：补 PowerShell 5.1 / WT 1.25 / Node 26.7 实测环境；S0-1 章节改为复验步骤；IME 脚本改为引用已提交的 `spikes/`；命令按阶段可用性标注 |
 | 2026-11-23 | S0-2 完成：`src/types.ts` 契约落地（回填 `ToolSpec`）、新增 `tests/types.test.ts`；S0-2 章节改为复验步骤，进度切到 S0-3 |
 | 2026-11-23 | S0-3 完成：`src/config.ts` + `src/index.ts`（`.env` / CLI 参数 / TTY 检查 / `--print` headless 骨架）落地、新增 `tests/config.test.ts` 25 用例（全量 31）；S0-3 章节改为复验步骤并附实测证据，进度切到 S0-4 |
+| 2026-11-23 | S0-4 完成：新增 `src/llm/mock.ts`（离线两轮剧本）+ `src/index.ts` 两轮驱动骨架 + `tests/mock.test.ts` 8 用例（全量 39）；`--mock --print "你好"` 不依赖网络走完两轮；S0-4 章节改为复验步骤并附实测证据，进度切到 S0-5 |

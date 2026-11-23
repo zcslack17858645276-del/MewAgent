@@ -1,8 +1,9 @@
-// MewAgent CLI 入口（S0-3 骨架）：参数解析 → 配置校验 → 交互 / headless 分发。
+// MewAgent CLI 入口：参数解析 → 配置校验 → 交互 / headless 分发。
 //
 // 边界（方案 §3.1）：本文件只做参数与 IO 编排，不直接调 LLM、不读输入循环；
-// 真正的 TUI 在 S1、`--print` 接 LLM 在 S0-4/S1-5。S0-3 只保证：
-// `--help` / `--version` 可用、缺 key / 未知参数 / 无 TTY 的报错可操作、配置（workspace/model/mock）可验证。
+// 真正的 TUI 在 S1、真实 API 客户端在 S1；本文件目前保证：
+// `--help` / `--version` 可用、缺 key / 未知参数 / 无 TTY 的报错可操作、配置可验证；
+// `--mock --print` 用离线 mock 客户端走完“工具调用 → 回填 → 最终文本”两轮（S0-4）。
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -18,6 +19,8 @@ import {
   usage,
 } from "./config.js";
 import type { AppConfig } from "./config.js";
+import { createMockLlmClient } from "./llm/mock.js";
+import type { Message, ToolResult } from "./types.js";
 
 /** 入口依赖（测试注入用）：默认全部走真实 `process` / 文件系统。 */
 export interface MainDeps {
@@ -42,17 +45,55 @@ function formatConfigLines(config: AppConfig): string[] {
   ];
 }
 
-function formatPrintOutput(
+function formatPrintHeader(
   version: string,
   config: AppConfig,
   prompt: string,
+  mode: string,
 ): string {
   return [
-    `mewagent ${version} · headless（S0-3 骨架：S0-4 接入 mock 后这里输出模型回复）`,
+    `mewagent ${version} · headless（${mode}）`,
     ...formatConfigLines(config),
     `prompt: ${prompt}`,
     "",
   ].join("\n");
+}
+
+/**
+ * S0-4 的两轮驱动骨架：只负责“调 mock → 回填占位工具结果 → 再调 mock”。
+ * 真正的 Agent Loop（多轮、Gate、真实工具执行）在 S2 接入，这里不重复实现。
+ */
+async function runMockTwoRounds(
+  prompt: string,
+  write: (text: string) => void,
+): Promise<void> {
+  const client = createMockLlmClient();
+  const messages: Message[] = [{ role: "user", content: prompt }];
+
+  write("--- 第 1 轮：模型 → 工具调用 ---\n");
+  const first = await client.chat(messages, []);
+  messages.push({
+    role: "assistant",
+    content: first.content,
+    toolCalls: first.toolCalls,
+  });
+  for (const call of first.toolCalls) {
+    write(`tool_call: ${call.name} ${call.arguments}\n`);
+    const placeholder: ToolResult = {
+      ok: true,
+      output: `（S0-4 占位工具结果：${call.name} 将在 S2 实现）`,
+    };
+    messages.push({
+      role: "tool",
+      toolCallId: call.id,
+      content: placeholder.output,
+    });
+  }
+
+  write("\n--- 第 2 轮：模型 → 最终文本 ---\n");
+  const second = await client.chat(messages, []);
+  write(`${second.content}\n`);
+  write(`finish: ${second.finishReason}\n`);
 }
 
 function formatInteractiveOutput(version: string, config: AppConfig): string {
@@ -126,7 +167,19 @@ export async function main(
         config.prompt !== ""
           ? config.prompt
           : readPromptFromStdin(deps, stdinIsTTY);
-      write(formatPrintOutput(version, config, prompt));
+      if (config.mock) {
+        write(formatPrintHeader(version, config, prompt, "mock 离线两轮"));
+        await runMockTwoRounds(prompt, write);
+        return 0;
+      }
+      write(
+        formatPrintHeader(
+          version,
+          config,
+          prompt,
+          "真实 API 将在 S1 接入；现在可用 --mock 离线跑通两轮",
+        ),
+      );
       return 0;
     }
 
