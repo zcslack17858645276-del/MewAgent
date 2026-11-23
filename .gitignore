@@ -17,6 +17,9 @@ build/
 .mewagent/
 *.session.json
 
+# local spike artifacts (IME evidence, screenshots, logs)
+spikes/.out/
+
 # logs
 *.log
 npm-debug.log*

@@ -56,11 +56,13 @@
 | 远端 | `origin`，HTTPS；凭据由本机 Git Credential Manager 管理（账号 `zcslack17858645276-del`），不要手动保存 token |
 | 分支 | `main` 随时可运行；任务分支见 §5.1 |
 | 本地路径 | `D:\workplace\AIAgent\MewCode` |
-| 运行时 | Node ≥22、npm、git；推荐 Windows Terminal |
+| 运行时 | Node ≥22、npm、git；推荐 Windows Terminal（本机实测环境见下方） |
 | 外网 | 代理 `http://127.0.0.1:7890`；`github.com` 需要代理，`api.github.com` 可直连 |
 | 密钥 | 只放 `.env`（已被 `.gitignore` 忽略）；仓库只提交 `.env.example`；任何情况下不把 key 写进代码、文档或提交 |
 
-**常用命令**（S0 完成后生效）：
+**本机实测环境（2026-11-23，S0-1 验证）**：Node v26.7.0 / npm 12.0.2 / Windows Terminal 1.25.3131.0；系统只有 Windows PowerShell 5.1（**无 pwsh 7**，未签名 `.ps1` 需 `-ExecutionPolicy Bypass`）；Windows 11 26200，单屏 1920x1080；git 全局 `http(s).proxy=127.0.0.1:7890`，npm 装包需带 `HTTP_PROXY/HTTPS_PROXY` 或改用 npmmirror（npmmirror 可直连）。
+
+**常用命令**（S0-1 起可用；`--mock` 等参数随 S0-3/S0-4 落地）：
 
 ```powershell
 npm run dev              # tsx 直接跑
@@ -85,11 +87,19 @@ npm run build
 | 状态 | session JSON 本地持久化（`.mewcode/session.json`）；跨会话 memory v0.1 不做，只留接口 |
 | 产品边界 | v0.1 不做 MCP / Skill / Hook / SubAgent / Git Worktree / Agent Teams / 桌面 GUI |
 
-**未定事项（开工前确认）**：
+**未定/已定事项**：
 
-1. **产品名**：仓库叫 MewAgent，历史方案文档仍写 MewCode。建议新代码/README 统一用 MewAgent，历史文档不重命名，靠本文件说明；最终以用户拍板为准。
-2. **技术栈是否最终确认**：现有方案按 TS + Ink 写。若要改 Go + Bubble Tea，先更新本文件与方案再开工，不要两套并行。
-3. **S0 第一件事**：Ink 中文 IME spike（约 30 分钟）。结论必须写进 §7；不可用时按方案 §9.1 转 Go。
+1. **产品名（仍未定）**：仓库叫 MewAgent，历史方案文档仍写 MewCode。建议新代码/README 统一用 MewAgent，历史文档不重命名，靠本文件说明；最终以用户拍板为准。
+2. **技术栈（已定，2026-11-23）**：✅ 继续 TS + Ink，不转 Go + Bubble Tea。S0-1 的 Ink 中文 IME spike 判定 **A**（中文可正常输入、退格正常，仅候选框位置略偏），满足方案 §9.1「继续 TS」条件；证据见 `spikes/RESULT.md`。Go 方案不再保留（除非后续出现阻断）。
+3. **S0 第一件事（已完成）**：✅ Ink 中文 IME spike 已完成，结论见 §7 会话 2。
+
+**补充已定决策（S0-1 新增，勿再讨论）**：
+
+| 类别 | 决策 |
+|---|---|
+| 包名/版本 | `mewagent` / `0.1.0`（private，`type: module`，engines `node>=22`） |
+| 环境变量 | `MEWCODE_API_KEY` / `MEWCODE_BASE_URL` / `MEWCODE_MODEL`（可选 `MEWCODE_SHELL`）；模板见 `.env.example` |
+| 输入法 | 中文输入走系统微软拼音（WT 实测可用）；候选框位置略偏属可接受项；S1 起在输入框用 ink 的 `useCursor` 把终端光标放到 caret 位置，改善候选框位置 |
 
 ---
 
@@ -161,7 +171,7 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 未开始，下一任务 S0-1**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-1 已完成（IME 判定 A），下一任务 S0-2（`types.ts` 契约）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -175,6 +185,21 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **关键结论**：开源侧 TypeScript 占主导，TUI 正从 Ink/Textual 向 OpenTUI 换代；Claude Code 已改为原生二进制分发；个人首版砍到 P0 8 项；默认 TS + Ink，中文 IME 不可用时转 Go + Bubble Tea。
 - **遗留/坑**：① Ink 中文 IME 尚未实测，S0 必须做 spike；② 产品名 MewAgent 与 MewCode 未统一；③ `research/` 中部分事实为社区说法，引用前看每条标注。
 - **下次第一步**：S0-1 初始化工程 + IME spike，然后 S0-2 定契约。
+
+### 2026-11-23 · 会话 2（S0-1：工程初始化 + Ink 中文 IME spike）
+
+- **做了什么**：搭 TS 工程骨架（`package.json` / `tsconfig.json` / `tsconfig.build.json` / `.env.example` / `.gitignore` 补 `spikes/.out/` / `src/index.ts` 占位 / `tests/core.test.ts`）；`npm install` 锁定依赖（ink 8.0.0、react 19.3.1、ink-text-input 6.0.0、tsx 4.23.15、typescript 7.0.2）；完成 Ink 8 中文 IME spike（真实 GUI 注入，非模拟）；更新看板与本文件。
+- **IME 结论（判定 A → 按方案 §9.1 继续 TS + Ink，不转 Go）**：
+  - 环境：Windows Terminal 1.25.3131.0 + 微软拼音；目标窗口 HKL=0x08040804 但 TSF 实际生效微软拼音（默认中文）；**Shift 按一次切英文直通**；无需改系统输入法设置。
+  - 中文：`nihao` 组合期 Ink 收不到事件 → 空格选首候选上屏 `你好` → jsonl `change value="你好" len=2` → Enter `submit value="你好"`，无重复字符。
+  - 退格：`你好` → `你` → `""`（len 2→1→0），每次精确删 1 个完整汉字，无半字/乱码/错位。
+  - ASCII 基线：`a`→`ab`→`abc`→`ab`，Ink/终端/keypress 解析本身正常。
+  - 已知限制：preedit + 微软拼音候选条渲染在 Ink 边框盒下方约 3~4 行（不贴 `> ` 光标），但不遮挡、可正常选词/上屏；属 §9.1「候选框位置略偏但可输入」。
+  - 证据：`spikes/RESULT.md`（复现步骤 + jsonl 原文 + 截图对照表）；`spikes/.out/`（14 张截图、`ime-log.jsonl`、`summary.json`、`run-ime-spike.log`）；一键复现：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\run-ime-spike.ps1`。
+  - 残余风险（未测，S1/S3 再覆盖）：① 数字键从候选列表选词可能被 Ink 当普通数字输入（Claude Code #57759 同类）；② alternate-screen 全屏 TUI 下 IME 表现可能更差（Claude Code #93281）；③ 真实 TUI 输入框在底部时候选框偏移的观感，可用 ink `useCursor` 把终端光标放到 caret 位置缓解。
+- **提交**：分支 `task/s0-1-scaffold`（1 个 commit）→ squash 合并回 `main` 并 push；见 `git log --oneline -3`。gh CLI 未安装，PR 步骤以本地 diff review 代替。
+- **环境坑**：① 本机只有 Windows PowerShell 5.1（**无 pwsh 7**）；② 执行策略 `RemoteSigned`，未签名 `.ps1` 需 `-ExecutionPolicy Bypass`；③ PS 5.1 会把无 BOM 的 UTF-8 `.ps1` 按 GBK 解码，脚本内请只写 ASCII；④ npm 装包需 `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:7890`（npmmirror 可直连）；⑤ `npm test` 的 `tests/*.test.ts` glob 在 Node 26 + npm 下可直接用（npm 原样传给 node，由 node 展开）。
+- **下次第一步**：S0-2 `src/types.ts` 定契约（`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `LlmClient` / `Gate` / `AgentEvent`），先抄方案 §3.3 原文，禁止 `any` 逃逸。
 
 ### 交接模板（每次会话结束复制填写）
 

@@ -4,7 +4,7 @@
 > 状态：`todo` → `doing` → `done`；被阻塞写 `blocked` 并在 HANDOFF §7 说明。
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 
-**当前焦点：S0-1（初始化工程）**
+**当前焦点：S0-2（types.ts 契约）**
 **最后更新：2026-11-23**
 
 ---
@@ -13,7 +13,7 @@
 
 | ID | 任务 | 估时 | 状态 | 验收 |
 |---|---|---|---|---|
-| S0-1 | 初始化工程：`package.json` / `tsconfig.json` / `.gitignore` / `.env.example` / npm scripts；**先做 Ink 中文 IME spike** | 3h | todo | `npm run typecheck` 0 错误；IME 结论写入 HANDOFF §7 |
+| S0-1 | 初始化工程：`package.json` / `tsconfig.json` / `.gitignore` / `.env.example` / npm scripts；**先做 Ink 中文 IME spike** | 3h | done | `npm run typecheck` 0 错误；IME 结论写入 HANDOFF §7（判定 A，证据 `spikes/RESULT.md`） |
 | S0-2 | `src/types.ts` 定契约（Message / ToolCall / ToolResult / ToolDefinition / LlmClient / Gate / AgentEvent） | 2h | todo | 类型可编译；无 `any` 逃逸 |
 | S0-3 | `src/config.ts` + `src/index.ts`：加载 `.env`、CLI 参数、`--help` / `--version` / `--print` 骨架 | 2h | todo | `npm run dev -- --help` 输出用法；缺 key 报错可操作 |
 | S0-4 | `src/llm/mock.ts` + 离线两轮验证 | 2h | todo | `--mock --print "你好"` 走完"工具调用→最终文本" |
