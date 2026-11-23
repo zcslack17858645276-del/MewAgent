@@ -197,7 +197,7 @@ git status               # 确认没有 .env / node_modules / 密钥
   - 已知限制：preedit + 微软拼音候选条渲染在 Ink 边框盒下方约 3~4 行（不贴 `> ` 光标），但不遮挡、可正常选词/上屏；属 §9.1「候选框位置略偏但可输入」。
   - 证据：`spikes/RESULT.md`（复现步骤 + jsonl 原文 + 截图对照表）；`spikes/.out/`（14 张截图、`ime-log.jsonl`、`summary.json`、`run-ime-spike.log`）；一键复现：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File spikes\run-ime-spike.ps1`。
   - 残余风险（未测，S1/S3 再覆盖）：① 数字键从候选列表选词可能被 Ink 当普通数字输入（Claude Code #57759 同类）；② alternate-screen 全屏 TUI 下 IME 表现可能更差（Claude Code #93281）；③ 真实 TUI 输入框在底部时候选框偏移的观感，可用 ink `useCursor` 把终端光标放到 caret 位置缓解。
-- **提交**：分支 `task/s0-1-scaffold`（1 个 commit）→ squash 合并回 `main` 并 push；见 `git log --oneline -3`。gh CLI 未安装，PR 步骤以本地 diff review 代替。
+- **提交**：分支 `task/s0-1-scaffold` 提交 `a454433`（已 push 到远端）→ squash 合并为 `main` 的 `17d1120` 并 push。gh CLI 未安装，PR 步骤以本地 diff review 代替（远端分支 review 后可删除）。
 - **环境坑**：① 本机只有 Windows PowerShell 5.1（**无 pwsh 7**）；② 执行策略 `RemoteSigned`，未签名 `.ps1` 需 `-ExecutionPolicy Bypass`；③ PS 5.1 会把无 BOM 的 UTF-8 `.ps1` 按 GBK 解码，脚本内请只写 ASCII；④ npm 装包需 `HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:7890`（npmmirror 可直连）；⑤ `npm test` 的 `tests/*.test.ts` glob 在 Node 26 + npm 下可直接用（npm 原样传给 node，由 node 展开）。
 - **下次第一步**：S0-2 `src/types.ts` 定契约（`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `LlmClient` / `Gate` / `AgentEvent`），先抄方案 §3.3 原文，禁止 `any` 逃逸。
 
