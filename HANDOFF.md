@@ -110,24 +110,25 @@ npm run build
 ### 5.1 分支模型（单人简化版）
 
 - `main`：随时可运行；只接受通过 `typecheck + test` 的合并。
-- 每个 task 一个**本地**短分支：`task/s0-1-scaffold`、`task/s2-3-fs-tools`；修复用 `fix/...`，纯文档用 `docs/...`。
-- 标准流程（2026-11-23 起：远端只保留 `main`，任务分支不 push，避免远端残留）：
+- 每个 task 一个短分支：`task/s0-1-scaffold`、`task/s2-3-fs-tools`；修复用 `fix/...`，纯文档用 `docs/...`。
+- 标准流程（2026-11-23 起：任务分支 push 到远端，**保留每个 task 的原始提交历史**；远端分支是否/何时清理由用户决定并手动执行）：
 
   ```powershell
   git switch -c task/s0-4-mock
   # 开发 + 提交（可多次）
+  git push -u origin task/s0-4-mock   # 原始提交历史保留在远端
   npm run typecheck
   npm test
   git switch main
   git merge --squash task/s0-4-mock
-  git commit -m "feat(llm): ..."   # 正文注明 squash 自 <分支 tip 哈希>
+  git commit -m "feat(llm): ..."      # 正文注明 squash 自 <分支 tip 哈希>
   git push origin main
-  git branch -d task/s0-4-mock
+  git branch -d task/s0-4-mock        # 本地分支合并后删除，远端分支保留
   ```
 
-- 只有需要远程 review / 开 PR 时才 `git push -u origin <branch>`；合并后远端分支由用户手动删除（agent 执行 `git push --delete` 会被 cc-safety-net 拦，见 §10）。
+- 远端 `task/*` 分支作为该 task 的原始提交记录保留（squash 会丢掉分支内的小提交，远端分支可用于追溯/远程 review）；需要清理时由**用户手动**执行 `git push origin --delete <branch>`（agent 执行会被 cc-safety-net 的 `git.push-delete` 拦，见 §10）。删除是安全的：squash 后 `main` 已含等价内容。
 - 只改文档或一行配置，允许直接在 `main` 提交，但仍要求"一次任务一个 commit"。
-- 历史遗留：`origin/task/s0-1-scaffold`、`origin/task/s0-2-contract`、`origin/task/s0-3-config` 均已 squash 合并（内容在 `main`），待用户手动删除。
+- 现状：`origin/task/s0-1-scaffold`、`origin/task/s0-2-contract`、`origin/task/s0-3-config` 按此策略保留在远端。
 
 ### 5.2 commit 规范（Conventional Commits 简版）
 
@@ -239,11 +240,11 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ### 2026-11-23 · 会话 5 补充（GitHub 远端分支策略 + 安全网边界）
 
-- **决定（GitHub 侧）**：远端只保留 `main`；任务分支只建在本地，squash 合并后立即删本地分支，不再 push 远端。只有需要远程 review / PR 时才 push 分支，合并后由用户手动删远端分支。
-- **现状**：远端 `task/s0-1-scaffold`、`task/s0-2-contract`、`task/s0-3-config` 停在三次任务的原始提交 tip（`a454433` / `313cc5d` / `426ecc7`），已分别 squash 为 `17d1120` / `1e9a401` / `e8246c7` 进 `main`，删除无损失；agent 执行 `git push origin --delete` 被 `git.push-delete` 规则拦截，需用户手动删（GitHub Branches 页：`https://github.com/zcslack17858645276-del/MewAgent/branches`，或终端 `git push origin --delete task/s0-1-scaffold task/s0-2-contract task/s0-3-config`）。
+- **决定（GitHub 侧，2026-11-23 最终）**：任务分支**继续 push 到远端**，保留每个 task 的原始提交历史（用户明确要求，见 m00805）；squash 进 `main` 后远端分支保留，删除/清理由**用户手动**执行（agent 执行 `git push origin --delete` 被 `git.push-delete` 拦）。早期一度改为"远端只保留 main"，已按用户意见反转。
+- **现状**：远端 `task/s0-1-scaffold`、`task/s0-2-contract`、`task/s0-3-config` 分别停在 `a454433` / `313cc5d` / `426ecc7`，均已 squash 为 `main` 的 `17d1120` / `1e9a401` / `e8246c7`；按新策略**保留不删**，作为原始提交追溯。
 - **安全网边界**：确认拦截来自 cc-safety-net（DSH 集成 Doctor 状态 Verified，level=standard），不是 DSH 沙箱/审批；`.env`、工作区外递归删除、远端引用删除均由它保护。用户级策略可放宽（`destructive_command_protection.allow_paths`、per-rule `overrides`），但 agent 不能写策略文件、也不能自己执行 `policy apply`，必须用户本人在终端确认；本次未应用任何策略变更（工作区外删除由用户自行处理），提案留在 `spikes/.out/policy-proposal.json`（已 gitignore）备用。
 - **坑/结论**：`workdir` 参数切到上级目录再删相对路径**不能**绕过（cc-safety-net 按会话工作区判断，不按命令 cwd）。
-- **提交**：`docs: 调整任务分支远端策略与安全网说明`（本次改动本文件 §5.1 / §7 / §10）。
+- **提交**：`091c2e3 chore(env): 示例模型名改为 deepseek-flash`（工作树原有改动）、`docs: 任务分支 push 保留原始提交`（本次改动本文件 §5.1 / §7 / §10；早期一版 `ba0d2c3 docs: 调整任务分支远端策略与安全网说明` 已被本次策略反转覆盖）。
 - **下次第一步**：S0-4 `src/llm/mock.ts` + 离线两轮验证（`--mock --print "你好"` 走"工具调用 → 最终文本"），等用户下达。
 
 ### 交接模板（每次会话结束复制填写）
