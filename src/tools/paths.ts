@@ -38,8 +38,11 @@ export class UnsafePathError extends Error {
   }
 }
 
-/** 把路径统一成正斜杠形式（仅用于输出/展示，不用于文件系统调用比较）。 */
+/** 把路径统一成正斜杠形式（仅用于输出/展示）。POSIX 下反斜杠是合法文件名字符，不做替换。 */
 export function toPosixPath(value: string): string {
+  if (path.sep !== "\\") {
+    return value;
+  }
   return value.replaceAll("\\", "/");
 }
 

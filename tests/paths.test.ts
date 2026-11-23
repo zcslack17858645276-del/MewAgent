@@ -44,7 +44,12 @@ function expectRejected(input: string): UnsafePathError {
 
 test("paths：拒绝 ../ 与 ..\\ 形式的越界", () => {
   assert.equal(expectRejected("../x").reason, "绝对路径在工作区外");
-  assert.equal(expectRejected("..\\x").reason, "绝对路径在工作区外");
+  if (process.platform === "win32") {
+    assert.equal(expectRejected("..\\x").reason, "绝对路径在工作区外");
+  } else {
+    // POSIX 下反斜杠是合法文件名字符：`..\x` 是一个普通文件名，不会越界。
+    assert.equal(resolveInside(workspace, "..\\x"), path.resolve(workspace, "..\\x"));
+  }
   assert.equal(expectRejected("../../etc/passwd").reason, "绝对路径在工作区外");
   assert.equal(expectRejected("..").reason, "绝对路径在工作区外");
 });
@@ -85,7 +90,13 @@ test("paths：拒绝空输入、空白输入与 NUL 字符", () => {
 test("paths：允许工作区内相对路径并输出正斜杠绝对路径", () => {
   assert.equal(resolveInside(workspace, "src/a.ts"), `${workspacePosix}/src/a.ts`);
   assert.equal(resolveInside(workspace, "./a.ts"), `${workspacePosix}/a.ts`);
-  assert.equal(resolveInside(workspace, "src\\a.ts"), `${workspacePosix}/src/a.ts`);
+  // Windows 反斜杠是分隔符；POSIX 下它是合法文件名字符，输出不做斜杠替换。
+  assert.equal(
+    resolveInside(workspace, "src\\a.ts"),
+    process.platform === "win32"
+      ? `${workspacePosix}/src/a.ts`
+      : path.resolve(workspace, "src\\a.ts"),
+  );
   assert.equal(resolveInside(workspace, "src/../src/a.ts"), `${workspacePosix}/src/a.ts`);
   assert.equal(resolveInside(workspace, "."), workspacePosix);
 });
