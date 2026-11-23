@@ -3,6 +3,7 @@
 > 唯一任务看板。会话开始时认领一个 task，结束后更新状态。
 > 状态：`todo` → `doing` → `done`；被阻塞写 `blocked` 并在 HANDOFF §7 说明。
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
+> 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
 **当前焦点：S0-2（types.ts 契约）**
 **最后更新：2026-11-23**
