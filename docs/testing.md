@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：S0-1 已完成（Ink 中文 IME 判定 A，证据 `spikes/RESULT.md`），下一任务 S0-2。本手册从 S0-2 起用于每个 task 的"完成前验收"；S0-1 章节保留为复验/回归用途。
+> **当前进度**：S0-1、S0-2 已完成（S0-2 契约落地，证据 `src/types.ts` + `tests/types.test.ts`），下一任务 S0-3。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ 🔄 S0-2（当前）｜ ⬜ S0-3 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ 🔄 S0-3（当前）｜ ⬜ S0-4 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -146,16 +146,19 @@ git status --short        # 确认没有把测试产物提交
 **通过标准**：1–3 全过；4–5 无回归；若 IME 在新环境失效 → 记录并重新评估 §9.1（是否转 Go）。
 **证据**：`typecheck` 输出 + IME 复验结果（贴 `spikes/.out/summary.json` 或截图路径）。
 
-#### S0-2 `src/types.ts` 契约
+#### S0-2 `src/types.ts` 契约（已完成 2026-11-23）
+
+> 自动化已由 AI 跑完，本小节保留为复验/回归用途。证据：`src/types.ts`、`tests/types.test.ts`、HANDOFF §7 会话 4。
 
 | # | 类型 | 步骤 | 预期 | 级别 |
 |---|---|---|---|---|
 | 1 | A | `npm run typecheck` | 0 错误 | P0 |
-| 2 | A | 搜索 `src/types.ts` 中 `any` | 无 `any` 逃逸（或用 `unknown`） | P0 |
-| 3 | B | 对照实施方案 §3.3，检查类型是否齐全：`Message`/`ToolCall`/`ToolResult`/`ToolDefinition`/`LlmClient`/`Gate`/`AgentEvent` | 一个不少，字段名一致 | P0 |
-| 4 | B | 让 AI 用一个假对象实现 `ToolDefinition`，能通过 typecheck | 契约可用 | P1 |
+| 2 | A | `npm test` | 6 passed / 0 failed（含 `tests/types.test.ts` 3 个契约用例；负例由 `@ts-expect-error` 在 typecheck 阶段锁住） | P0 |
+| 3 | A | 搜索 `src/types.ts` 中 `\bany\b` | 无匹配（无类型逃逸，不确定数据用 `unknown`） | P0 |
+| 4 | B | 对照实施方案 §3.3，检查类型是否齐全：`Message`/`ToolCall`/`ToolResult`/`ToolDefinition`/`ToolSpec`/`LlmClient`/`Gate`/`AgentEvent` | 一个不少，字段名一致；`ToolSpec` 为 §3.3 补定义 | P0 |
+| 5 | B | 抽查 `tests/types.test.ts` 中的假对象实现 `ToolDefinition` / `LlmClient` / `Gate` | 契约可直接实现，写法可读 | P1 |
 
-**证据**：typecheck 输出、`types.ts` 截图或 diff。
+**证据**：`npm run typecheck` 退出码 0、`npm test` 6/6 全绿输出、`types.ts` diff（见 HANDOFF §7 会话 4）。
 
 #### S0-3 config + 入口骨架
 
@@ -581,7 +584,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | Task | 预期测试文件/方式 |
 |---|---|
 | S0-1 ✅ | typecheck + `tests/core.test.ts`；IME 复验见附录 B |
-| S0-2 | typecheck |
+| S0-2 ✅ | typecheck + `tests/types.test.ts`（`npm test`） |
 | S0-3 | 手工命令集 |
 | S0-4 | `--mock --print` 端到端 |
 | S0-5 | CI 运行记录 |
@@ -612,3 +615,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 |---|---|
 | 2026-11-23 | 首版：覆盖 S0–S4 全部 29 个 task；定义 A/B/C 分工、测试沙盒、阶段回归清单 |
 | 2026-11-23 | 对齐 S0-1 完成后的实际仓库：补 PowerShell 5.1 / WT 1.25 / Node 26.7 实测环境；S0-1 章节改为复验步骤；IME 脚本改为引用已提交的 `spikes/`；命令按阶段可用性标注 |
+| 2026-11-23 | S0-2 完成：`src/types.ts` 契约落地（回填 `ToolSpec`）、新增 `tests/types.test.ts`；S0-2 章节改为复验步骤，进度切到 S0-3 |
