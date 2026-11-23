@@ -325,7 +325,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级）**：`npm run typecheck` exit 0；`npm run build` exit 0 且 `node dist/index.js --mock --print "hi"` 两轮正常；`node --import tsx --test tests/ui.test.ts` → 6/6；全量 `npm test` → **tests 83 / pass 83 / fail 0**（原 77 + 新增 6）；非 TTY 交互仍报 `当前不是交互式终端（TTY）` 并退出 2；假 stdin/stdout 驱动 Ink 的 TUI 冒烟 `SMOKE OK`（启动横幅/工作区/就绪 → 提交"你好" → mock 两轮文本进历史 → 排队提示 → 空闲 Ctrl+C `waitUntilExit`）。证据：`spikes/.out/s1-4-targeted.txt`、`s1-4-full.txt`、`s1-4-smoke.txt`、`s1-4-dist.txt`、`s1-4-notty.txt`（均 gitignored）。
 - **B 级（待用户）**：`docs/testing.md` S1-4 的 8 条手工项——①中文输入不乱码；②流式不闪烁/历史不重复/滚动不跳；③Esc 后继续对话历史完整；④空闲 Ctrl+C 退出、生成中只中断；⑤拉伸窗口布局不错位；⑥粘贴 ≥10 行不触发多次提交；⑦空输入回车无请求无报错；⑧连发 3 条不串轮不丢消息。另：真实 API 的流式观感需 S1-5 接线后复验。
 - **坑**：①`<Static items>` 要求 `T[]` 可变数组、`LlmClient.chat` 形参是 `Message[]`，而 `SendMessage`/历史用 `readonly`，触发 4 个 TS4104 → 状态改可变数组 + `[...messages]` 复制；②假 stdin 必须实现 `_read()`，否则报 `ERR_METHOD_NOT_IMPLEMENTED`；③向假 stdin 写"文字+回车"必须分两次 `push`，一次写入会被 ink 当成整段粘贴（`onSubmit` 不触发，send 根本没跑）；④`npm test` 计数仍被 PS 5.1 管道吞，需 `cmd /c "... > file 2>&1"`。
-- **提交**：分支 `task/s1-4-tui` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>` → 本条哈希回填提交并 push。
+- **提交**：分支 `task/s1-4-tui` 提交 `864bcb6`（已 push，远端保留原始提交）→ squash 合并 main `a687cc7` → 本条哈希回填提交并 push。
 - **下次第一步**：S1-5 `--print` 接真实 API：把 `createOpenAiLlmClient` + `buildSystemPrompt`/`withSystemPrompt` 接进 headless 分支（无 TTY 下能跑一轮），加 `MEWCODE_DEBUG=1` 请求体日志，见 `docs/testing.md` S1-5 小节；同时把 S1-4 的 8 条 B 级复核结论入库。
 
 ### 交接模板（每次会话结束复制填写）
