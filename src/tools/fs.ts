@@ -255,8 +255,10 @@ export const readFileTool: ToolDefinition = {
       if (built.truncatedByBytes) {
         notes.push(`…（输出已截断：单次最多 ${MAX_TOOL_OUTPUT_BYTES} 字节）`);
       }
-      if (end < lineCount) {
-        notes.push(`…（还有 ${lineCount - end} 行未显示；用 offset=${end + 1} 继续读取）`);
+      // 续读位置按"实际渲染到的行"算，而不是按 limit 算：字节截断时二者不同，
+      // 按 limit 给 offset 会跳过中间从未展示过的行。
+      if (built.lastLine < lineCount) {
+        notes.push(`…（还有 ${lineCount - built.lastLine} 行未显示；用 offset=${built.lastLine + 1} 继续读取）`);
       }
 
       return { ok: true, output: [header, built.text, ...notes].filter((part) => part !== "").join("\n") };
