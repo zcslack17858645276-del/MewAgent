@@ -20,13 +20,19 @@ import {
   useInput,
 } from "ink";
 import type { CursorPosition, DOMElement } from "ink";
-import TextInput from "ink-text-input";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 
 import type { LlmChatResult, Message } from "../types.js";
 import { HistoryItem, createHistoryEntry } from "./HistoryItem.js";
 import type { HistoryEntry, HistoryEntryKind } from "./HistoryItem.js";
+import { InputBox } from "./InputBox.js";
+import {
+  CONTINUATION_WIDTH,
+  PROMPT_WIDTH,
+  lineAndColumn,
+  splitLines,
+} from "./input-text.js";
 import { ThrottledEmitter } from "./throttle.js";
 import { displayWidth } from "./width.js";
 
@@ -46,9 +52,6 @@ export interface AppProps {
   /** 流式刷新间隔，默认 50ms（方案 §6.9）；测试可调小。 */
   readonly streamThrottleMs?: number;
 }
-
-const PROMPT = "❯ ";
-const PROMPT_WIDTH = displayWidth(PROMPT);
 
 type Phase = "idle" | "streaming";
 
@@ -85,6 +88,7 @@ export function App({
   ]);
   const messagesRef = useRef<readonly Message[]>(messages);
   const [input, setInput] = useState("");
+  const [cursorOffset, setCursorOffset] = useState(0);
   const [streaming, setStreaming] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [queue, setQueue] = useState<readonly string[]>([]);
@@ -214,6 +218,7 @@ export function App({
 
   const handleSubmit = useCallback((value: string) => {
     setInput("");
+    setCursorOffset(0);
     const prompt = value.trim();
     if (prompt === "") {
       return; // 空输入不请求、不报错
@@ -240,6 +245,7 @@ export function App({
       }
 
       setInput("");
+      setCursorOffset(0);
       setErrorText(null);
     }
   });
@@ -253,6 +259,7 @@ export function App({
   }, []);
 
   // 布局完成后测量输入框位置，把终端光标放到 caret（IME 候选框跟随）。
+  // 多行时 y 需要加上 caret 所在行号，x 需要加上该行的前缀宽度（首行提示符/续行缩进）。
   useEffect(() => {
     const node = inputBoxRef.current;
     if (node === null) {
@@ -261,17 +268,20 @@ export function App({
     }
 
     const metrics = measureElement(node);
-    if (metrics.width === 0 || metrics.height !== 1) {
-      // 输入内容换行时无法可靠计算 caret（ink-text-input 不暴露光标偏移），先隐藏。
+    if (metrics.width === 0) {
       setCursorState(undefined);
       return;
     }
 
+    const { lineIndex, columnIndex } = lineAndColumn(input, cursorOffset);
+    const lines = splitLines(input);
+    const line = lines[lineIndex] ?? "";
+    const prefixWidth = lineIndex === 0 ? PROMPT_WIDTH : CONTINUATION_WIDTH;
     setCursorState({
-      x: metrics.x + PROMPT_WIDTH + displayWidth(input),
-      y: metrics.y,
+      x: metrics.x + prefixWidth + displayWidth(line.slice(0, columnIndex)),
+      y: metrics.y + lineIndex,
     });
-  }, [input, streaming, errorText, entries.length, phase]);
+  }, [input, cursorOffset, streaming, errorText, entries.length, phase]);
 
   setCursorPosition(cursorPosition);
 
@@ -287,8 +297,8 @@ export function App({
     }
 
     return mock
-      ? "就绪（mock 离线）· 回车发送 · Esc 清空 · Ctrl+C 退出"
-      : "就绪 · 回车发送 · Esc 清空 · Ctrl+C 退出";
+      ? "就绪（mock 离线）· Enter 发送 · Shift+Enter 换行 · Esc 清空 · Ctrl+C 退出"
+      : "就绪 · Enter 发送 · Shift+Enter 换行 · Esc 清空 · Ctrl+C 退出";
   }, [mock, phase, queue.length]);
 
   return (
@@ -313,17 +323,20 @@ export function App({
       ) : null}
 
       <Box marginTop={1} ref={inputBoxRef}>
-        <Text color={phase === "streaming" ? "gray" : "cyan"}>{PROMPT}</Text>
-        <TextInput
+        <InputBox
           value={input}
-          onChange={setInput}
+          cursorOffset={cursorOffset}
+          onChange={(value, offset) => {
+            setInput(value);
+            setCursorOffset(offset);
+          }}
           onSubmit={handleSubmit}
           placeholder={
             phase === "streaming"
-              ? "生成中，可先输入下一条（回车排队）"
-              : "输入问题，回车发送"
+              ? "生成中，可先输入下一条（Enter 排队，Shift+Enter 换行）"
+              : "输入问题（Enter 发送，Shift+Enter 换行）"
           }
-          showCursor
+          promptColor={phase === "streaming" ? "gray" : "cyan"}
         />
       </Box>
 

@@ -40,6 +40,7 @@
   - 证据：`tests/messages.test.ts` 6 用例（四角色转换、assistant 无 toolCalls 不带 `tool_calls`、tool 消息字段、空数组与入参不被修改、`toAssistantMessage` 两种结果）+ `tests/prompt.test.ts` 6 用例（身份/工作区/工具提示、确定性、`withSystemPrompt` 首位且唯一 / 替换旧 system / 不改入参）；`npm run typecheck` exit 0；全量 `npm test` 77/77，见 `docs/testing.md` S1-3 与 HANDOFF §7 会话 11。`toApiMessages` 自 S1-2 迁入 `src/agent/messages.ts`。B 级复核（用户 2026-11-23 已完成）已确认。
 - [x] `src/ui/App.tsx`（S1-4）：输入框 + `<Static>` 历史 + 流式动态区 + 错误行 + 排队；50ms 节流；Esc/Ctrl+C 中断/退出；mock 两轮剧本与真实客户端 send 注入。
   - 证据：`tests/ui.test.ts` 6 用例（宽字符宽度、节流首次立即/50ms 合并/flush/cancel/空 delta、`HistoryItem` 中文渲染）；`npm run typecheck` exit 0；`npm run build` exit 0（`.tsx` 正常进 dist）；全量 `npm test` 83/83；假 stdin/stdout 驱动 Ink 的 TUI 冒烟 `SMOKE OK`（启动横幅/工作区/就绪、提交"你好"→ mock 两轮文本进历史、排队提示、空闲 Ctrl+C 退出）。8 条 B 级手工项（中文输入、闪烁、Esc、Ctrl+C、缩放、粘贴、空回车、连发）**待用户验收**，见 `docs/testing.md` S1-4 与 HANDOFF §7 会话 12；状态机当前只有 `idle|streaming`，`tool_running/awaiting_approval/error` 随 S2-7/S3-2 接入。
+  - 补丁（2026-11-23）：`src/ui/InputBox.tsx` 多行输入（粘贴保留换行、Shift+Enter/Ctrl+J 换行、Kitty 协议协商、caret 多行定位）+ `MEWCODE_MOCK_DELAY_MS` 慢速流式；`tests/input-text.test.ts` 13 用例、`tests/mock.test.ts` 11 用例、全量 `npm test` 99/99；假终端冒烟覆盖多行粘贴 / Shift+Enter / Ctrl+J → `SMOKE OK`。
 - [ ] 真实 API 冒烟（用户提供 key）：流式首字 < 2s、可中断、中文不乱码。
 - [ ] 单测 + 手工验收证据，更新文档、打 tag。
 

@@ -16,6 +16,7 @@ import {
   createMockLlmClient,
   isMockFirstRound,
 } from "../src/llm/mock.js";
+import type { StartTuiOptions } from "../src/ui/start-tui.js";
 import type { Message } from "../src/types.js";
 
 const USER_MESSAGE: Message = { role: "user", content: "你好" };
@@ -90,9 +91,43 @@ test("mock：AbortSignal 已中断时拒绝（AbortError）", async () => {
   );
 });
 
+test("mock：chunkDelayMs 时把最终文本按块流式发出", async () => {
+  const deltas: string[] = [];
+  const client = createMockLlmClient({ chunkDelayMs: 1, chunkSize: 8 });
+  const result = await client.chat(toolHistory(), [], {
+    onText: (delta) => deltas.push(delta),
+  });
+  assert.equal(result.content, MOCK_FINAL_TEXT);
+  assert.ok(deltas.length > 1, "应当分多块发出");
+  assert.equal(deltas.join(""), MOCK_FINAL_TEXT);
+  for (const delta of deltas) {
+    assert.ok(Array.from(delta).length <= 8, "每块不超过 chunkSize 个码点");
+  }
+});
+
+test("mock：慢速流式中途 abort → AbortError，已发出的前缀保留", async () => {
+  const controller = new AbortController();
+  const deltas: string[] = [];
+  const client = createMockLlmClient({ chunkDelayMs: 1, chunkSize: 8 });
+  await assert.rejects(
+    () =>
+      client.chat(toolHistory(), [], {
+        signal: controller.signal,
+        onText: (delta) => {
+          deltas.push(delta);
+          controller.abort();
+        },
+      }),
+    (error: unknown) => error instanceof Error && error.name === "AbortError",
+  );
+  assert.equal(deltas.length, 1);
+  assert.ok(MOCK_FINAL_TEXT.startsWith(deltas.join("")));
+});
+
 interface RunOptions {
   cwd: string;
   env?: NodeJS.ProcessEnv;
+  startTui?: (options: StartTuiOptions) => Promise<void>;
 }
 
 async function runCli(
@@ -106,6 +141,7 @@ async function runCli(
     env: options.env ?? {},
     stdinIsTTY: true,
     stdoutIsTTY: true,
+    startTui: options.startTui ?? (async () => {}),
     write: (text) => {
       stdout += text;
     },
@@ -149,6 +185,34 @@ test("main：非 mock 的 --print 仍是 S1 占位，不跑两轮", async () => 
     assert.equal(result.err, "");
     assert.ok(result.out.includes("真实 API 将在 S1 接入"));
     assert.ok(!result.out.includes("第 1 轮"));
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("main：MEWCODE_MOCK_DELAY_MS 让交互 TUI 的 mock 回复按块流式", async () => {
+  const cwd = mkdtempSync(path.join(tmpdir(), "mewagent-mock-stream-"));
+  try {
+    let captured: StartTuiOptions | undefined;
+    const result = await runCli(["--mock"], {
+      cwd,
+      env: { MEWCODE_MOCK_DELAY_MS: "1" },
+      startTui: async (options) => {
+        captured = options;
+      },
+    });
+    assert.equal(result.code, 0);
+    assert.equal(result.err, "");
+    assert.ok(captured !== undefined);
+
+    const deltas: string[] = [];
+    const reply = await captured.send([USER_MESSAGE], {
+      signal: new AbortController().signal,
+      onDelta: (delta) => deltas.push(delta),
+    });
+    assert.equal(reply.content, MOCK_FINAL_TEXT);
+    assert.ok(deltas.length > 1, "环境变量应让 mock 分多块输出");
+    assert.equal(deltas.join(""), MOCK_FINAL_TEXT);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

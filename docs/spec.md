@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui 九个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text 十个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -192,8 +192,9 @@ finish: stop
 
 - 状态机：`idle | streaming | tool_running | awaiting_approval | error`（S1-4 已实现 `idle | streaming`，其余随 S2-7/S3-2 接入）。
 - 历史用 Ink `<Static>` 渲染；流式文本按 50ms 节流重绘；`Esc`/`Ctrl+C` 中止当前请求。
-- S1-4 实现：`src/ui/App.tsx`（输入框 + Static 历史 + 流式动态区 + 错误行 + 排队）、`src/ui/throttle.ts`（可注入时钟的 50ms 合并）、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`（中英混排列宽）；`send` 函数注入（S2 换成 AgentEvent 事件源）；`exitOnCtrlC:false`，生成中 Ctrl+C 只 abort、空闲退出。
-- 输入框使用 `ink-text-input`；中文 IME 判定 A（可输入、退格整字删除，候选框位置略偏可接受）。
+- S1-4 实现：`src/ui/App.tsx`（输入框 + Static 历史 + 流式动态区 + 错误行 + 排队）、`src/ui/InputBox.tsx`（自研受控多行输入，纯逻辑在 `src/ui/input-text.ts`）、`src/ui/throttle.ts`（可注入时钟的 50ms 合并）、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`（中英混排列宽）；`send` 函数注入（S2 换成 AgentEvent 事件源）；`exitOnCtrlC:false`，生成中 Ctrl+C 只 abort、空闲退出。
+- 输入框（S1-4 补丁）：Enter 发送、**Shift+Enter 换行**（Kitty 键盘协议；终端不支持时 **Ctrl+J** 兜底）、粘贴多行保留换行、方向键/Home/End 编辑；中文 IME 判定 A（可输入、退格整字删除，候选框位置略偏可接受）。`ink-text-input` 已被替换（依赖暂留）。
+- mock 慢速流式（S1-4 补丁）：`MEWCODE_MOCK_DELAY_MS` 控制块间延迟，便于手工观察流式/Esc/中断；默认 0 与真实行为一致。
 - 终端要求 Windows Terminal；conhost 不做保证。
 
 ## 10. Windows 专项（§6.10）
