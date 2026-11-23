@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）已完成，下一任务 S2-2（`tools/registry.ts` 工具注册表）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1 见下方 S2-1 小节与 HANDOFF §7 会话 15。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成，下一任务 S2-3（`tools/fs.ts` 文件工具）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ 🔄 S2-2（当前）｜ ⬜ S2-3 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ 🔄 S2-3（当前）｜ ⬜ S2-4 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -414,13 +414,22 @@ git status --short        # 确认没有把测试产物提交
 
 **实现要点**：`resolveInside(workspace, input)` 做两层包含校验——先按 `path.resolve` + 前缀比较拦 `..`/越界绝对路径，再用 `realpathSync` 向上找最近已存在祖先做真实路径比较，拦 symlink/junction 逃逸；拒绝时抛 `UnsafePathError`（含 reason 与"下一步"），输出统一正斜杠、保留用户原始大小写。**已知限制**：`%VAR%`/`~`/Windows 盘符相对路径一律拒绝（不做展开），这是有意的安全默认；B 级第 3、4 行的 TUI 级复验要等工具真正接入 TUI。
 
-#### S2-2 工具注册表
+#### S2-2 工具注册表（已完成 2026-11-23）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | 单测：未知工具、非法 JSON、参数不是对象、工具内部抛异常 | 都返回 `{ok:false, output:"Error: ..."}`，进程不崩 | P0 |
-| 2 | A | `specs()` 输出 | 符合 OpenAI tools 格式，6 个工具齐全 | P0 |
-| 3 | B | 抽查某个工具 description | 能让人看懂"什么时候用它" | P1 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | 单测：未知工具、非法 JSON、参数不是对象、工具内部抛异常 | 都返回 `{ok:false, output:"Error: ..."}`，进程不崩 | P0 | ✅ `tests/registry.test.ts` 13 例全绿 |
+| 2 | A | `specs()` 输出 | 符合 OpenAI tools 格式，6 个工具齐全 | P0 | ✅ 格式已验（fake 工具）；"6 个工具齐全" ⏳ 随 S2-3~S2-5 接入后验 |
+| 3 | B | 抽查某个工具 description | 能让人看懂"什么时候用它" | P1 | ⏳ 随 S2-3~S2-5 真实工具就位后由用户抽查 |
+
+**A 级证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` exit 0
+- `node --import tsx --test tests/registry.test.ts` → **tests 13 / pass 13 / fail 0**（332.7ms）
+- 全量 `npm test` → **tests 127 / pass 127 / fail 0**（1350.4ms；原 114 + 新增 13）
+- 完整记录：`spikes/.out/s2-2-typecheck.txt`、`s2-2-registry.txt`、`s2-2-full.txt`（均 gitignored）
+
+**实现要点**：`ToolRegistry` 提供 `register`/`has`/`get`/`names`/`size`/`specs()`/`run(call, ctx)`。`run` 是模型输入的唯一收敛点：未知工具 → 可读错误 + 可用工具列表；`arguments` 空串按 `{}`、非法 JSON/非对象/非字符串 → 明确错误 + "下一步"；工具抛异常（含非 Error）→ `Error: 工具 X 执行失败：…`；工具返回非法结构 → `Error: … 返回了非法结果`；**任何情况都不向 loop 抛异常**。重复注册/非法定义属于实现方 bug，`register` 直接抛错（启动期暴露）。**已知限制**：v0.1 不在注册表层做 JSON Schema 的 required/type 深度校验（各工具自己校验并给可操作错误）；工具执行超时由 `bash` 工具自己处理（§6.4）；`createDefaultRegistry`（`tools/index.ts`）等 S2-3~S2-5 工具就位后再加。
 
 #### S2-3 文件工具
 
@@ -740,7 +749,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S1-4 ⏳ | 手工 TUI 清单（8 条 B 级）+ UI 单测 `tests/ui.test.ts`（A 级补充） |
 | S1-5 | 管道命令 |
 | S2-1 ✅ | typecheck + `tests/paths.test.ts`（10 用例；全量 `npm test` 114/114；B 级 TUI 项随 S2-6/S2-7 后验） |
-| S2-2 | `tests/registry.test.ts` |
+| S2-2 ✅ | typecheck + `tests/registry.test.ts`（13 用例；全量 127/127；"6 工具齐全"随 S2-3~S2-5 后验） |
 | S2-3 | `tests/fs.test.ts` + testbed 手工 |
 | S2-4 | `tests/search.test.ts` + 手工 |
 | S2-5 | `tests/bash.test.ts` + 手工 |
