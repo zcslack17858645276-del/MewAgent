@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-23 ｜ 当前阶段：S0-1 已完成（IME 判定 A）｜ 下一任务：S0-2
+> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）｜ 下一任务：S1-1
 
 ---
 
@@ -12,8 +12,8 @@
 - **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（私有，默认分支 `main`）
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
-- **当前状态**：需求、选型、方案、任务板都已就绪；**还没有一行业务代码**，仓库里目前只有文档和 README。
-- **下一步**：按 `docs/tasks.md` 做 S0-1（初始化工程），然后 S0-2 → S0-3 → … → S4。
+- **当前状态**：S0 阶段已完成并打 tag `v0.1-s0`（工程骨架、`src/types.ts` 契约、config/CLI、mock 两轮链路、项目规则与 CI 全部落地；`npm test` 39/39、CI 全绿）。**还没有真实 API 与 TUI 业务功能**，S1 起实现。
+- **下一步**：按 `docs/tasks.md` 做 S1-1（`src/llm/sse.ts` SSE 逐行解析 + 测试），然后 S1-2 → … → S1-6（打 tag `v0.1-s1`）。
 
 ---
 
@@ -40,10 +40,15 @@
 
 ```text
 项目：D:\workplace\AIAgent\MewCode（MewAgent，TypeScript + Ink 的 CLI Coding Agent）。
-先读 HANDOFF.md、MewCode-TS实施方案.md 的 §3/§4、docs/tasks.md。
-本次会话只做 task <ID>：<一句话描述>。
-要求：先给实现计划，不要直接写代码；实现只改相关文件；完成后运行 npm run typecheck 和 npm test，
-按方案的阶段验收项自检，最后更新 HANDOFF.md §7 和 docs/tasks.md 状态。
+开工前按顺序读：HANDOFF.md（§1/§4/§5/§6/§7）、AGENTS.md、docs/tasks.md、docs/testing.md 的本次 task 小节、MewCode-TS实施方案.md 的 §3/§4。
+先核对：git status 干净、main 与 origin/main 同步、tag v0.1-s0 存在。
+本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S1-1：src/llm/sse.ts SSE 逐行解析 + 测试）。
+要求：
+1) 先给实现计划，等我确认后再写代码；
+2) 只改与本 task 相关的文件；不改契约（src/types.ts），确需改先停下说明理由；
+3) 按 HANDOFF §5 走 Git：task/* 分支 → push 分支 → squash 进 main → push main；
+4) 完成定义：npm run typecheck 0 错误、npm test 全绿、按 docs/testing.md 对应小节留证据；
+5) 收尾更新 docs/tasks.md 状态与 HANDOFF.md §7；阶段验收通过后打 tag。
 ```
 
 ---
@@ -131,7 +136,7 @@ npm run build
 
 - 远端 `task/*` 分支作为该 task 的原始提交记录保留（squash 会丢掉分支内的小提交，远端分支可用于追溯/远程 review）；需要清理时由**用户手动**执行 `git push origin --delete <branch>`（agent 执行会被 cc-safety-net 的 `git.push-delete` 拦，见 §10）。删除是安全的：squash 后 `main` 已含等价内容。
 - 只改文档或一行配置，允许直接在 `main` 提交，但仍要求"一次任务一个 commit"。
-- 现状：`origin/task/s0-1-scaffold`、`origin/task/s0-2-contract`、`origin/task/s0-3-config` 按此策略保留在远端。
+- 现状：`origin/task/s0-1-scaffold` … `origin/task/s0-6-acceptance` 六个 S0 任务分支按此策略保留在远端（各分支 tip 见 §7 会话记录）。
 
 ### 5.2 commit 规范（Conventional Commits 简版）
 
