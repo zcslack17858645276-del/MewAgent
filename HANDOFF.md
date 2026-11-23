@@ -253,7 +253,7 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **做了什么**：新增 `src/llm/mock.ts`：`createMockLlmClient(): LlmClient` 固定剧本（历史无 `role:"tool"` 消息 → 第 1 轮返回 `read_file` 工具调用；历史有 tool 消息 → 第 2 轮返回最终总结）；确定性、无网络依赖、`onText` 在最终文本回调一次、`AbortSignal` 已中断时抛 `AbortError`。`src/index.ts` 的 `--print` 分支接入两轮驱动骨架 `runMockTwoRounds`（调 mock → 回填占位工具结果 → 再调 mock，stdout 用 `--- 第 1 轮/第 2 轮 ---` 分隔，末尾 `finish:`）；新增 `tests/mock.test.ts`（8 用例：两轮剧本、`isMockFirstRound` 判定、确定性、`onText`、`AbortError`、CLI 端到端、非 mock `--print` 占位回归）；按 `docs/testing.md` S0-4 小节留证据。
 - **验收（A 级自动化，P0 全过）**：`npm run typecheck` 退出 0；`npm test` → `tests 39 / pass 39 / fail 0`（原 31 + 8 mock）；`npm run dev -- --mock --print "你好"` 输出两轮、`exit: 0`；把 `HTTP_PROXY/HTTPS_PROXY` 指到 `http://127.0.0.1:1` 后仍成功（证明不依赖网络）；stdin 变体 `"你好" | node --import tsx src/index.ts --mock --print` 同样走完两轮。
 - **已知限制**：S0-4 的工具执行是占位（回填 `（S0-4 占位工具结果：read_file 将在 S2 实现）`）；真实工具/注册表在 S2，真实 API 客户端在 S1；非 mock 的 `--print` 仍是占位文案。
-- **提交**：分支 `task/s0-4-mock` 提交 `<待回填>`（已 push 到远端）→ squash 合并为 `main` 的 `<待回填>` 并 push；docs 哈希回填提交 `<待回填>`。
+- **提交**：分支 `task/s0-4-mock` 提交 `5a2996b`（已 push 到远端保留原始提交）→ squash 合并为 `main` 的 `7da0cb3` 并 push；哈希回填提交为 `docs: 记录 S0-4 提交哈希`（`main` 最新提交）。
 - **下次第一步**：S0-5 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + `.github/workflows/ci.yml`，测试见 `docs/testing.md` S0-5 小节。
 
 ### 交接模板（每次会话结束复制填写）
