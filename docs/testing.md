@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：S0-1 ~ S0-5 已完成（S0-5 落地 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` 与 `.github/workflows/ci.yml`；本地模拟 CI 全绿，**GitHub Actions 3 次运行全部通过**：`9acc5b5` 分支 / `688b832` / `29b5178` main，截图 `docs/evidence/s0-5-ci-actions.png`），下一任务 S0-6（全量验收 + tag `v0.1-s0`）。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）**，下一任务 S1-1（`llm/sse.ts` SSE 逐行解析）。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ 🔄 S0-6（当前）｜ ⬜ S1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ 🔄 S1-1（当前）｜ ⬜ S1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -219,13 +219,26 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制与自查能力**：本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`），agent 可直接 `gh run list` / `gh run view <id> --json jobs|--log` 只读查询 Actions，**不需要再靠用户截图**；本次已独立复核 4 次运行全部 success（run `45144911048` / `45144932628` / `45144982815` / `45149633152`），并确认 `45144982815` 的步骤与 `# tests 39 / # pass 39 / # fail 0` 日志。注意该 token 含 `repo`/`workflow` 写权限，agent 仅使用只读命令、不通过 gh 做任何 push/删除；PR 仍建议用户手动开（或明确授权后再由 agent 操作）。
 
-#### S0-6 S0 收尾
+#### S0-6 S0 收尾（已完成 2026-11-23）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `git tag -l`；`git ls-remote --tags origin` | 有 `v0.1-s0`，远端也存在 | P0 |
-| 2 | B | `git log --oneline -10` | S0 任务都有对应 commit，无"大杂烩"提交 | P1 |
-| 3 | B | 更新 HANDOFF §7 与 tasks 状态 | 状态为 done | P1 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `git tag -l`；`git ls-remote --tags origin` | 有 `v0.1-s0`，远端也存在 | P0 | ✅ 本地/远端均有 `v0.1-s0` |
+| 2 | B | `git log --oneline -10` | S0 任务都有对应 commit，无"大杂烩"提交 | P1 | ✅ 每 task 独立 commit + squash 记录 |
+| 3 | B | 更新 HANDOFF §7 与 tasks 状态 | 状态为 done | P1 | ✅ tasks S0-6=done、HANDOFF §7 会话 8 |
+
+**S0-6 全量验收证据（2026-11-23 17:53，本地 Node v26.7.0）**：
+
+- `npm run typecheck` → exit 0
+- `npm test` → exit 0，`tests 39 / pass 39 / fail 0`（281ms）
+- `npm run dev -- --help` → exit 0，含 `--model --base-url --workspace --new --mock --print --help --version`
+- `npm run dev -- --version` → exit 0，stdout `0.1.0`
+- `npm run dev -- --mock --print "你好"` 连跑两次 → 均 exit 0，输出逐字节一致（幂等）
+- `npm run build` → exit 0；`node dist/index.js --mock --print "你好"` exit 0 且输出与 dev 一致
+- `src/` 中 `\bany\b` 匹配 0
+- 完整记录：`spikes/.out/s0-6-acceptance.txt`（gitignored）
+
+**已知限制**：无（S0 阶段）；tag 之后的 `S1-1` 起按新小节执行。
 
 ---
 
@@ -647,3 +660,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S0-3 完成：`src/config.ts` + `src/index.ts`（`.env` / CLI 参数 / TTY 检查 / `--print` headless 骨架）落地、新增 `tests/config.test.ts` 25 用例（全量 31）；S0-3 章节改为复验步骤并附实测证据，进度切到 S0-4 |
 | 2026-11-23 | S0-4 完成：新增 `src/llm/mock.ts`（离线两轮剧本）+ `src/index.ts` 两轮驱动骨架 + `tests/mock.test.ts` 8 用例（全量 39）；`--mock --print "你好"` 不依赖网络走完两轮；S0-4 章节改为复验步骤并附实测证据，进度切到 S0-5 |
 | 2026-11-23 | S0-5 完成：新增 `AGENTS.md`、`CLAUDE.md`、`docs/spec.md`、`docs/checklist.md`、`.github/workflows/ci.yml`（Node 22，`npm ci` → typecheck → test）；本地模拟 CI 全绿（52 packages / typecheck 0 / 39 测试通过）；S0-5 章节改为复验步骤并附实测证据，进度切到 S0-6 |
+| 2026-11-23 | S0-6 完成：S0 全量验收通过（typecheck 0 / tests 39 pass 39 / --help 8 参数 / --version 0.1.0 / --mock --print 两次输出一致 / build+dist 一致 / any 匹配 0）；打 tag `v0.1-s0` 并 push；S0-6 章节改为已完成并附实测证据，进度切到 S1-1 |

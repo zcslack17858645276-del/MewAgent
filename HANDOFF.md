@@ -150,6 +150,8 @@ git push origin v0.1-s0
 
 Tag 计划：`v0.1-s0` → `v0.1-s1` → `v0.1-s2` → `v0.1-s3` → `v0.1.0`（S4 完成）。
 
+已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）。
+
 ### 5.4 回滚
 
 - 已推送的提交：`git revert <hash>`（生成反向提交，最安全）。
@@ -183,7 +185,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-5 已完成（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml` 落地；本地模拟 CI 全绿，`npm run typecheck` 0 错误、`npm test` 39/39；GitHub Actions 运行全部通过——用户截图确认 3 次，agent 用 `gh` CLI 独立复核 4 次 run 全绿、日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`），下一任务 S0-6（S0 收尾：全量验收 + 打 tag `v0.1-s0`）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）。S0 全量验收通过：`npm run typecheck` exit 0、`npm test` 39/39（281ms）、`--help` 8 参数齐全、`--version` 输出 `0.1.0`、`--mock --print "你好"` 连跑两次输出逐字节一致、`npm run build` + `node dist/index.js --mock --print "你好"` 与 dev 输出一致、`src/` 中 `any` 匹配 0；CI 全绿（gh CLI 独立复核）。下一任务 S1-1（`src/llm/sse.ts` SSE 逐行解析 + 测试）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -267,6 +269,15 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **提交**：分支 `task/s0-5-docs-ci` 提交 `9acc5b5`（已 push 触发 CI，远端保留原始提交）→ squash 合并为 `main` 的 `688b832` 并 push → 哈希回填 `29b5178` → 证据提交 `2068dac`（CI 截图入库）并 push。
 - **坑**：① 首次编辑 `docs/tasks.md` 遇 `FS_STALE_VERSION`（文件被外部会话改过），重读后按最新内容重放；② 本地模拟 CI 的临时目录必须放在工作区内（安全网禁止 cwd 外递归删除），用完即删。
 - **下次第一步**：S0-6 全量验收（typecheck / test / `--help` / `--version` / `--mock --print` 幂等重跑）→ 勾选 `docs/checklist.md` §2 的 S0 清单 → 打 tag `v0.1-s0` 并 push。
+
+### 2026-11-23 · 会话 8（S0-6：S0 全量验收 + tag `v0.1-s0`）
+
+- **做了什么**：`docs/tasks.md` S0-6 改 doing→done、当前焦点切 S1-1；S0 全量验收（typecheck / test / `--help` / `--version` / `--mock --print` 幂等两次 / build+dist / any 扫描）；`docs/checklist.md` S0-6 勾选并补证据、§4 阶段回归清单全部勾选；`docs/testing.md` 头部进度、进度行、S0-6 小节改为"已完成"并附实测证据、附录 D 追加记录；`docs/spec.md` 阶段状态 S0 收尾；`HANDOFF.md` §5.3 记录已打 tag、§6 状态改 S0 完成、§7 本条目。
+- **验收（A 级自动化，P0，全部通过）**：`npm run typecheck` exit 0；`npm test` exit 0（tests 39 / pass 39 / fail 0，281ms）；`npm run dev -- --help` exit 0（8 参数齐全）；`--version` exit 0 输出 `0.1.0`；`--mock --print "你好"` 连跑两次均 exit 0 且输出逐字节一致；`npm run build` exit 0，`node dist/index.js --mock --print "你好"` exit 0 且与 dev 输出一致；`src/` 中 `\bany\b` 匹配 0。证据 `spikes/.out/s0-6-acceptance.txt`（gitignored）。
+- **B 级（待用户复核）**：tag `v0.1-s0` 已在本地与远端；`git log` 可读；`docs/checklist.md` §4 回归项由本会话依据实测勾选，如需可复跑 `npm run dev -- --mock --print "你好"`。
+- **提交**：分支 `task/s0-6-acceptance` → 提交（本条目所在 commit）→ push 分支 → squash 合并进 `main` → push → 回填哈希 docs 提交 → push；随后 `git tag -a v0.1-s0` 打在 main 收尾提交上并 `git push origin v0.1-s0`。
+- **坑**：PowerShell 5.1 下 `npm test` 的 `# tests/pass/fail` 报告行会被管道/重定向吞掉，需用 `cmd /c "... > file 2>&1"` 抓原始输出（本次记录：39/39/0，281ms）。
+- **下次第一步**：S1-1 `src/llm/sse.ts` SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试，见 `docs/testing.md` S1-1 小节。
 
 ### 交接模板（每次会话结束复制填写）
 
