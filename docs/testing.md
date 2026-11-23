@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）已完成，下一任务 S1-2（`llm/openai.ts` 流式客户端 + tool_calls 聚合）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）、S1-2（`llm/openai.ts` 流式客户端 + `tool_calls` 聚合）已完成，下一任务 S1-3（`agent/prompt.ts` + `messages.ts`）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ 🔄 S1-2（当前）｜ ⬜ S1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ 🔄 S1-3（当前）｜ ⬜ S1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -263,15 +263,24 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：只解析 OpenAI 兼容流式响应需要的 `data:` 字段；`event:`/`id:`/`retry:` 按设计忽略（本项目用不到），S1-2 负责负载 JSON 解析与错误映射。
 
-#### S1-2 流式客户端 + tool_calls 聚合
+#### S1-2 流式客户端 + tool_calls 聚合（已完成 2026-11-23）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | 聚合函数单测：分片 `id/name/arguments` 多段到达、乱序 index、空 delta | 聚合结果与完整 JSON 一致 | P0 |
-| 2 | B | 真实 API：`npm run dev`，输入"你好" | 文字逐段出现，不是一次性蹦出 | P0 |
-| 3 | B | 生成中点 Esc | 流停止，已输出内容保留，无报错崩溃 | P0 |
-| 4 | B | 故意填错 key | 显示 401 + 供应商返回摘要，不泄露 key | P0 |
-| 5 | B | 断网后重试 | 显示网络错误，不无限卡死 | P1 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | 聚合函数单测：分片 `id/name/arguments` 多段到达、乱序 index、空 delta | 聚合结果与完整 JSON 一致 | P0 | ✅ `tests/openai.test.ts` 13 用例全过：分片拼接、乱序 index、空 delta、id/name 只取首次、缺 id 占位、`toApiMessages` 四角色、文本流 + `onText` + 请求体/请求头、`tool_calls` 流式聚合、401 脱敏、预中止 `AbortError`、坏 JSON、无 body |
+| 2 | B | 真实 API：`npm run dev`，输入"你好" | 文字逐段出现，不是一次性蹦出 | P0 | ⏳ 留到 S1-5（`--print` 接真实 API）后联调；S1-2 只交付客户端模块，未接线 |
+| 3 | B | 生成中点 Esc | 流停止，已输出内容保留，无报错崩溃 | P0 | ⏳ 留到 S1-4（TUI）后手工验收；客户端已支持 `AbortSignal` 中止并以 `AbortError` 结束 |
+| 4 | B | 故意填错 key | 显示 401 + 供应商返回摘要，不泄露 key | P0 | ✅ 单测（假 fetch 返回 401 且响应体含 key，断言 `LlmHttpError.status=401`、message 含供应商摘要且 key 被替换为 `[REDACTED]`）；真实 API 复验留到 S1-5 |
+| 5 | B | 断网后重试 | 显示网络错误，不无限卡死 | P1 | ⏳ 留到 S1-5 联调；客户端本身无自动重试，错误直接抛给调用方 |
+
+**实测证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` → exit 0
+- `node --import tsx --test tests/openai.test.ts` → exit 0，`tests 13 / pass 13 / fail 0`（386ms）
+- 全量 `npm test` → exit 0，`tests 65 / pass 65 / fail 0`（397ms；原 52 + 新增 13）
+- 完整记录：`spikes/.out/s1-2-openai-test.txt`、`spikes/.out/s1-2-full-test.txt`（gitignored）
+
+**已知限制**：客户端未接进 `src/index.ts`（真实 API 的 `--print` 属 S1-5，TUI 属 S1-4），所以 B 级"真实 API"三行本次只做了单测级验证；消息转换暂时放在 `openai.ts` 内（S1-3 若迁到 `agent/messages.ts` 需同步更新 HANDOFF §4 决策与引用）。
 
 #### S1-3 prompt 与消息转换
 
@@ -641,7 +650,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S0-4 ✅ | typecheck + `tests/mock.test.ts`（`npm test`）+ `--mock --print` 端到端 |
 | S0-5 ✅ | 文档文件存在性 + typecheck/test + 本地模拟 CI（`npm ci` → typecheck → test）+ GitHub Actions 变绿（用户确认） |
 | S1-1 ✅ | typecheck + `tests/sse.test.ts`（`npm test`，13 用例） |
-| S1-2 | `tests/openai.test.ts` + 真实流式 |
+| S1-2 ✅ | typecheck + `tests/openai.test.ts`（`npm test`，13 用例）；真实流式联调见 S1-5 |
 | S1-3 | `tests/messages.test.ts` |
 | S1-4 | 手工 TUI 清单 |
 | S1-5 | 管道命令 |
@@ -673,3 +682,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S0-5 完成：新增 `AGENTS.md`、`CLAUDE.md`、`docs/spec.md`、`docs/checklist.md`、`.github/workflows/ci.yml`（Node 22，`npm ci` → typecheck → test）；本地模拟 CI 全绿（52 packages / typecheck 0 / 39 测试通过）；S0-5 章节改为复验步骤并附实测证据，进度切到 S0-6 |
 | 2026-11-23 | S0-6 完成：S0 全量验收通过（typecheck 0 / tests 39 pass 39 / --help 8 参数 / --version 0.1.0 / --mock --print 两次输出一致 / build+dist 一致 / any 匹配 0）；打 tag `v0.1-s0` 并 push；S0-6 章节改为已完成并附实测证据，进度切到 S1-1 |
 | 2026-11-23 | S1-1 完成：新增 `src/llm/sse.ts`（`parseSseStream` async generator）+ `tests/sse.test.ts` 13 用例（分块 / UTF-8 截断 / CRLF / 注释 / 多行 data / `[DONE]` / 尾部残留 / BOM / 空 data / AbortError）；typecheck 0、全量 52/52；S1-1 章节改为已完成并附实测证据，进度切到 S1-2 |
+| 2026-11-23 | S1-2 完成：新增 `src/llm/openai.ts`（fetch + `parseSseStream` + text delta + `tool_calls` 按 index 聚合 + `AbortSignal` + 401 脱敏/坏 JSON/无 body 错误映射）+ `tests/openai.test.ts` 13 用例（聚合分片/乱序/空 delta/首次 id-name/缺 id 占位、`toApiMessages`、文本流 + 请求体断言、tool_calls 流式、401、AbortError、坏 JSON、无 body）；typecheck 0、全量 65/65；S1-2 章节改为已完成（真实 API 三行留 S1-4/S1-5），进度切到 S1-3 |

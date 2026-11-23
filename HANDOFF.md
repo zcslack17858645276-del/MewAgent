@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）｜ 下一任务：S1-1
+> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 进行中（S1-1、S1-2 完成）｜ 下一任务：S1-3
 
 ---
 
@@ -12,8 +12,8 @@
 - **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（私有，默认分支 `main`）
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
-- **当前状态**：S0 阶段已完成并打 tag `v0.1-s0`（工程骨架、`src/types.ts` 契约、config/CLI、mock 两轮链路、项目规则与 CI 全部落地；`npm test` 39/39、CI 全绿）。**还没有真实 API 与 TUI 业务功能**，S1 起实现。
-- **下一步**：按 `docs/tasks.md` 做 S1-1（`src/llm/sse.ts` SSE 逐行解析 + 测试），然后 S1-2 → … → S1-6（打 tag `v0.1-s1`）。
+- **当前状态**：S0 阶段已完成并打 tag `v0.1-s0`；S1 进行中——S1-1（`src/llm/sse.ts` SSE 逐行解析）与 S1-2（`src/llm/openai.ts` 流式客户端 + `tool_calls` 聚合）已完成，`npm test` 65/65、CI 全绿。**还没有真实 API 接线与 TUI 业务功能**（S1-4 TUI / S1-5 `--print` 接真实 API 待做）。
+- **下一步**：按 `docs/tasks.md` 做 S1-3（`src/agent/prompt.ts` + `src/agent/messages.ts`：system prompt 与 API JSON 转换），然后 S1-4 → S1-5 → S1-6（打 tag `v0.1-s1`）。
 
 ---
 
@@ -42,7 +42,7 @@
 项目：D:\workplace\AIAgent\MewCode（MewAgent，TypeScript + Ink 的 CLI Coding Agent）。
 开工前按顺序读：HANDOFF.md（§1/§4/§5/§6/§7）、AGENTS.md、docs/tasks.md、docs/testing.md 的本次 task 小节、MewCode-TS实施方案.md 的 §3/§4。
 先核对：git status 干净、main 与 origin/main 同步、tag v0.1-s0 存在。
-本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S1-1：src/llm/sse.ts SSE 逐行解析 + 测试）。
+本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S1-3：src/agent/prompt.ts + messages.ts，system prompt 与 API JSON 转换）。
 要求：
 1) 先给实现计划，等我确认后再写代码；
 2) 只改与本 task 相关的文件；不改契约（src/types.ts），确需改先停下说明理由；
@@ -109,6 +109,7 @@ npm run build
 | 配置层（S0-3） | `.env` 用 Node 内置 `process.loadEnvFile`（不新增依赖），只读「工作区 cwd 下」的 `.env`，文件缺失静默跳过；优先级 **CLI 参数 > 环境变量/`.env` > 内置默认值**；`MEWCODE_BASE_URL` 默认 `https://api.deepseek.com`（客户端负责拼 `/chat/completions`，S1 实现），值去尾斜杠；`--mock` 时模型默认 `mock`、不需要 key；**apiKey 只从环境变量/`.env` 读，不进 CLI、不进任何输出**；退出码：0 成功 / 2 可操作错误（`CliError`，stderr 带"下一步"）/ 1 内部错误；`--help`、`--version` 在加载 `.env` 和校验 key 之前处理；非 `--print` 时要求 stdin+stdout 都是 TTY，否则报错并提示 `--print`；`--print` 的 prompt 取「位置参数 → 非 TTY 的 stdin」；版本号从 `package.json` 读（`src/` 与 `dist/` 通用） |
 | mock 层（S0-4） | `src/llm/mock.ts` 导出 `createMockLlmClient(): LlmClient`；固定剧本按历史里有无 `role:"tool"` 消息判定：无 → 第 1 轮返回 `read_file` 调用（`id=call_mock_read_file_1`，`arguments='{"path":"README.md"}'`，`finishReason="tool_calls"`）；有 → 第 2 轮返回最终总结（`finishReason="stop"`）；确定性输出、不依赖网络/随机/时间；`onText` 在最终文本回调一次；已中断的 `AbortSignal` 抛 `AbortError`；S0-4 的 `--print` 只做「两轮驱动骨架」（工具结果占位），真实工具执行 S2、真实 API S1 |
 | SSE 解析（S1-1） | `src/llm/sse.ts` 导出 `parseSseStream(stream: ReadableStream<Uint8Array>, options?: { signal?: AbortSignal }): AsyncGenerator<string>`：输入字节流、输出逐条 `data:` 负载字符串（不 JSON.parse）；按 SSE 规范以空行分帧、同帧多行 `data:` 用 `\n` 连接、支持 `\n`/`\r\n` 与跨 chunk 半行、忽略 `:` 注释与 `event:`/`id:`/`retry:` 字段、剥流首 BOM；`data: [DONE]` 作为结束信号（不输出、不报错、忽略后续数据）；`TextDecoder(..., { stream: true })` 处理多字节被切断；流结束/尾部无换行时提交最后一帧（最后一条不丢）；`signal` 已中止时以 `name="AbortError"` 结束。调用方（S1-2 `openai.ts`）负责负载的 JSON 解析与错误映射 |
+| OpenAI 流式客户端（S1-2） | `src/llm/openai.ts` 导出 `createOpenAiLlmClient(config: { baseUrl; apiKey; model; fetchImpl? }): LlmClient`、`toApiMessages(messages): ApiMessage[]`、`aggregateToolCallDeltas(deltas): ToolCall[]`、`ToolCallDelta`、`FetchLike`、`OpenAiClientConfig`、`LlmHttpError`（带 `status`）。要点：`fetch` 通过 `fetchImpl` 注入（测试用假流，不改全局）；请求 `POST {baseUrl去尾斜杠}/chat/completions`、`stream:true`、`tools` 仅非空时带、`Authorization: Bearer <key>`；响应经 `parseSseStream` 逐条解析，`delta.content` 累加并回调 `onText`，`delta.tool_calls` 按 index 聚合（`id`/`function.name` 只取首次非空、`arguments` 累加、结束按 index 排序、过滤无 name 项、缺 id 用 `call_<index>` 占位）；`finishReason` 有 tool_calls 时以实际数据为准（`"tool_calls"`），否则最后一个 `finish_reason` 或 `"stop"`；预中止 `AbortSignal` 与循环内检查都抛 `name="AbortError"`；非 2xx 抛 `LlmHttpError(status)`，message `LLM 请求失败（HTTP …）` + 供应商摘要（截 400 字、apiKey 替换为 `[REDACTED]`）；坏 JSON 分片与无 body 都给可读错误。**未接进 `src/index.ts`**（真实 API `--print` 属 S1-5、TUI 属 S1-4）；`toApiMessages` 暂放本文件，S1-3 若迁入 `src/agent/messages.ts` 需同步更新本行与 §7 |
 | 文档与 CI（S0-5） | `AGENTS.md` 是所有 AI 代理的统一规则（开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境 / 红线）；`CLAUDE.md` 只是薄入口，指向 `AGENTS.md`；`docs/spec.md` 是 v0.1 规格（按阶段追加「要什么 / 不要什么 / 验收 / 已知边界」，§13 维护阶段状态）；`docs/checklist.md` 是验收清单（通用 DoD + S0–S4 阶段清单 + 十条成功标准证据表 + 回归/发布清单）；CI 用 GitHub Actions（`ubuntu-latest` + Node 22，`npm ci` → `npm run typecheck` → `npm test`），触发 `push` 到 `main`/`task/**`/`fix/**`/`docs/**` 与 PR 到 `main` |
 | CI 自查（S0-5 后） | 本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`，token scopes `gist, read:org, repo, workflow`）；agent 只用 `gh run list` / `gh run view <id> --json jobs` / `gh run view <id> --log` **只读**查询 Actions 自查 CI，**禁止用 gh 做 push/删除/PR 等写操作**；PR 仍由用户开（或用户明确授权后再说） |
 
@@ -191,7 +192,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1-1（`src/llm/sse.ts` SSE 逐行解析 + 13 个单测，全量 `npm test` 52/52）已完成，下一步 S1-2（`src/llm/openai.ts` 流式客户端 + `tool_calls` 聚合）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1-1（`src/llm/sse.ts`，13 单测）、S1-2（`src/llm/openai.ts` 流式客户端 + `tool_calls` 聚合，13 单测）已完成，全量 `npm test` 65/65，下一步 S1-3（`src/agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -294,6 +295,16 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **B 级（已由用户复核，2026-11-23）**：用户按 `docs/testing.md` S1-1 第 3 行抽查 `tests/sse.test.ts`，确认 13 个用例中 9 个为失败/边界路径（分块、UTF-8 截断、CRLF 拆分、注释、`[DONE]`、尾部残留、BOM、空 data、AbortError），满足"至少 3 个失败/边界用例"（P1 项通过）。
 - **提交**：分支 `task/s1-1-sse` 提交 `a1c0c88`（已 push，远端保留原始提交）→ squash 合并为 `main` 的 `9b1e08b` 并 push → 本条 docs 哈希回填提交并 push。
 - **下次第一步**：S1-2 `src/llm/openai.ts`：`fetch` 流式客户端 + `tool_calls` 按 index 聚合 + abort，见 `docs/testing.md` S1-2 小节与方案 §6.2。
+
+### 2026-11-23 · 会话 10（S1-2：`src/llm/openai.ts` 流式客户端 + `tool_calls` 聚合）
+
+- **做了什么**：新建 `src/llm/openai.ts`（约 315 行）与 `tests/openai.test.ts`（13 个用例）；`docs/tasks.md` S1-2 doing→done、当前焦点切 S1-3；`docs/testing.md` 头部进度、进度行、S1-2 小节改为"已完成"并附实测证据（真实 API 三行标注留 S1-4/S1-5）、附录 C/D；`docs/checklist.md` S1-2 勾选；`docs/spec.md` §13 阶段状态；`HANDOFF.md` §4 新增「OpenAI 流式客户端（S1-2）」决策行、§6 状态、§7 本条目。
+- **设计要点**：`fetch` 经 `fetchImpl` 注入（测试用假流，不改全局、不联网）；`POST {baseUrl去尾斜杠}/chat/completions`，`stream:true`，`tools` 仅非空时带；用 S1-1 的 `parseSseStream` 逐条解析负载；`delta.content` 累加并回调 `onText`；`delta.tool_calls` 按 index 聚合（`id`/`name` 只取首次非空、`arguments` 累加、结束按 index 排序、过滤无 name 项、缺 id 用 `call_<index>` 占位）；`finishReason` 有 tool_calls 时以实际数据为准，否则最后 `finish_reason` 或 `"stop"`；预中止与循环内都抛 `name="AbortError"`；非 2xx 抛 `LlmHttpError(status)`，message 含供应商摘要（截 400 字、apiKey 替换为 `[REDACTED]`）；坏 JSON 分片/无 body 给可读错误；`toApiMessages` 负责 assistant.toolCalls→`tool_calls`、tool→`tool_call_id`。**未接进 `src/index.ts`**（S1-5 接真实 API、S1-4 接 TUI），本次是模块级交付。
+- **验收（A 级自动化，P0，全部通过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/openai.test.ts` → tests 13 / pass 13 / fail 0（386ms）；全量 `npm test` → tests 65 / pass 65 / fail 0（397ms，原 52 + 新增 13）；失败/边界路径覆盖乱序 index、空 delta、缺 id、401 含 key 脱敏、预中止 AbortError、坏 JSON、无 body。证据 `spikes/.out/s1-2-openai-test.txt`、`spikes/.out/s1-2-full-test.txt`（gitignored）。
+- **B 级**：真实 API 流式/Esc/错 key 实机联调与断网测试留到 S1-4/S1-5（客户端尚未接线）；401 脱敏与 AbortError 已在单测级验证。
+- **坑**：`if (signal?.aborted === true)` 连续两次判断会触发 TS2367（第一次判断后 TS 把 `aborted` 收窄为 `false | undefined`，后续再比 `true` 无重叠）→ 抽 `throwIfAborted(signal)` 小函数，调用处不再被收窄；`npm test` 的 `# tests/pass/fail` 行仍被 PS 5.1 管道吞掉，需 `cmd /c "... > file 2>&1"`。
+- **提交**：分支 `task/s1-2-openai` 提交 `__S1_2_COMMIT__`（已 push，远端保留原始提交）→ squash 合并为 `main` 的 `__S1_2_MAIN__` 并 push → 本条 docs 哈希回填提交并 push。
+- **下次第一步**：S1-3 `src/agent/prompt.ts` + `src/agent/messages.ts`：system prompt 与 API JSON 转换（评估是否把 `openai.ts` 的 `toApiMessages` 迁入 `agent/messages.ts`，迁了要同步改 §4 与本条），见 `docs/testing.md` S1-3 小节。
 
 ### 交接模板（每次会话结束复制填写）
 
