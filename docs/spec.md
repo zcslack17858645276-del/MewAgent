@@ -160,7 +160,7 @@ tool_call: read_file {"path":"README.md"}
 finish: stop
 ```
 
-真实 API：交互 TUI 已在非 mock 下调用 `createOpenAiLlmClient`（S1-4）；`--print` headless 的真实 API 链路已在 S1-5 接通——system prompt 首位、一轮流式输出到 stdout、诊断走 stderr，`MEWCODE_DEBUG=1` 打印请求体，401/网络失败给可读"下一步"并退出码 1。"真实输出文本"行待用户换有效 key 后复验（当前 `.env` key 被供应商判 401 invalid）。
+真实 API：交互 TUI 已在非 mock 下调用 `createOpenAiLlmClient`（S1-4）；`--print` headless 的真实 API 链路已在 S1-5 接通——system prompt 首位、一轮流式输出到 stdout、诊断走 stderr，`MEWCODE_DEBUG=1` 打印请求体，401/网络失败给可读"下一步"并退出码 1。真实 API 的 A 级复验已于 2026-11-23 通过（用户换有效 key 后：中文回复 + exit 0；假 key 401 + exit 1）；流式首字/中断手感留 S1-6 手工回归。
 
 ## 6. 工具系统（S2）
 

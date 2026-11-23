@@ -29,7 +29,7 @@
 | S1-2 | `llm/openai.ts`：`fetch` 流式客户端 + tool_calls 按 index 聚合 + abort | 4h | done | mock provider 下 text/tool_calls 都正确（`tests/openai.test.ts` 13 用例；证据见 HANDOFF §7 会话 10） |
 | S1-3 | `agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换 | 2h | done | 消息角色/字段符合协议（`tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例；证据见 HANDOFF §7 会话 11） |
 | S1-4 | `ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为 | 5h | done | 流式不闪屏；生成中可中断（代码 + `tests/ui.test.ts` 6 用例 + 假终端 TUI 冒烟；B 级 8 条已由用户验收通过，2026-11-23）。**补丁（2026-11-23）**：`MEWCODE_MOCK_DELAY_MS` 慢速流式（让 B 级能观察流式/Esc/中断）+ 自研多行输入 `ui/InputBox.tsx`（粘贴保留换行、Shift+Enter/Ctrl+J 换行、Kitty 协议自动协商、caret 多行定位），`tests/input-text.test.ts` 13 用例，全量 99/99；补丁项（多行粘贴 / Shift+Enter 生效）也已由用户确认 |
-| S1-5 | `--print` 模式接真实 API | 1h | done | 无 TTY 下能跑一轮：headless 真实链路已接（system prompt 首位 → 一轮流式 → stdout 只放模型文本；`MEWCODE_DEBUG=1` 打印请求体；401/网络失败可读错误 + exit 1）。A 级：`tests/openai.test.ts` +1、`tests/config.test.ts` +4、`tests/mock.test.ts` 改写 1；全量 104/104；真实 API 冒烟实测到 HTTP 401（用户 .env 的 key 被供应商判 invalid，需换有效 key 复验"输出文本"行）。证据见 HANDOFF §7 会话 13 / docs/testing.md S1-5 |
+| S1-5 | `--print` 模式接真实 API | 1h | done | 无 TTY 下能跑一轮：headless 真实链路已接（system prompt 首位 → 一轮流式 → stdout 只放模型文本；`MEWCODE_DEBUG=1` 打印请求体；401/网络失败可读错误 + exit 1）。A 级：`tests/openai.test.ts` +1、`tests/config.test.ts` +4、`tests/mock.test.ts` 改写 1；全量 104/104；真实 API 冒烟先测到 HTTP 401（最初未配置 key），用户换有效 key 后 A 级复验通过：`"你好" \| npm run dev -- --print` → 中文回复 + exit 0、无 TTY 无 raw mode 报错、重定向 UTF-8 无乱码、假 key 401 + exit 1 且不泄露 key。证据见 HANDOFF §7 会话 13 / docs/testing.md S1-5 |
 | S1-6 | 手工验收 + 打 tag `v0.1-s1` | 1h | todo | 中文输入输出正常 |
 
 ## S2 · 工具系统 + Agent Loop（3 天）

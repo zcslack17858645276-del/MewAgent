@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示）已完成，下一任务 S1-6（S1 手工验收 + tag `v0.1-s1`）**。S1-5 的"真实 API 输出文本"行待用户换有效 key 后复验（当前 `.env` 的 key 被供应商判 401 invalid；401 错误链路已真机验证）。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）已完成，下一任务 S1-6（S1 手工验收 + tag `v0.1-s1`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API；"真实输出文本"行待用户换有效 key 复验）｜ 🔄 S1-6（当前）｜ ⬜ S2-1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ 🔄 S1-6（当前）｜ ⬜ S2-1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -346,10 +346,10 @@ git status --short        # 确认没有把测试产物提交
 
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
-| 1 | A | `"你好" \| npm run dev -- --print` | 输出最终文本，退出 0 | P0 | ⏳ 待用户换有效 key 后复验（当前 `.env` 的 key 被供应商判 401 invalid）；假 fetch 单测已覆盖"只输出模型文本 + system 首位" |
-| 2 | A | 无 TTY 环境（管道/CI） | 不报 "raw mode" 之类错误 | P0 | ✅ `main()` 注入 IO 全程无 TTY；真实 pwsh 管道下运行无 raw mode 错误 |
-| 3 | B | 输出重定向到文件再打开 | 中文无乱码 | P1 | ⏳ 待 key 有效后验（Node stdout 为 UTF-8） |
-| 4 | A | 错误 key 下运行 | 非 0 退出码 + 可读错误 | P1 | ✅ 真机实测：DeepSeek 返回 HTTP 401 → stderr `LLM 请求失败（HTTP 401）…` + `下一步：检查 .env 里的 MEWCODE_API_KEY…`，exit 1，供应商摘要已脱敏 |
+| 1 | A | `"你好" \| npm run dev -- --print` | 输出最终文本，退出 0 | P0 | ✅ 真机复验（2026-11-23 22:2x，用户换有效 key 后）：stdout 中文回复"你好，我是 MewAgent…"、exit 0，stderr 只有 npm notice + `mewagent 0.1.0 · headless · model: deepseek-flash · base-url: …` 头部行，无其它噪音 |
+| 2 | A | 无 TTY 环境（管道/CI） | 不报 "raw mode" 之类错误 | P0 | ✅ `main()` 注入 IO 全程无 TTY；真实 pwsh/cmd 管道下运行无 raw mode 错误（stderr 扫描 `raw mode`/`setRawMode` 无匹配） |
+| 3 | B | 输出重定向到文件再打开 | 中文无乱码 | P1 | ✅ 复验：`… > spikes\.out\s1-5-a1-out.txt 2> …-err.txt`，用 read 工具确认文件为合法 UTF-8 中文、无乱码 |
+| 4 | A | 错误 key 下运行 | 非 0 退出码 + 可读错误 | P1 | ✅ 真机实测：DeepSeek 返回 HTTP 401 → stderr `LLM 请求失败（HTTP 401）…` + `下一步：检查 .env 里的 MEWCODE_API_KEY…`，exit 1，供应商摘要已脱敏；复测（`MEWCODE_API_KEY=sk-invalid-test-000` 临时覆盖）同样 exit 1、输出无完整 key |
 
 **A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -358,9 +358,14 @@ git status --short        # 确认没有把测试产物提交
 - `tests/config.test.ts` 增 4 例（假 fetch 全离线）：真实流式 stdout 只含模型文本且 system 在首位、`MEWCODE_DEBUG=1` 请求体不泄露 key、401 → exit 1 + `[REDACTED]`、网络失败 → exit 1 + 代理提示；`tests/mock.test.ts` 原"非 mock --print 占位"改为"真实 API 单轮流式（假 fetch）"。
 - `npm run typecheck` exit 0；全量 `npm test` → **tests 104 / pass 104 / fail 0**（原 99 + 新增 5）；`npm run build` exit 0。
 - 真实 API 冒烟（用户 `.env`：`deepseek-flash` / `https://api.deepseek.com`）：容器外无代理也能直达 DeepSeek，返回 HTTP 401（key 无效）——证明 headless 接线、请求体（system 首位）与错误链路端到端可用。
+- **真实 API A 级复验（2026-11-23 22:2x，用户配置有效 key 后）**：
+  - A1 `cmd /c "chcp 65001 >nul && echo 你好 | npm run dev -- --print"` → exit 0，stdout 为中文回复（`你好，我是 MewAgent，当前在 D:\workplace\AIAgent\MewCode 工作。…`），stderr 仅 npm notice 与头部行；证据 `spikes/.out/s1-5-a1-out.txt` / `s1-5-a1-err.txt`（gitignored）。
+  - A2 同一运行无 TTY 环境，stderr 无 `raw mode`/`setRawMode` 报错。
+  - A4 `MEWCODE_API_KEY=sk-invalid-test-000 npm run dev -- --print hi` → exit 1，stderr `LLM 请求失败（HTTP 401）…` + `下一步：…`，输出无完整 key；证据 `spikes/.out/s1-5-a4-*.txt`。
+  - B3 重定向输出文件为合法 UTF-8 中文（read 工具复核，无乱码）。
 - CI（gh 只读）：`45192982541`（task/s1-5-headless, `c29ede0`）、`45193019580`（main, `60f0cb2`）全部 success；`45193019580` job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 104 / # pass 104 / # fail 0`。
 
-**已知限制**：headless 只跑一轮、不执行工具（S2 Agent Loop 后再扩展）；"真实输出文本"行依赖用户的 key 有效（当前 key 判 invalid，需更新 `.env` 后复验）；`--print` 不处理 SIGINT（管道场景直接结束进程）；`MEWCODE_DEBUG` 输出可能较长，勿在公开场合粘贴。
+**已知限制**：headless 只跑一轮、不执行工具（S2 Agent Loop 后再扩展）；`--print` 不处理 SIGINT（管道场景直接结束进程）；`MEWCODE_DEBUG` 输出可能较长，勿在公开场合粘贴；真实 API 的"流式首字/中断"手感留到 S1-6 手工回归。
 
 #### S1-6 S1 收尾
 
