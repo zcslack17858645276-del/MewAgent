@@ -358,6 +358,7 @@ git status --short        # 确认没有把测试产物提交
 - `tests/config.test.ts` 增 4 例（假 fetch 全离线）：真实流式 stdout 只含模型文本且 system 在首位、`MEWCODE_DEBUG=1` 请求体不泄露 key、401 → exit 1 + `[REDACTED]`、网络失败 → exit 1 + 代理提示；`tests/mock.test.ts` 原"非 mock --print 占位"改为"真实 API 单轮流式（假 fetch）"。
 - `npm run typecheck` exit 0；全量 `npm test` → **tests 104 / pass 104 / fail 0**（原 99 + 新增 5）；`npm run build` exit 0。
 - 真实 API 冒烟（用户 `.env`：`deepseek-flash` / `https://api.deepseek.com`）：容器外无代理也能直达 DeepSeek，返回 HTTP 401（key 无效）——证明 headless 接线、请求体（system 首位）与错误链路端到端可用。
+- CI（gh 只读）：`45192982541`（task/s1-5-headless, `c29ede0`）、`45193019580`（main, `60f0cb2`）全部 success；`45193019580` job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 104 / # pass 104 / # fail 0`。
 
 **已知限制**：headless 只跑一轮、不执行工具（S2 Agent Loop 后再扩展）；"真实输出文本"行依赖用户的 key 有效（当前 key 判 invalid，需更新 `.env` 后复验）；`--print` 不处理 SIGINT（管道场景直接结束进程）；`MEWCODE_DEBUG` 输出可能较长，勿在公开场合粘贴。
 

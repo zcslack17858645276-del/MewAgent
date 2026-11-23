@@ -341,7 +341,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级）**：`npm run typecheck` exit 0；定向 `tests/config.test.ts tests/openai.test.ts` → 43/43；全量 `npm test` → **tests 104 / pass 104 / fail 0**（原 99 + 5）；`npm run build` exit 0。证据：`spikes/.out/s1-5-targeted.txt`、`s1-5-full.txt`、`s1-5-build.txt`（均 gitignored）。
 - **真实 API 冒烟（真机）**：`node --import tsx src/index.ts --print "你好"` → stderr 头 `mewagent 0.1.0 · headless · model: deepseek-flash · base-url: https://api.deepseek.com`；DeepSeek 返回 **HTTP 401**（供应商判定用户 `.env` 里的 key invalid）→ stderr `LLM 请求失败（HTTP 401）…` + `下一步：检查 .env 里的 MEWCODE_API_KEY 是否有效、是否还有余额。`，exit 1 —— headless 接线、system 首位请求体与错误链路端到端可用；**"真实输出文本"行待用户换有效 key 后复验**。
 - **坑**：①`isNetworkFailure` 最初返回普通 boolean，catch 里 `error.message` 报 TS18046 → 改成 `error is TypeError` 类型谓词；②PS 5.1 下 `npm run typecheck` 直接管道只看得到 npm notice，需 `cmd /c "... > file 2>&1"` 拿退出码；③`.env` 的 key 被供应商判 invalid 属用户侧配置，不影响代码验收。
-- **提交**：分支 `task/s1-5-headless` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>` → 本条哈希回填提交并 push。
+- **提交**：分支 `task/s1-5-headless` 提交 `c29ede0`（已 push，远端保留原始提交）→ squash 合并 main `60f0cb2` → 本条哈希回填提交并 push。
+- **CI**：`45192982541`（task/s1-5-headless, `c29ede0`）、`45193019580`（main, `60f0cb2`）全部 success；`45193019580` job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 104 / # pass 104 / # fail 0`。
 - **下次第一步**：S1-6（S1 手工验收 + tag `v0.1-s1`）：用户换有效 `MEWCODE_API_KEY` 后复验 `"你好" | npm run dev -- --print`（行 1/3），跑 S1 手工回归清单（TUI 8 条已过，补 S1-5 真实输出 + 中断 + 重定向），更新文档后打 tag `v0.1-s1` 并 push。
 
 ### 交接模板（每次会话结束复制填写）
