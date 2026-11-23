@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；下一任务 S2-1（`tools/paths.ts` 工作区边界校验）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）已完成，下一任务 S2-2（`tools/registry.ts` 工具注册表）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1 见下方 S2-1 小节与 HANDOFF §7 会话 15。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ 🔄 S2-1（当前）｜ ⬜ S2-2 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ 🔄 S2-2（当前）｜ ⬜ S2-3 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -395,14 +395,23 @@ git status --short        # 确认没有把测试产物提交
 
 ### S2 · 工具系统 + Agent Loop
 
-#### S2-1 路径边界
+#### S2-1 路径边界（已完成 2026-11-23）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `tests/paths.test.ts`：`../x`、`..\x`、绝对路径、盘符路径、`%TEMP%` | 全部拒绝 | P0 |
-| 2 | A | 合法：`src/a.ts`、`./a.ts`、带空格/中文文件名 | 全部允许 | P0 |
-| 3 | B | TUI 里让它"读取 ../secret.txt" | 工具返回拒绝原因，模型不会硬读 | P0 |
-| 4 | B | 创建 junction/symlink 指向 testbed 外，再让它读 | 拒绝或明确提示不支持 | P1 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `tests/paths.test.ts`：`../x`、`..\x`、绝对路径、盘符路径、`%TEMP%` | 全部拒绝 | P0 | ✅ `UnsafePathError` + `下一步` 文案，10 例全绿 |
+| 2 | A | 合法：`src/a.ts`、`./a.ts`、带空格/中文文件名 | 全部允许 | P0 | ✅ 输出正斜杠绝对路径、保留原始大小写 |
+| 3 | B | TUI 里让它"读取 ../secret.txt" | 工具返回拒绝原因，模型不会硬读 | P0 | ⏳ 工具未接入 TUI（S2-6/S2-7 接线后验） |
+| 4 | B | 创建 junction/symlink 指向 testbed 外，再让它读 | 拒绝或明确提示不支持 | P1 | ✅ 单元级已验（`tests/paths.test.ts` 第 9 例）；TUI 级 ⏳ 随 S2-6/S2-7 |
+
+**A 级证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` exit 0
+- `node --import tsx --test tests/paths.test.ts` → **tests 10 / pass 10 / fail 0**（306.9ms）
+- 全量 `npm test` → **tests 114 / pass 114 / fail 0**（1360.97ms；原 104 + 新增 10）
+- 完整记录：`spikes/.out/s2-1-typecheck.txt`、`spikes/.out/s2-1-paths.txt`、`spikes/.out/s2-1-full.txt`（均 gitignored）
+
+**实现要点**：`resolveInside(workspace, input)` 做两层包含校验——先按 `path.resolve` + 前缀比较拦 `..`/越界绝对路径，再用 `realpathSync` 向上找最近已存在祖先做真实路径比较，拦 symlink/junction 逃逸；拒绝时抛 `UnsafePathError`（含 reason 与"下一步"），输出统一正斜杠、保留用户原始大小写。**已知限制**：`%VAR%`/`~`/Windows 盘符相对路径一律拒绝（不做展开），这是有意的安全默认；B 级第 3、4 行的 TUI 级复验要等工具真正接入 TUI。
 
 #### S2-2 工具注册表
 
@@ -729,7 +738,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S1-3 ✅ | typecheck + `tests/messages.test.ts` + `tests/prompt.test.ts`（`npm test`，各 6 用例） |
 | S1-4 ⏳ | 手工 TUI 清单（8 条 B 级）+ UI 单测 `tests/ui.test.ts`（A 级补充） |
 | S1-5 | 管道命令 |
-| S2-1 | `tests/paths.test.ts` |
+| S2-1 ✅ | typecheck + `tests/paths.test.ts`（10 用例；全量 `npm test` 114/114；B 级 TUI 项随 S2-6/S2-7 后验） |
 | S2-2 | `tests/registry.test.ts` |
 | S2-3 | `tests/fs.test.ts` + testbed 手工 |
 | S2-4 | `tests/search.test.ts` + 手工 |

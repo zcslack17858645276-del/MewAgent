@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）｜ 下一任务：S2-1
+> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 进行中（S2-1 完成）｜ 下一任务：S2-2
 
 ---
 
@@ -116,6 +116,7 @@ npm run build
 | 多行输入与 mock 慢速流式（S1-4 补丁） | 输入框改为自研 `src/ui/InputBox.tsx`（受控多行），纯逻辑在 `src/ui/input-text.ts`（`normalizePastedText` 统一 CRLF/Tab/控制符、代理对安全的插入删除、`moveVertically`/`lineBoundaryOffset`/`lineAndColumn`）：Enter 发送、**Shift+Enter 换行**（Kitty 键盘协议 `ESC[13;2u`；终端不支持时 **Ctrl+J** 兜底）、粘贴多行**保留换行**（bracketed paste + 规范化）、方向键/Home/End/上下移动；caret 由 App 按「行号 + 该行显示宽度」用 `measureElement` 计算。`start-tui.tsx` 的 `render` 增加 `kittyKeyboard: { mode: "auto" }`（auto 会用 `CSI ? u` 查询终端，200ms 超时回退；`MEWCODE_KITTY_KEYBOARD=0` 可关闭）。mock 增加 `createMockLlmClient({ chunkDelayMs?, chunkSize? })` 慢速流式（默认 0 = 一次性返回，保持原行为；按码点切块避免切坏代理对，块间可 abort），入口读 `MEWCODE_MOCK_DELAY_MS` 传给交互 TUI；`--print` 路径不变。`ink-text-input` 不再使用（依赖暂留便于回退） |
 | 文档与 CI（S0-5） | `AGENTS.md` 是所有 AI 代理的统一规则（开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境 / 红线）；`CLAUDE.md` 只是薄入口，指向 `AGENTS.md`；`docs/spec.md` 是 v0.1 规格（按阶段追加「要什么 / 不要什么 / 验收 / 已知边界」，§13 维护阶段状态）；`docs/checklist.md` 是验收清单（通用 DoD + S0–S4 阶段清单 + 十条成功标准证据表 + 回归/发布清单）；CI 用 GitHub Actions（`ubuntu-latest` + Node 22，`npm ci` → `npm run typecheck` → `npm test`），触发 `push` 到 `main`/`task/**`/`fix/**`/`docs/**` 与 PR 到 `main` |
 | CI 自查（S0-5 后） | 本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`，token scopes `gist, read:org, repo, workflow`）；agent 只用 `gh run list` / `gh run view <id> --json jobs` / `gh run view <id> --log` **只读**查询 Actions 自查 CI，**禁止用 gh 做 push/删除/PR 等写操作**；PR 仍由用户开（或用户明确授权后再说） |
+| 工具路径边界（S2-1） | `src/tools/paths.ts` 是**所有工具路径的唯一入口**：`resolveInside(workspace, input): string` 返回工作区内绝对路径（正斜杠、保留原始大小写）；拒绝时抛 `UnsafePathError`（`name`、`readonly input/workspace/reason`，message 带"下一步"）。**两层校验**：① 词法 `path.resolve` + 前缀比较（拦 `..`、越界绝对路径）；② 真实路径 —— 对工作区与目标分别 `realpathSync` 向上找最近已存在祖先再拼回不存在部分（`canonicalizeWithAncestors`），拦 symlink/junction 逃逸（含"junction 下尚未创建的新文件"）。一律拒绝 `%VAR%`、`~`、Windows 盘符相对路径（不做展开，安全默认）；另导出 `isInsideWorkspace`、`toWorkspaceRelative`（根→`"."`）、`toPosixPath`、`resolveWorkspace`、`PathRejectionReason`。工具实现必须走这里，禁止手拼路径 |
 
 ---
 
@@ -196,7 +197,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；下一步 S2-1（`tools/paths.ts` 工作区边界校验 + 测试）。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**、CI 全绿；下一步 S2-2（`tools/registry.ts` 工具注册表）。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -356,7 +357,15 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **坑**：①Node 26 的 `npm test` 报告用 `ℹ tests N` / `ℹ pass N` 而非 `# tests N`，grep 计数要同时匹配两种；②dev 与 dist 输出比较必须先过滤 `npm notice` 行（notice 走 stderr，重定向时会混进文件）；③PS 5.1 `Set-Content -Encoding UTF8` 会写 BOM（commit message 用 write 工具写无 BOM 文件 + `git commit -F`）。
 - **下次第一步**：S2-1（`src/tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts`）：拒绝 `../x`、`..\x`、绝对路径、盘符路径、`%TEMP%` 等越界；允许 `src/a.ts`、`./a.ts`、带空格/中文文件名；对照 `docs/testing.md` S2-1 四行，先用 `path.resolve` + `path.relative` 判边界（方案 §6.10）。
 
-### 交接模板（每次会话结束复制填写）
+### 2026-11-23 · 会话 15（S2-1：工具路径工作区边界校验）
+
+- **做了什么**：新建 `src/tools/paths.ts`（约 200 行）——`resolveInside(workspace, input)` 返回工作区内绝对正斜杠路径（保留原始大小写），拒绝时抛 `UnsafePathError`（含 `reason` 与"下一步"文案）；两层校验：词法 `path.resolve` + 前缀比较（拦 `..`、越界绝对路径），以及真实路径 `realpathSync` 向上找最近已存在祖先（`canonicalizeWithAncestors`）比较（拦 symlink/junction 逃逸，含 junction 下尚未创建的新文件）；一律拒绝 `%VAR%`、`~`、Windows 盘符相对路径（不做展开，安全默认）。另导出 `isInsideWorkspace`、`toWorkspaceRelative`、`toPosixPath`、`resolveWorkspace`、`PathRejectionReason`。新建 `tests/paths.test.ts` 10 个 test：拒绝 `../x`/`..\x`/`../../etc/passwd`/`..`、工作区外绝对路径（含 `%TEMP%`）、Windows 盘符绝对/相对、`%VAR%`/`~`、空/空白/NUL；允许 `src/a.ts`/`./a.ts`/`src\a.ts`/`src/../src/a.ts`/`.`、带空格与中文名、工作区内绝对路径；junction/symlink 指向工作区外时拒绝（含不存在的子文件，环境不支持时 skip）；`isInsideWorkspace`/`toWorkspaceRelative`/`resolveWorkspace`。
+- **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/paths.test.ts` → **tests 10 / pass 10 / fail 0（306.9ms）**；全量 `npm test` → **tests 114 / pass 114 / fail 0（1360.97ms）**。证据：`spikes/.out/s2-1-typecheck.txt`、`s2-1-paths.txt`、`s2-1-full.txt`（均 gitignored）。
+- **B 级（待用户/后续）**：`docs/testing.md` S2-1 第 3/4 行需要在 TUI 里实际操作（"读取 ../secret.txt"、junction 指向 testbed 外），但工具尚未接入 TUI（S2-6/S2-7 才接线），按惯例延到那时验收；第 4 行的单元级（`tests/paths.test.ts` 第 9 例）已覆盖。
+- **文档**：`docs/tasks.md` S2-1 done、焦点 S2-2；`docs/testing.md` 当前进度/L128 进度行、S2-1 小节改为已完成（4 行结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C 行；`docs/checklist.md` S2 第一项勾选 + 证据；`docs/spec.md` line 83 测试文件改 11 个、§13 新增 S2-1 ✅ 行并把 S2 标 🔄。
+- **提交**：分支 `task/s2-1-paths` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>` → 本条哈希回填提交并 push。
+- **下次第一步**：S2-2（`src/tools/registry.ts`：工具注册表 + JSON Schema + 参数解析 + 异常兜底），对照 `docs/testing.md` S2-2 三行；注意 `ToolDefinition` 契约来自 `src/types.ts`，注册表只做"名字→定义/参数校验/统一错误包装"，不执行工具本身。
+
 
 ```text
 ### YYYY-MM-DD · 会话 N（<主题>）
