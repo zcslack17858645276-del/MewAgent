@@ -303,7 +303,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级自动化，P0，全部通过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/openai.test.ts` → tests 13 / pass 13 / fail 0（386ms）；全量 `npm test` → tests 65 / pass 65 / fail 0（397ms，原 52 + 新增 13）；失败/边界路径覆盖乱序 index、空 delta、缺 id、401 含 key 脱敏、预中止 AbortError、坏 JSON、无 body。证据 `spikes/.out/s1-2-openai-test.txt`、`spikes/.out/s1-2-full-test.txt`（gitignored）。
 - **B 级**：真实 API 流式/Esc/错 key 实机联调与断网测试留到 S1-4/S1-5（客户端尚未接线）；401 脱敏与 AbortError 已在单测级验证。
 - **坑**：`if (signal?.aborted === true)` 连续两次判断会触发 TS2367（第一次判断后 TS 把 `aborted` 收窄为 `false | undefined`，后续再比 `true` 无重叠）→ 抽 `throwIfAborted(signal)` 小函数，调用处不再被收窄；`npm test` 的 `# tests/pass/fail` 行仍被 PS 5.1 管道吞掉，需 `cmd /c "... > file 2>&1"`。
-- **提交**：分支 `task/s1-2-openai` 提交 `__S1_2_COMMIT__`（已 push，远端保留原始提交）→ squash 合并为 `main` 的 `__S1_2_MAIN__` 并 push → 本条 docs 哈希回填提交并 push。
+- **提交**：分支 `task/s1-2-openai` 提交 `3248708`（已 push，远端保留原始提交）→ squash 合并为 `main` 的 `28177f7` 并 push → 本条 docs 哈希回填提交并 push。
 - **下次第一步**：S1-3 `src/agent/prompt.ts` + `src/agent/messages.ts`：system prompt 与 API JSON 转换（评估是否把 `openai.ts` 的 `toApiMessages` 迁入 `agent/messages.ts`，迁了要同步改 §4 与本条），见 `docs/testing.md` S1-3 小节。
 
 ### 交接模板（每次会话结束复制填写）
