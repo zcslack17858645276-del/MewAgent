@@ -279,6 +279,7 @@ git status --short        # 确认没有把测试产物提交
 - `node --import tsx --test tests/openai.test.ts` → exit 0，`tests 13 / pass 13 / fail 0`（386ms）
 - 全量 `npm test` → exit 0，`tests 65 / pass 65 / fail 0`（397ms；原 52 + 新增 13）
 - 完整记录：`spikes/.out/s1-2-openai-test.txt`、`spikes/.out/s1-2-full-test.txt`（gitignored）
+- CI（gh 只读复核）：run `45181232133`（分支 `3248708`）、`45181303071`（main `28177f7`）、`45181346659`（main `43ff69c`）全部 success；`45181346659` 的 job `typecheck + test (Node 22)` 步骤 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 全 success，日志 `# tests 65 / # pass 65 / # fail 0`
 
 **已知限制**：客户端未接进 `src/index.ts`（真实 API 的 `--print` 属 S1-5，TUI 属 S1-4），所以 B 级"真实 API"三行本次只做了单测级验证；消息转换暂时放在 `openai.ts` 内（S1-3 若迁到 `agent/messages.ts` 需同步更新 HANDOFF §4 决策与引用）。
 
