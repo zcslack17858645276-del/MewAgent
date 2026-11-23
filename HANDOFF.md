@@ -351,8 +351,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **做了什么**：S1 全量验收重跑（证据 `spikes/.out/s1-6-acceptance.txt`，gitignored）：`npm run typecheck` exit 0；`npm test` exit 0（**tests 104 / pass 104 / fail 0**，duration ≈ 996ms）；`npm run dev -- --help` exit 0 且 8 参数齐全；`--version` exit 0 输出 `0.1.0`；`--mock --print 你好` 连跑两次 exit 0 且去 npm notice 后输出完全一致（幂等、含两轮）；`npm run build` exit 0，`node dist/index.js --mock --print 你好` 与 dev 输出一致；`src/` 中 `\bany\b` 匹配 0；真实 API `node --import tsx src/index.ts --print 你好` → exit 0、stdout 415B 中文、stderr 仅 headless 头部行；TUI 假终端冒烟 `SMOKE OK`（exit 0）。文档：`docs/tasks.md` S1-6=done、焦点 S2-1；`docs/testing.md` S1-6 小节重写为已完成表格 + 全量证据 + S1-5 B 级复核段、进度与 L128 进度行、S1 回归清单全勾；`docs/checklist.md` S1 清单剩余两项勾选、§4 阶段回归清单补 S1 数据；`docs/spec.md` 状态行、§1 成功标准 1 改 ✅、§13 展开 S1-1~S1-6 明细；本条 HANDOFF 记录。
 - **验收（A 级，P0 全过）**：见上；S1 手工回归五项（S0 全部 / `npm test` 含 SSE / 真实流式+中断 / `--print` 管道 / 错误 key）全部有证据（S1-4 B 级、S1-5 B 级、S1-6 重跑）。
 - **tag**：`v0.1-s1`（annotated，`git tag -a v0.1-s1 -m "S1: 流式对话 + 最小 TUI（SSE / OpenAI 客户端 / Ink TUI / headless 真实 API；typecheck 0 / tests 104 / CI 全绿）"`）打在 S1 收尾提交并 `git push origin v0.1-s1`；`git rev-parse "v0.1-s1^{commit}"` == main。
-- **提交**：分支 `task/s1-6-acceptance` 提交 `<待回填>` → squash 合并 main `<待回填>` → docs 哈希回填提交 `<待回填>` 并 push。
-- **CI**：`<待回填>`。
+- **提交**：分支 `task/s1-6-acceptance` 提交 `7299e8a`（已 push，远端保留原始提交）→ squash 合并 main `16f7f0b` → 本条哈希回填提交并 push。
+- **CI**：`45196238705`（task/s1-6-acceptance, `7299e8a`）、`45196272065`（main, `16f7f0b`）全部 success，job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 104 / # pass 104 / # fail 0`。
 - **坑**：①Node 26 的 `npm test` 报告用 `ℹ tests N` / `ℹ pass N` 而非 `# tests N`，grep 计数要同时匹配两种；②dev 与 dist 输出比较必须先过滤 `npm notice` 行（notice 走 stderr，重定向时会混进文件）；③PS 5.1 `Set-Content -Encoding UTF8` 会写 BOM（commit message 用 write 工具写无 BOM 文件 + `git commit -F`）。
 - **下次第一步**：S2-1（`src/tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts`）：拒绝 `../x`、`..\x`、绝对路径、盘符路径、`%TEMP%` 等越界；允许 `src/a.ts`、`./a.ts`、带空格/中文文件名；对照 `docs/testing.md` S2-1 四行，先用 `path.resolve` + `path.relative` 判边界（方案 §6.10）。
 
