@@ -388,8 +388,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 14 / pass 14 / fail 0（609.9ms）**；全量 `npm test` → **tests 141 / pass 141 / fail 0（1441.2ms）**；`src/` 中 `\bany\b` 0 匹配。证据：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`（均 gitignored）。
 - **B 级（待后续）**：testing.md S2-3 第 3–5 行（testbed 里读 sample.txt、改第 2 行、全部 line→row）需要工具真正接进 loop/TUI 并经过审批，留 S2-6（loop）/S2-7（TUI）+ S3（审批）；第 6/7 行的 CRLF 与截断已在单测覆盖，交互观感留用户复核。
 - **文档**：`docs/tasks.md` S2-3 done、焦点 S2-4；`docs/testing.md` L7/L128 进度、S2-3 小节已完成（结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 83 测试文件改十三个、§13 新增 S2-3 ✅ 行；`docs/checklist.md` 6 工具项加进度注；`HANDOFF.md` line 5 状态、§4「文件工具（S2-3）」决策行、§6 状态。
-- **提交**：分支 `task/s2-3-fs` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
-- **CI**：待补（push 后 gh 复核，预期 141/141）。
+- **提交**：分支 `task/s2-3-fs` 提交 `fb495d6`（已 push，远端保留原始提交）→ squash 合并 main `03ae006`；本条哈希回填提交并 push。
+- **CI**：`45201159170`（task/s2-3-fs, `fb495d6`）、`45201176216`（main, `03ae006`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 141 / # pass 141 / # fail 0`。
 - **坑**：①`write_file` 行数最初把末尾换行算成额外行 → 抽 `countTextLines`；②`mkdirSync` 返回值在 Windows 带 `\\?\` 前缀，不能直接展示 → 改输出父目录相对路径；③测试 helper 预建目录会让"已创建目录"分支永不触发 → helper 只 `mkdtempSync`；④测试里删掉 import 忘删触发 TS6133。
 - **下次第一步**：S2-4（`src/tools/search.ts`：`glob` 与 `grep`；glob 上限 200 条、输出截断；先读 `docs/testing.md` S2-4）。
 

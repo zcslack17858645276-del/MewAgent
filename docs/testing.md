@@ -449,6 +449,7 @@ git status --short        # 确认没有把测试产物提交
 - `npm run typecheck` → exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 14 / pass 14 / fail 0（609.9ms）**；全量 `npm test` → **tests 141 / pass 141 / fail 0（1441.2ms）**；`src/` 中 `\bany\b` 0 匹配
 - 覆盖点：write 自动建目录 + 字节/行数、覆盖与空文件；read 中文行号/CRLF 标记/空文件/无尾换行行数、offset/limit 分段、默认 500 行上限与单行 40_000 字符的 30KB 字节截断；edit 唯一匹配 + ±3 行上下文、0 匹配、空 old_string、多匹配默认报错、`replace_all` 全替换、CRLF 文件原样与 LF 写法两种匹配、LF 文件不引入 CRLF；三个工具都拒绝 `../evil.txt` 等越界路径；参数类型错误；`readOnly` 标记与 `ToolRegistry(fsTools)` 集成
 - 完整记录：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`（均 gitignored）
+- CI（gh 只读）：`45201159170`（task/s2-3-fs, `fb495d6`）、`45201176216`（main, `03ae006`）全部 success；job `typecheck + test (Node 22)` 日志 `# tests 141 / # pass 141 / # fail 0`
 
 **已知限制**：`read_file` 的截断按行裁剪（超长单行会在行内截断加 `…`）；`edit_file` 只做精确字符串替换（§6.5），不支持行号 patch 或正则；`write_file` 会整文件覆盖、不做追加；三个工具目前只被 `tests/` 直接调用，尚未接入 loop/TUI（S2-6/S2-7 接线，S3 加审批）。
 
