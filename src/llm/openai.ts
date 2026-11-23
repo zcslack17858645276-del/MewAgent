@@ -10,6 +10,7 @@
 // - 结束时按 index 排序，过滤掉没有 name 的项；
 // - 有 tool_calls 时 finishReason 以实际数据为准（有些供应商返回 stop）。
 
+import { toApiMessages } from "../agent/messages.js";
 import type { LlmChatOptions, LlmChatResult, LlmClient, Message, ToolCall, ToolSpec } from "../types.js";
 import { parseSseStream } from "./sse.js";
 
@@ -61,18 +62,6 @@ export class LlmHttpError extends Error {
   }
 }
 
-/** 线上协议里的 message 形状（只覆盖本项目会发的字段）。 */
-export type ApiMessage =
-  | { role: "system" | "user"; content: string }
-  | { role: "assistant"; content: string; tool_calls?: ApiToolCall[] }
-  | { role: "tool"; tool_call_id: string; content: string };
-
-export interface ApiToolCall {
-  id: string;
-  type: "function";
-  function: { name: string; arguments: string };
-}
-
 function createAbortError(): Error {
   const error = new Error("LLM 请求已被中断（AbortSignal）。");
   error.name = "AbortError";
@@ -94,35 +83,6 @@ function truncate(value: string, limit = 400): string {
 
 function stripTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, "");
-}
-
-/**
- * 把内部 `Message[]` 转成 OpenAI chat/completions 的线上格式。
- *
- * assistant 的 `toolCalls` 要转成 `tool_calls[{id,type:"function",function:{...}}]`，
- * tool 消息要带 `tool_call_id`，否则供应商会拒绝整个历史。
- */
-export function toApiMessages(messages: readonly Message[]): ApiMessage[] {
-  return messages.map((message) => {
-    if (message.role === "assistant") {
-      if (message.toolCalls.length === 0) {
-        return { role: "assistant", content: message.content };
-      }
-      return {
-        role: "assistant",
-        content: message.content,
-        tool_calls: message.toolCalls.map((call) => ({
-          id: call.id,
-          type: "function",
-          function: { name: call.name, arguments: call.arguments },
-        })),
-      };
-    }
-    if (message.role === "tool") {
-      return { role: "tool", tool_call_id: message.toolCallId, content: message.content };
-    }
-    return { role: message.role, content: message.content };
-  });
 }
 
 /**

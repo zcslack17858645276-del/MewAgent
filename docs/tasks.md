@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S1-3（`agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换）**
+**当前焦点：S1-4（`ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为）**
 **最后更新：2026-11-23**
 
 ---
@@ -27,7 +27,7 @@
 |---|---|---|---|---|
 | S1-1 | `llm/sse.ts`：SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试 | 3h | done | 一行拆 3 块仍正确；`[DONE]` 不报错（证据见 HANDOFF §7 会话 9） |
 | S1-2 | `llm/openai.ts`：`fetch` 流式客户端 + tool_calls 按 index 聚合 + abort | 4h | done | mock provider 下 text/tool_calls 都正确（`tests/openai.test.ts` 13 用例；证据见 HANDOFF §7 会话 10） |
-| S1-3 | `agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换 | 2h | todo | 消息角色/字段符合协议 |
+| S1-3 | `agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换 | 2h | done | 消息角色/字段符合协议（`tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例；证据见 HANDOFF §7 会话 11） |
 | S1-4 | `ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为 | 5h | todo | 流式不闪屏；生成中可中断 |
 | S1-5 | `--print` 模式接真实 API | 1h | todo | 无 TTY 下能跑一轮 |
 | S1-6 | 手工验收 + 打 tag `v0.1-s1` | 1h | todo | 中文输入输出正常 |

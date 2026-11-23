@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`**（S0-1 ~ S0-6 全部完成；CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核）。下一阶段：S1 流式对话 + 最小 TUI。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 进行中（S1-1 SSE、S1-2 流式客户端、S1-3 prompt 与消息转换已完成，当前 S1-4 TUI）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -225,7 +225,7 @@ finish: stop
 | S0-4 | `src/llm/mock.ts` + `--mock --print` 离线两轮 | ✅ |
 | S0-5 | AGENTS.md / CLAUDE.md / docs/spec.md / docs/checklist.md + CI | ✅（Actions 3 runs 全绿，证据 `docs/evidence/s0-5-ci-actions.png`） |
 | S0-6 | 全量验收 + tag `v0.1-s0` | ✅（typecheck 0 / tests 39 / help+version / mock 幂等 / build+dist；tag 已 push） |
-| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（S1-1、S1-2 完成，当前 S1-3） |
+| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（S1-1、S1-2、S1-3 完成，当前 S1-4） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ⬜ |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |

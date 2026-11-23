@@ -35,7 +35,9 @@
 - [x] `src/llm/sse.ts`：一行拆多块、`[DONE]`、空行、跨 chunk 半行、CRLF、`data:` 前缀解析（单测覆盖，方案 §7.1）。
   - 证据：`tests/sse.test.ts` 13 用例全过（分块、UTF-8 截断、CRLF、注释、多行 data、无空格 data、`[DONE]`、尾部残留、BOM、空 data、AbortError）；`npm run typecheck` exit 0；全量 `npm test` 52/52（原 39 + 新增 13），见 `docs/testing.md` S1-1 与 HANDOFF §7 会话 9。B 级复核（抽查边界用例，9 个非 happy path）已由用户于 2026-11-23 确认通过。
 - [x] `src/llm/openai.ts`：`tools` 转 `ToolSpec`、`tool_calls` 增量聚合、错误映射、`AbortSignal` 中止。
-  - 证据：`tests/openai.test.ts` 13 用例全过（聚合分片/乱序 index/空 delta/首次 id-name/缺 id 占位、`toApiMessages` 四角色、文本流 + `onText` + 请求体/请求头断言、`tool_calls` 流式聚合、401 脱敏、预中止 `AbortError`、坏 JSON、无 body）；`npm run typecheck` exit 0；全量 `npm test` 65/65（原 52 + 新增 13），见 `docs/testing.md` S1-2 与 HANDOFF §7 会话 10。真实 API 三行（流式/Esc/错 key 实机）留到 S1-4/S1-5 联调。
+  - 证据：`tests/openai.test.ts` 13 用例全过（聚合分片/乱序 index/空 delta/首次 id-name/缺 id 占位、`toApiMessages` 四角色、文本流 + `onText` + 请求体/请求头断言、`tool_calls` 流式聚合、401 脱敏、预中止 `AbortError`、坏 JSON、无 body）；`npm run typecheck` exit 0；全量 `npm test` 65/65（原 52 + 新增 13），见 `docs/testing.md` S1-2 与 HANDOFF §7 会话 10。B 级模块级复核（抽查用例边界、mutation 检验、CI 65/65 日志）已由用户于 2026-11-23 完成；真实 API 三行（流式/Esc/错 key 实机）留到 S1-4/S1-5 联调。
+- [x] `src/agent/prompt.ts` + `src/agent/messages.ts`：system prompt、`Message[]` → OpenAI 线上格式（tool 角色 / `tool_call_id` / `assistant.toolCalls` 配对）。
+  - 证据：`tests/messages.test.ts` 6 用例（四角色转换、assistant 无 toolCalls 不带 `tool_calls`、tool 消息字段、空数组与入参不被修改、`toAssistantMessage` 两种结果）+ `tests/prompt.test.ts` 6 用例（身份/工作区/工具提示、确定性、`withSystemPrompt` 首位且唯一 / 替换旧 system / 不改入参）；`npm run typecheck` exit 0；全量 `npm test` 77/77，见 `docs/testing.md` S1-3 与 HANDOFF §7 会话 11。`toApiMessages` 自 S1-2 迁入 `src/agent/messages.ts`。
 - [ ] `src/ui/App.tsx`：状态机 `idle/streaming/tool_running/awaiting_approval/error`；`Static` 历史；50ms 节流；Esc/Ctrl+C 中止。
 - [ ] 真实 API 冒烟（用户提供 key）：流式首字 < 2s、可中断、中文不乱码。
 - [ ] 单测 + 手工验收证据，更新文档、打 tag。
