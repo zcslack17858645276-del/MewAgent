@@ -217,7 +217,7 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **契约要点**：`Message` 四分支判别联合；`ToolCall.arguments` 是原始 JSON 字符串（由 registry 解析）；`ToolResult{ok,output}` 失败也走 output（"Error:" 前缀）；`ToolDefinition.run(args, { workspace })`，只读工具由 `readOnly` 标记自动放行；`ToolSpec` 为 OpenAI `tools` 格式；`LlmClient.chat(messages, tools, { signal?, onText? })`；`Gate` 只做判断不弹 UI，拒绝必须带回填模型的 `reason`；`AgentEvent` 四类事件（`tool_start.args === null` 表示模型给的 arguments JSON 解析失败）。方案 §3.3 的内联对象已提取为具名别名 `ToolRunContext` / `LlmChatOptions` / `LlmChatResult`，字段形状未变。
 - **验收（A 级自动化，P0）**：`npm run typecheck` 退出码 0、无错误输出；`npm test` → `tests 6 / pass 6 / fail 0`（原 3 个工程清单用例 + 新增 3 个契约用例）；`Select-String '\bany\b' src/types.ts` 无匹配（0 处类型逃逸）；`npm run build` 退出码 0（产出 `dist/types.js`）。
 - **B 级手工项（需用户按 docs/testing.md S0-2 复核）**：对照方案 §3.3 检查类型是否齐全、字段名一致；抽查 `tests/types.test.ts` 里假对象实现 `ToolDefinition`/`LlmClient`/`Gate` 的写法是否符合预期。
-- **提交**：分支 `task/s0-2-contract` → squash 合并回 `main` 并 push（哈希见下一次 docs 提交）。
+- **提交**：分支 `task/s0-2-contract` 提交 `313cc5d`（已 push 到远端）→ squash 合并为 `main` 的 `1e9a401` 并 push。远端分支保留供 review（删除远端引用需用户手动执行，与 S0-1 同类限制）。
 - **备注/坑**：① `@ts-expect-error` 若放在多行对象字面量之前、而错误实际报在 `} satisfies ...` 那行，会被判成 "Unused '@ts-expect-error' directive" → 负例改为单行声明；② 测试文件 import 写成 `../src/types.js`（NodeNext 规则），因为是 `import type`，运行时完全擦除，tsx 不受影响。
 - **下次第一步**：S0-3 `src/config.ts` + `src/index.ts`（加载 `.env`、CLI 参数、`--help`/`--version`/`--print` 骨架、缺 key 友好报错），测试见 `docs/testing.md` S0-3 小节。
 
