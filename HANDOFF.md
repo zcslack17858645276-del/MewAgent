@@ -103,6 +103,7 @@ npm run build
 | 契约（S0-2） | 唯一契约文件 `src/types.ts`：`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `ToolSpec` / `LlmClient`（`LlmChatOptions`/`LlmChatResult`）/ `Gate`（`GateResult`）/ `AgentEvent`；形状以方案 §3.3 为准，禁止类型逃逸；改契约必须先改方案 §3.3 并在 §7 说明；`ToolSpec` 是 §3.3 初稿遗漏、S0-2 补齐的类型 |
 | 配置层（S0-3） | `.env` 用 Node 内置 `process.loadEnvFile`（不新增依赖），只读「工作区 cwd 下」的 `.env`，文件缺失静默跳过；优先级 **CLI 参数 > 环境变量/`.env` > 内置默认值**；`MEWCODE_BASE_URL` 默认 `https://api.deepseek.com`（客户端负责拼 `/chat/completions`，S1 实现），值去尾斜杠；`--mock` 时模型默认 `mock`、不需要 key；**apiKey 只从环境变量/`.env` 读，不进 CLI、不进任何输出**；退出码：0 成功 / 2 可操作错误（`CliError`，stderr 带"下一步"）/ 1 内部错误；`--help`、`--version` 在加载 `.env` 和校验 key 之前处理；非 `--print` 时要求 stdin+stdout 都是 TTY，否则报错并提示 `--print`；`--print` 的 prompt 取「位置参数 → 非 TTY 的 stdin」；版本号从 `package.json` 读（`src/` 与 `dist/` 通用） |
 | mock 层（S0-4） | `src/llm/mock.ts` 导出 `createMockLlmClient(): LlmClient`；固定剧本按历史里有无 `role:"tool"` 消息判定：无 → 第 1 轮返回 `read_file` 调用（`id=call_mock_read_file_1`，`arguments='{"path":"README.md"}'`，`finishReason="tool_calls"`）；有 → 第 2 轮返回最终总结（`finishReason="stop"`）；确定性输出、不依赖网络/随机/时间；`onText` 在最终文本回调一次；已中断的 `AbortSignal` 抛 `AbortError`；S0-4 的 `--print` 只做「两轮驱动骨架」（工具结果占位），真实工具执行 S2、真实 API S1 |
+| 文档与 CI（S0-5） | `AGENTS.md` 是所有 AI 代理的统一规则（开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境 / 红线）；`CLAUDE.md` 只是薄入口，指向 `AGENTS.md`；`docs/spec.md` 是 v0.1 规格（按阶段追加「要什么 / 不要什么 / 验收 / 已知边界」，§13 维护阶段状态）；`docs/checklist.md` 是验收清单（通用 DoD + S0–S4 阶段清单 + 十条成功标准证据表 + 回归/发布清单）；CI 用 GitHub Actions（`ubuntu-latest` + Node 22，`npm ci` → `npm run typecheck` → `npm test`），触发 `push` 到 `main`/`task/**`/`fix/**`/`docs/**` 与 PR 到 `main` |
 
 ---
 
@@ -175,13 +176,13 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ### 5.7 CI（S0 任务之一）
 
-计划在 S0 添加 `.github/workflows/ci.yml`：push / PR 时执行 `npm ci && npm run typecheck && npm test`。CI 变绿前，PR 只作为 diff 审查手段。
+S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/**` / `docs/**`）与 `pull_request`（`main`）时执行 `npm ci` → `npm run typecheck` → `npm test`（ubuntu-latest + Node 22）。本地已用干净副本模拟通过（52 packages / typecheck 0 / 39 测试全绿）；GitHub Actions 实际运行需在仓库 Actions 页确认（本机无 `gh` CLI、私有仓库未认证 API 404）。CI 变绿前，PR 只作为 diff 审查手段。
 
 ---
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-4 已完成（`src/llm/mock.ts` 离线两轮落地，`--mock --print "你好"` 走通"工具调用 → 回填 → 最终文本"，`npm run typecheck` 0 错误、`npm test` 39/39 全绿），下一任务 S0-5（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + CI workflow）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-5 已完成（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml` 落地；本地模拟 CI `npm ci` → `typecheck` → `test` 全绿，`npm run typecheck` 0 错误、`npm test` 39/39；GitHub Actions 变绿待用户确认），下一任务 S0-6（S0 收尾：全量验收 + 打 tag `v0.1-s0`）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -256,6 +257,15 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **提交**：分支 `task/s0-4-mock` 提交 `5a2996b`（已 push 到远端保留原始提交）→ squash 合并为 `main` 的 `7da0cb3` 并 push；哈希回填提交为 `docs: 记录 S0-4 提交哈希`（`main` 最新提交）。
 - **下次第一步**：S0-5 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` + `.github/workflows/ci.yml`，测试见 `docs/testing.md` S0-5 小节。
 
+### 2026-11-23 · 会话 7（S0-5：项目规则文档 + CI）
+
+- **做了什么**：新增 `AGENTS.md`（AI 代理统一规则：开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境注意事项 / 红线）；`CLAUDE.md`（薄入口，指向 `AGENTS.md` + 开工三步 + 红线摘要）；`docs/spec.md`（v0.1 规格 13 节：目标 / 非目标 / 十条成功标准及现状 / 架构分层与目录 / 契约表 / 请求时序 / CLI 与配置 / 工具系统 / 权限 / 上下文与会话 / TUI / Windows 专项 / 错误与限制 / 阶段状态）；`docs/checklist.md`（通用 DoD、S0–S4 阶段清单、十条成功标准证据表、阶段回归清单、发布清单）；`.github/workflows/ci.yml`（ubuntu-latest + Node 22，`npm ci` → `npm run typecheck` → `npm test`，push/PR 触发）。
+- **验收（A 级自动化，P0）**：5 个文件全部存在；`npm run typecheck` 退出 0；`npm test` 39/39；本地模拟 CI——把 `package.json` / `package-lock.json` / `tsconfig*.json` / `src` / `tests` 复制到 `spikes/.out/ci-local` 干净副本，`npm ci`（52 packages，2s）→ `typecheck` 退出 0 → `npm test` 39/39（250ms），随后删除临时目录。
+- **B 级（需用户）**：push 本分支后在 GitHub Actions 页确认 `CI` workflow 变绿（本机无 `gh` CLI、私有仓库未认证 API 404，无法自查）；读 `AGENTS.md` 五节 + `docs/spec.md` / `docs/checklist.md`。
+- **提交**：分支 `task/s0-5-docs-ci` 提交 `<HASH-分支>`（已 push 触发 CI）→ squash 合并为 `main` 的 `<HASH-MAIN>` → 哈希回填提交 `<HASH-DOCS>`。
+- **坑**：① 首次编辑 `docs/tasks.md` 遇 `FS_STALE_VERSION`（文件被外部会话改过），重读后按最新内容重放；② 本地模拟 CI 的临时目录必须放在工作区内（安全网禁止 cwd 外递归删除），用完即删。
+- **下次第一步**：S0-6 全量验收（typecheck / test / `--help` / `--version` / `--mock --print` 幂等重跑）→ 勾选 `docs/checklist.md` §2 的 S0 清单 → 打 tag `v0.1-s0` 并 push。
+
 ### 交接模板（每次会话结束复制填写）
 
 ```text
@@ -277,6 +287,11 @@ git status               # 确认没有 .env / node_modules / 密钥
 | `MewCode-TS实施方案.md` | 施工图纸：契约、S0–S4、提示词、验收 | 开工前 + 每个 task |
 | `docs/tasks.md` | 任务看板（ID / 状态 / 验收） | 每次认领任务 |
 | `docs/testing.md` | 每个 task 的测试手册（AI 自动化 + 用户手工验收） | task 完成前必读 |
+| `docs/spec.md` | v0.1 规格：目标/非目标/十条标准/架构/契约/CLI/工具/权限/TUI/阶段状态 | 动手实现前、改行为前 |
+| `docs/checklist.md` | 验收清单：通用 DoD、阶段清单、十条标准证据表、回归与发布清单 | 每个 task 收尾、阶段验收、发布 |
+| `AGENTS.md` | 所有 AI 代理的统一规则（开工必读/边界/风格/DoD/红线） | 任何 AI 会话开始 |
+| `CLAUDE.md` | Claude 薄入口（指向 AGENTS.md） | 使用 Claude 时 |
+| `.github/workflows/ci.yml` | CI：`npm ci` → typecheck → test | 改构建/测试命令时 |
 | `MewCode-个人版实施计划.md` | 范围、排期、为什么砍功能 | 想改范围时 |
 | `技术选型报告.md` | 开源盘点、跨端与语言对比 | 质疑选型、写简历时 |
 | `research/01-oss-survey.md` | 16 个开源项目的技术栈证据 | 查事实来源 |

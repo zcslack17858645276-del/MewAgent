@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：S0-1 ~ S0-4 已完成（S0-4 离线 mock 客户端落地：`--mock --print "你好"` 走完"工具调用 → 回填 → 最终文本"两轮，`npm test` 39/39），下一任务 S0-5。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：S0-1 ~ S0-5 已完成（S0-5 落地 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` 与 `.github/workflows/ci.yml`；本地已用临时副本模拟 CI：`npm ci` + `typecheck` + `npm test` 39/39 全绿，GitHub Actions 变绿待用户确认），下一任务 S0-6（全量验收 + tag `v0.1-s0`）。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ 🔄 S0-5（当前）｜ ⬜ S0-6 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ 🔄 S0-6（当前）｜ ⬜ S1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -202,14 +202,22 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：S0-4 的工具执行是**占位**（回填 `（S0-4 占位工具结果：read_file 将在 S2 实现）`），真实工具/注册表在 S2 接入；真实 API 客户端在 S1。mock 客户端已实现 `LlmClient` 契约（含 `onText` / `AbortSignal`），S1 的 Agent Loop 可直接复用。
 
-#### S0-5 文档 + CI
+#### S0-5 文档 + CI（已完成 2026-11-23）
 
 | # | 类型 | 步骤 | 预期 | 级别 |
 |---|---|---|---|---|
 | 1 | A | 检查文件存在：`AGENTS.md` `CLAUDE.md` `docs/spec.md` `docs/checklist.md` `.github/workflows/ci.yml` | 全部存在 | P0 |
-| 2 | A | 推一个分支并开 PR | GitHub Actions 变绿，日志含 `npm ci && npm run typecheck && npm test` | P0 |
-| 3 | B | 打开 PR 的 Actions 日志 | 三条命令都真的执行了，不是空跑 | P0 |
-| 4 | B | 读 `AGENTS.md` | 含技术栈/命令/架构边界/风格/DoD 五节 | P1 |
+| 2 | A | `npm run typecheck` + `npm test` | 0 错误、39/39 通过 | P0 |
+| 3 | A | 本地模拟 CI：复制 `package.json` / `package-lock.json` / `tsconfig*.json` / `src` / `tests` 到临时目录，依次 `npm ci` → `typecheck` → `test` | 三步全绿，证明 CI 命令在干净环境可用 | P0 |
+| 4 | B | push 分支后在 GitHub 打开 Actions | `CI` workflow 变绿，日志可见 `npm ci` / `npm run typecheck` / `npm test`（需用户确认，本机无 gh CLI） | P0 |
+| 5 | B | 读 `AGENTS.md` | 含技术栈/常用命令/架构边界/代码风格/DoD（另含开工必读、本机环境、红线） | P1 |
+| 6 | B | 读 `docs/spec.md` / `docs/checklist.md` | spec 覆盖目标/非目标/十条标准/架构/CLI/工具/权限/TUI/Windows/阶段状态；checklist 含通用 DoD、S0–S4 清单、十条标准证据表、回归与发布清单 | P1 |
+
+**实测证据（2026-11-23）**：5 个文件全部创建（`AGENTS.md` 7 节、`CLAUDE.md` 薄入口、`docs/spec.md` 13 节、`docs/checklist.md` 5 节、`ci.yml` 1 job）；本地模拟 CI 在 `spikes/.out/ci-local` 干净副本中 `npm ci`（52 packages，2s）→ `npm run typecheck` 退出 0 → `npm test` 39/39 通过（250ms，模拟后删除临时目录）；仓库本身 `typecheck` 0、`npm test` 39/39。
+
+**CI 设计**：`.github/workflows/ci.yml` 触发 `push`（`main` / `task/**` / `fix/**` / `docs/**`）与 `pull_request`（`main`）；`ubuntu-latest` + Node 22（`actions/setup-node@v4` 带 npm cache）；步骤固定为 `npm ci` → `npm run typecheck` → `npm test`；`permissions: contents: read`、并发组 `ci-${{ github.ref }}` 自动取消旧运行。
+
+**已知限制**：本机未装 `gh` CLI 且私有仓库未认证 API 返回 404，**Actions 变绿需要用户到仓库 Actions 页确认**（这也是 B 级证据）；PR 需用户手动开（agent 无远端写 token）。
 
 #### S0-6 S0 收尾
 
@@ -607,7 +615,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S0-2 ✅ | typecheck + `tests/types.test.ts`（`npm test`） |
 | S0-3 ✅ | typecheck + `tests/config.test.ts`（`npm test`）+ 手工命令集 |
 | S0-4 ✅ | typecheck + `tests/mock.test.ts`（`npm test`）+ `--mock --print` 端到端 |
-| S0-5 | CI 运行记录 |
+| S0-5 ✅ | 文档文件存在性 + typecheck/test + 本地模拟 CI（`npm ci` → typecheck → test）+ GitHub Actions 变绿（用户确认） |
 | S1-1 | `tests/sse.test.ts` |
 | S1-2 | `tests/openai.test.ts` + 真实流式 |
 | S1-3 | `tests/messages.test.ts` |
@@ -638,3 +646,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S0-2 完成：`src/types.ts` 契约落地（回填 `ToolSpec`）、新增 `tests/types.test.ts`；S0-2 章节改为复验步骤，进度切到 S0-3 |
 | 2026-11-23 | S0-3 完成：`src/config.ts` + `src/index.ts`（`.env` / CLI 参数 / TTY 检查 / `--print` headless 骨架）落地、新增 `tests/config.test.ts` 25 用例（全量 31）；S0-3 章节改为复验步骤并附实测证据，进度切到 S0-4 |
 | 2026-11-23 | S0-4 完成：新增 `src/llm/mock.ts`（离线两轮剧本）+ `src/index.ts` 两轮驱动骨架 + `tests/mock.test.ts` 8 用例（全量 39）；`--mock --print "你好"` 不依赖网络走完两轮；S0-4 章节改为复验步骤并附实测证据，进度切到 S0-5 |
+| 2026-11-23 | S0-5 完成：新增 `AGENTS.md`、`CLAUDE.md`、`docs/spec.md`、`docs/checklist.md`、`.github/workflows/ci.yml`（Node 22，`npm ci` → typecheck → test）；本地模拟 CI 全绿（52 packages / typecheck 0 / 39 测试通过）；S0-5 章节改为复验步骤并附实测证据，进度切到 S0-6 |
