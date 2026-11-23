@@ -363,6 +363,7 @@ git status --short        # 确认没有把测试产物提交
   - A2 同一运行无 TTY 环境，stderr 无 `raw mode`/`setRawMode` 报错。
   - A4 `MEWCODE_API_KEY=sk-invalid-test-000 npm run dev -- --print hi` → exit 1，stderr `LLM 请求失败（HTTP 401）…` + `下一步：…`，输出无完整 key；证据 `spikes/.out/s1-5-a4-*.txt`。
   - B3 重定向输出文件为合法 UTF-8 中文（read 工具复核，无乱码）。
+- **Windows PowerShell 5.1 注意**：`"你好" | npm run dev -- --print` 在 PS 5.1 会报 `npm error code EUNKNOWNCONFIG` / `Unknown cli flag: --print`（`npm` 实际解析到 `npm.ps1`，管道调用时 `--` 被吞，npm 把 `--print` 当成自己的 flag）——这不是程序 bug。等价可用写法：①`npm run dev -- --print "你好"`（位置参数，最简，推荐）；②`cmd /c "chcp 65001 >nul && echo 你好 | npm run dev -- --print"`（真正的 stdin 管道）；③`"你好" | node --import tsx src/index.ts --print`（PS 5.1 需先设 `[Console]::OutputEncoding = $OutputEncoding = New-Object System.Text.UTF8Encoding($false)` 防中文乱码）。`npm run dev -- --print "你好"` 与 `cmd /c …` 两种写法均已在 2026-11-23 真机验证出口 0 + 中文回复。
 - CI（gh 只读）：`45192982541`（task/s1-5-headless, `c29ede0`）、`45193019580`（main, `60f0cb2`）全部 success；`45193019580` job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 104 / # pass 104 / # fail 0`。
 
 **已知限制**：headless 只跑一轮、不执行工具（S2 Agent Loop 后再扩展）；`--print` 不处理 SIGINT（管道场景直接结束进程）；`MEWCODE_DEBUG` 输出可能较长，勿在公开场合粘贴；真实 API 的"流式首字/中断"手感留到 S1-6 手工回归。
