@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 14 例：read 行号/截断、write 建目录、edit 唯一性 + CRLF 兼容）已完成，全量 141/141，下一任务 S2-4（`tools/search.ts` glob/grep）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153，下一任务 S2-5（`tools/bash.ts`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 14 例；全量 141/141；B 级 3–5 条随 loop/TUI/审批接线后验）｜ 🔄 S2-4（当前）｜ ⬜ S2-5 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ 🔄 S2-5（当前）｜ ⬜ S2-6 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -441,8 +441,10 @@ git status --short        # 确认没有把测试产物提交
 | 3 | B | testbed 里："读 sample.txt 并复述" | 内容正确、带行号 | P0 | ⏳ 待工具接 loop/TUI（S2-6/S2-7） |
 | 4 | B | "把 sample.txt 第 2 行改成 line-two" | 审批后文件真的变了，`Get-Content` 确认 | P0 | ⏳ 待审批（S3）+ loop 接线 |
 | 5 | B | "把文件里所有的 line 换成 row" | 提示多处匹配，要求 replace_all | P0 | ⏳ 待 loop 接线后手工验 |
-| 6 | B | 对 crlf.txt 做同样 edit | 不因 `\r\n` 失败，且不整文件改成 LF | P1 | ✅ 单测级（CRLF 保留 + LF 归一化匹配）；交互观感 ⏳ |
-| 7 | B | 让 read 一个大文件 | 输出被截断，有"已截断/落盘"提示 | P1 | ✅ 单测级（30KB / 500 行上限 + 提示，字节截断时续读 offset 不跳行）；交互观感 ⏳ |
+| 6 | B | 对 crlf.txt 做同样 edit | 不因 `\r\n` 失败，且不整文件改成 LF | P1 | ✅ 用户已实测通过（2026-11-23，fs-manual-driver 演示：LF 写法命中 + 写回仍 CRLF） |
+| 7 | B | 让 read 一个大文件 | 输出被截断，有"已截断/落盘"提示 | P1 | ✅ 用户已实测通过（2026-11-23；字节截断时续读 offset 不跳行） |
+
+**B 级复核（用户，2026-11-23）**：#6（CRLF 保真）与 #7（大文件截断 + 续读提示）已由用户用 `spikes/.out/fs-manual-driver.ts` 实测通过；#3–#5（testbed 读文件、改第 2 行、全部 line→row）需 loop/TUI/审批（S2-6/S2-7/S3）接线后补验。
 
 **A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -453,14 +455,26 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：`read_file` 的截断按行裁剪（超长单行会在行内截断加 `…`）；`edit_file` 只做精确字符串替换（§6.5），不支持行号 patch 或正则；`write_file` 会整文件覆盖、不做追加；三个工具目前只被 `tests/` 直接调用，尚未接入 loop/TUI（S2-6/S2-7 接线，S3 加审批）。
 
-#### S2-4 搜索工具
+#### S2-4 搜索工具（已完成 2026-11-23）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `tests/search.test.ts`：glob 模式、跳过 .git/node_modules、200 条上限、grep 正则、中文内容 | 全部通过 | P0 |
-| 2 | B | "列出 src 下所有 ts 文件" | 结果 ≤200，路径可点击/可读 | P1 |
-| 3 | B | "搜索 mewcode 出现在哪些文件" | 返回 `文件:行号:内容` | P1 |
-| 4 | B | 对 big.log 搜索 | 不卡死，结果有上限 | P1 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `tests/search.test.ts`：glob 模式、跳过 .git/node_modules、200 条上限、grep 正则、中文内容 | 全部通过 | P0 | ✅ 11 例全过 |
+| 2 | B | "列出 src 下所有 ts 文件" | 结果 ≤200，路径可读 | P1 | ⏳ 待工具接 loop/TUI（S2-6/S2-7） |
+| 3 | B | "搜索 mewcode 出现在哪些文件" | 返回 `文件:行号:内容` | P1 | ⏳ 待 loop/TUI 接线后手工验 |
+| 4 | B | 对 big.log 搜索 | 不卡死，结果有上限 | P1 | ⏳ 待 loop/TUI 接线后手工验 |
+
+**A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` exit 0
+- `node --import tsx --test tests/search.test.ts` → **tests 11 / pass 11 / fail 0**（2085.9ms）
+- 全量 `npm test` → **tests 153 / pass 153 / fail 0**（1972.9ms；原 142 + 新增 11）
+- 覆盖点：glob `*.md`/`src/*.ts`/`src/**/b.ts`/`[ab].txt`/`?.txt`，`**/*` 结果不含 node_modules 与 .git；250 个文件时头部"只显示前 200 个"+ 恰好 200 行、250 个长文件名时"输出已截断"且 ≤30KB；无匹配/缺参/越界路径/不存在/路径是文件；grep 中文 `文件:行号:内容`、`TODO\b` 正则、跳过 node_modules/.git/二进制、130 行命中截断到 100 且有注、`path` 限定目录/单文件、200000 行 big.log 命中（断言 <5s）、坏正则/参数错误、`readOnly` + `ToolRegistry(searchTools)` 集成
+- 完整记录：`spikes/.out/s2-4-typecheck.txt`、`s2-4-search.txt`、`s2-4-full.txt`（均 gitignored）
+
+**实现要点**：`walkFiles` 用 `readdirSync` 排序遍历、只 yield 文件、不跟随 symlink，`SKIP_DIR_NAMES` 跳过 node_modules/.git；glob 段级匹配支持 `*`/`?`/`**`（段级回溯）/`[abc]`/`[!abc]`，win32 下大小写不敏感；`OutputBuilder` 统一 30KB 字节预算。grep 逐文件先 `stat` 判 5MB、读前 8KB 判 NUL 二进制；命中行超 500 字符截断，结果上限 100 处。两工具均 `readOnly:true`，失败统一 `Error: …` + "下一步"。
+
+**已知限制**：v0.1 不做"替换式 grep"（找到后由 `edit_file` 修改）；glob 不支持 `{}` 展开与 `!` 排除；grep 是逐行匹配、不支持多行；只给匹配行、不给上下文（需上下文用 `read_file`）；尚未接入 loop/TUI（S2-6/S2-7 接线，B 级 2–4 条届时再验）。
 
 #### S2-5 bash 工具
 
@@ -761,7 +775,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S2-1 ✅ | typecheck + `tests/paths.test.ts`（10 用例；全量 `npm test` 114/114；B 级 TUI 项随 S2-6/S2-7 后验） |
 | S2-2 ✅ | typecheck + `tests/registry.test.ts`（13 用例；全量 127/127；"6 工具齐全"随 S2-3~S2-5 后验） |
 | S2-3 ✅ | typecheck + `tests/fs.test.ts`（14 用例；全量 141/141；testbed 手工 B 级 3–5 条随 loop/TUI/审批接线后验） |
-| S2-4 | `tests/search.test.ts` + 手工 |
+| S2-4 ✅ | typecheck + `tests/search.test.ts`（11 用例；全量 153/153；B 级 2–4 随 loop/TUI 接线后验） |
 | S2-5 | `tests/bash.test.ts` + 手工 |
 | S2-6 | `tests/loop.test.ts` + 多工具任务 |
 | S2-7 | 手工 UI |
@@ -790,3 +804,5 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S1-3 完成：新增 `src/agent/prompt.ts`（`SYSTEM_PROMPT_VERSION` / `buildSystemPrompt` / `withSystemPrompt`）与 `src/agent/messages.ts`（`toApiMessages` 自 `openai.ts` 迁入 + `toAssistantMessage`）；新增 `tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例（全量 77/77）；S1-3 章节改为已完成（真实请求/请求体日志留 S1-5），进度切到 S1-4 |
 | 2026-11-23 | S1-4 实现完成：新增 `src/ui/App.tsx`（Static 历史 + 50ms 节流动态区 + 输入框 + 错误行 + 排队 + Esc/Ctrl+C）、`src/ui/throttle.ts`、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`，`src/index.ts` 交互分支接 TUI（mock 走两轮剧本、真实走 OpenAI 客户端）；新增 `tests/ui.test.ts` 6 用例（宽字符/节流/历史渲染）；typecheck 0、build 0、全量 83/83、假终端 TUI 冒烟 SMOKE OK；S1-4 章节标注"8 条 B 级手工项待用户验收"，进度切到 S1-5 |
 | 2026-11-23 | S2-3 完成：新增 `src/tools/fs.ts`（`read_file` 行号/offset/limit/30KB 截断 + CRLF 标注；`write_file` 自动建父目录、空文件；`edit_file` 唯一性 + `replace_all` + CRLF 兼容 + ±3 行上下文；失败统一 `Error:` + 下一步）+ `tests/fs.test.ts` 14 用例（全量 141/141）；S2-3 章节改为已完成并附证据，进度切到 S2-4 |
+| 2026-11-23 | S2-3 补丁：`read_file` 字节截断时续读 offset 改为按实际渲染行数（不跳行），`tests/fs.test.ts` 增 1 例（全量 142/142）；用户实测 #6（CRLF 保真）/#7（大文件截断）通过，S2-3 第 6/7 行结果更新并加 B 级段 |
+| 2026-11-23 | S2-4 完成：新增 `src/tools/search.ts`（`glob` 星号/双星/问号/字符类 + 200 条与 30KB 截断；`grep` 正则逐行 + 100 条上限，跳过 .git/node_modules/二进制/5MB）+ `tests/search.test.ts` 11 用例（全量 153/153）；S2-4 章节改为已完成并附证据，进度切到 S2-5 |

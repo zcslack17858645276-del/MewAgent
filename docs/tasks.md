@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S2-4（`tools/search.ts`：glob / grep，glob 上限 200 条 + 输出截断）**
+**当前焦点：S2-5（`tools/bash.ts`：shell 选择、超时 kill、30KB 截断、UTF-8/GBK）**
 **最后更新：2026-11-23**
 
 ---
@@ -39,7 +39,7 @@
 | S2-1 | `tools/paths.ts`：工作区边界校验 + 测试 | 2h | done | `../`、绝对越界均拒绝（证据见 HANDOFF §7 会话 15） |
 | S2-2 | `tools/registry.ts`：注册表、JSON Schema、参数解析、异常兜底 | 3h | done | 非法 JSON / 未知工具不崩（证据见 HANDOFF §7 会话 16） |
 | S2-3 | `tools/fs.ts`：read / write / edit（唯一性 + CRLF 兼容） | 4h | done | 0 次/多次匹配返回可操作错误（证据见 HANDOFF §7 会话 17） |
-| S2-4 | `tools/search.ts`：glob / grep（条数上限、跳过 .git/node_modules） | 3h | todo | 大仓库不卡死 |
+| S2-4 | `tools/search.ts`：glob / grep（条数上限、跳过 .git/node_modules） | 3h | done | 大仓库不卡死（glob 200 条 / grep 100 条上限；200k 行 grep 2s 内；证据见 HANDOFF §7 会话 18） |
 | S2-5 | `tools/bash.ts`：shell 选择、超时 kill、30KB 截断、UTF-8/GBK | 4h | todo | 超时能杀；中文输出不乱码 |
 | S2-6 | `agent/loop.ts`：AgentEvent、多轮工具、maxSteps | 4h | todo | mock：工具→文本；事件顺序正确 |
 | S2-7 | UI 接线工具事件（tool_start / tool_end / 错误） | 3h | todo | 工具调用可见、失败可读 |

@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 进行中（S2-1、S2-2、S2-3 完成）｜ 下一任务：S2-4
+> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 进行中（S2-1、S2-2、S2-3、S2-4 完成）｜ 下一任务：S2-5
 
 ---
 
@@ -119,6 +119,7 @@ npm run build
 | 工具注册表（S2-2） | `src/tools/registry.ts` 导出 `ToolRegistry`（`register` / `has` / `get` / `names` / `size` / `specs()` / `run(call, ctx)`）：`specs()` 输出 OpenAI `tools` 格式（`{type:"function",function:{name,description,parameters}}`，parameters 直接透传工具定义的 JSON Schema）；`run` 是**模型输入的唯一收敛点且永不抛异常**——未知工具 → `Error: 未知工具 "x"。可用工具：…`；`arguments` 空串按 `{}`、非法 JSON / 非对象 / 非字符串 → 明确错误 + "下一步"；工具抛异常（含非 Error）→ `Error: 工具 X 执行失败：…`；工具返回非法结构 → `Error: … 返回了非法结果`。重复注册/非法定义属实现方 bug，`register` 直接抛错（启动期暴露）。v0.1 不在注册表层做 JSON Schema required/type 深度校验（各工具自己校验）；工具超时由 `bash` 自己处理（§6.4）；`createDefaultRegistry`（`tools/index.ts`）等 S2-3~S2-5 工具就位后再加 |
 | 工具路径边界（S2-1） | `src/tools/paths.ts` 是**所有工具路径的唯一入口**：`resolveInside(workspace, input): string` 返回工作区内绝对路径（正斜杠、保留原始大小写）；拒绝时抛 `UnsafePathError`（`name`、`readonly input/workspace/reason`，message 带"下一步"）。**两层校验**：① 词法 `path.resolve` + 前缀比较（拦 `..`、越界绝对路径）；② 真实路径 —— 对工作区与目标分别 `realpathSync` 向上找最近已存在祖先再拼回不存在部分（`canonicalizeWithAncestors`），拦 symlink/junction 逃逸（含"junction 下尚未创建的新文件"）。一律拒绝 `%VAR%`、`~`、Windows 盘符相对路径（不做展开，安全默认）；另导出 `isInsideWorkspace`、`toWorkspaceRelative`（根→`"."`）、`toPosixPath`、`resolveWorkspace`、`PathRejectionReason`。工具实现必须走这里，禁止手拼路径 |
 | 文件工具（S2-3） | `src/tools/fs.ts` 导出 `fsTools`（`read_file` / `write_file` / `edit_file`，常量 `MAX_TOOL_OUTPUT_BYTES=30*1024`、`DEFAULT_READ_LIMIT=500`）：三个工具都先 `resolveInside` 校验路径，失败统一 `Error: …` + "下一步"（`ToolInputError`/`UnsafePathError` 直接透传，其余经 `safeRun` 兜底）。`read_file` 输出 `    1│内容` 行号格式（CRLF 文件在头行标注"CRLF 换行"），支持 offset/limit，超 30KB 按行裁剪并提示"输出已截断：单次最多 30720 字节"与"还有 X 行未显示，用 offset=Y 继续读取"，默认最多 500 行。`write_file` 父目录不存在时自动 `mkdirSync({recursive:true})` 并报告"已创建目录：…"（不用返回值，Windows 上会带 `\\?\` 前缀），空内容写 0 字节，行数不计末尾换行。`edit_file` 按 §6.5：先原样找 `old_string`，找不到再按 LF 归一化匹配；0 次/多处未传 `replace_all` 均返回可操作错误（提示扩上下文或 `replace_all:true`）；`replace_all` 用 split/join 全替换；写回保留原换行风格（CRLF 文件整体转回 CRLF、LF 文件剥掉 CRLF），成功后返回替换点前后各 3 行带行号上下文；`old_string` 空/参数类型错/越界路径全部收敛为 `Error:`。v0.1 不做行号 patch 或正则替换，精确替换靠上下文唯一性 |
+| 搜索工具（S2-4） | `src/tools/search.ts` 导出 `searchTools`（`glob` / `grep`；`GLOB_LIMIT=200`、`GREP_LIMIT=100`、`GREP_MAX_FILE_BYTES=5MB`、`BINARY_SNIFF_BYTES=8KB`、`GREP_LINE_MAX_COLUMNS=500`、`SKIP_DIR_NAMES={node_modules,.git}`）：路径先 `resolveInside`。`glob` 支持 `*`/`?`/`**`/`[abc]`（win32 大小写不敏感；`**` 段级回溯），输出相对路径排序，超过 200 条时头部标"只显示前 200 个"并追加"结果超过 200 条"注，输出超 30KB 追加字节截断注；`grep` 正则逐行匹配，输出 `相对路径:行号:内容`（行超 500 字符截断），遍历时跳过 .git/node_modules、二进制（前 8KB 含 NUL）与大于 5MB 文件并计数提示，超过 100 处截断。`walkFiles` 用 readdirSync 排序、只收文件、不跟随 symlink。两工具 `readOnly:true`，失败统一 `Error: …` + "下一步"。v0.1 不提供"替换式 grep"，找到后由 `edit_file` 完成精确修改 |
 
 ---
 
@@ -199,7 +200,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 14 单测）已完成，全量 `npm test` **141/141**、CI 全绿；下一步 S2-4（`tools/search.ts` glob/grep）。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 15 单测）已完成，全量 `npm test` **142/142**、CI 全绿；S2-4（`src/tools/search.ts` glob/grep：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条，`tests/search.test.ts` 11 单测）已完成，全量 `npm test` **153/153**、CI 全绿；下一步 S2-5（`tools/bash.ts`）。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -385,13 +386,24 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 ### 2026-11-23 · 会话 17（S2-3：文件读写与精确替换）
 
 - **做了什么**：新建 `src/tools/fs.ts`（约 400 行）——`fsTools` 三个工具（`read_file` / `write_file` / `edit_file`；`MAX_TOOL_OUTPUT_BYTES=30*1024`、`DEFAULT_READ_LIMIT=500`）：路径一律先 `resolveInside`；`read_file` 输出 `    1│内容` 行号格式（CRLF 文件头部标注），支持 offset/limit，超 30KB 按行裁剪并提示"输出已截断：单次最多 30720 字节"与"还有 X 行未显示，用 offset=Y 继续读取"，默认 500 行上限；`write_file` 自动建父目录（报告"已创建目录：…"）、空内容写 0 字节、行数不计末尾换行；`edit_file` 按 §6.5：先原样匹配、失败再 LF 归一化匹配，0 次/多处未传 `replace_all` 均报可操作错误，`replace_all` 用 split/join 全替换，写回保留原换行风格，成功后返回替换点前后各 3 行带行号上下文。失败统一 `Error: …` + "下一步"（`ToolInputError`/`UnsafePathError` 直接透传，其余经 `safeRun` 包一层）。新建 `tests/fs.test.ts` 14 个 test（A 级：§6.5 四种匹配行为、CRLF 保留、write 建目录/覆盖/空文件、read 行号/空文件/offset/limit/默认 500 行/单行 40K 字节截断、不存在/目录/offset 越界、参数类型错误、三工具越界路径拒绝、readOnly + 注册表集成）。
-- **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 14 / pass 14 / fail 0（609.9ms）**；全量 `npm test` → **tests 141 / pass 141 / fail 0（1441.2ms）**；`src/` 中 `\bany\b` 0 匹配。证据：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`（均 gitignored）。
-- **B 级（待后续）**：testing.md S2-3 第 3–5 行（testbed 里读 sample.txt、改第 2 行、全部 line→row）需要工具真正接进 loop/TUI 并经过审批，留 S2-6（loop）/S2-7（TUI）+ S3（审批）；第 6/7 行的 CRLF 与截断已在单测覆盖，交互观感留用户复核。
+- **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 15 / pass 15 / fail 0（605.6ms，含续读 offset 不跳行修复用例）**；全量 `npm test` → **tests 142 / pass 142 / fail 0（1449.4ms）**；`src/` 中 `\bany\b` 0 匹配。证据：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`（均 gitignored）。
+- **B 级（用户已完成 #6/#7）**：testing.md S2-3 第 6/7 行（CRLF 保真、大文件截断/续读提示）已由用户用 `spikes/.out/fs-manual-driver.ts` 实测通过（2026-11-23）；第 3–5 行（testbed 读文件、改第 2 行、全部 line→row）需要工具接进 loop/TUI 并经过审批，留 S2-6/S2-7 + S3。
 - **文档**：`docs/tasks.md` S2-3 done、焦点 S2-4；`docs/testing.md` L7/L128 进度、S2-3 小节已完成（结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 83 测试文件改十三个、§13 新增 S2-3 ✅ 行；`docs/checklist.md` 6 工具项加进度注；`HANDOFF.md` line 5 状态、§4「文件工具（S2-3）」决策行、§6 状态。
 - **提交**：分支 `task/s2-3-fs` 提交 `fb495d6`（已 push，远端保留原始提交）→ squash 合并 main `03ae006`；随后修复分支 `fix/s2-3-read-offset` 提交 `d41b8ed`（read_file 字节截断时续读 offset 按实际渲染行数给，不再跳行；`tests/fs.test.ts` 增 1 例 → 15 例、全量 142/142）→ squash 合并 main `54e5976`；本条哈希回填提交并 push。
 - **CI**：`45201159170`（task/s2-3-fs, `fb495d6`）、`45201176216`（main, `03ae006`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 141 / # pass 141 / # fail 0`；修复后 `45202219673`（fix/s2-3-read-offset, `d41b8ed`）、`45202237093`（main, `54e5976`）success，日志 `# tests 142 / # pass 142 / # fail 0`。
 - **坑**：①`write_file` 行数最初把末尾换行算成额外行 → 抽 `countTextLines`；②`mkdirSync` 返回值在 Windows 带 `\\?\` 前缀，不能直接展示 → 改输出父目录相对路径；③测试 helper 预建目录会让"已创建目录"分支永不触发 → helper 只 `mkdtempSync`；④测试里删掉 import 忘删触发 TS6133；⑤`read_file` 字节截断时"还有 X 行/用 offset=Y 继续读取"最初按 `offset+limit` 算，而实际只渲染到更早的行 → 会引导用户跳过未展示的行，已改为按 `built.lastLine` 计算（`54e5976`）。
 - **下次第一步**：S2-4（`src/tools/search.ts`：`glob` 与 `grep`；glob 上限 200 条、输出截断；先读 `docs/testing.md` S2-4）。
+
+### 2026-11-23 · 会话 18（S2-4：搜索工具 glob / grep）
+
+- **做了什么**：新建 `src/tools/search.ts`（约 455 行）——`searchTools`（`glob` / `grep`）：`walkFiles` 用 `readdirSync` 排序、只收文件、不跟随 symlink，`SKIP_DIR_NAMES={node_modules,.git}`；`glob` 支持 `*`/`?`/`**`/`[abc]`/`[!abc]`（win32 大小写不敏感，`**` 段级回溯），相对路径排序，`GLOB_LIMIT=200`、30KB 字节预算；`grep` 正则逐行匹配、输出 `相对路径:行号:内容`（行 >500 字符截断），跳过 >5MB 与二进制（前 8KB 含 NUL）并计数，`GREP_LIMIT=100`；失败统一 `Error: …` + "下一步"；两工具 `readOnly:true`。新建 `tests/search.test.ts` 11 个 test（glob 模式矩阵/跳过规则/两条上限/输出截断、grep 中文格式/正则/跳过/上限/path 限定/200k 行大文件 <5s/坏正则、注册表集成）。
+- **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/search.test.ts` → **tests 11 / pass 11 / fail 0（2085.9ms）**；全量 `npm test` → **tests 153 / pass 153 / fail 0（1972.9ms）**；`src/` 中 `\bany\b` 0 匹配。证据：`spikes/.out/s2-4-typecheck.txt`、`s2-4-search.txt`、`s2-4-full.txt`（均 gitignored）。
+- **B 级（待后续）**：testing.md S2-4 第 2–4 行需要工具接进 loop/TUI（S2-6/S2-7）后自然语言触发，再交用户复核；行为本身已被单测覆盖。
+- **文档**：`docs/tasks.md` S2-4 done、焦点 S2-5；`docs/testing.md` L7/L128 进度、S2-3 第 6/7 行改为用户实测通过 + B 级段、S2-4 小节已完成（结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 3 状态、line 83 测试文件十四个、§13 新增 S2-4 ✅ 行；`docs/checklist.md` 6 工具项进度注；`HANDOFF.md` line 5、§4「搜索工具（S2-4）」决策行、§6 状态。
+- **提交**：分支 `task/s2-4-search` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
+- **CI**：`<待回填>`；job `typecheck + test (Node 22)` 预期日志 `# tests 153 / # pass 153 / # fail 0`。
+- **坑**：①`matchSegment` 忽略了 `matchCharacterClass` 返回的 `matched` 标志，`[ab].txt` 误匹配 `c.txt` → 不匹配时退回 `*` 回溯或直接失败；②`OutputBuilder.build(note)` 只在自身字节截断时追加注，导致"结果超过 200 条"注丢失 → 改为 `build("")` 出 body、调用方按需拼 notes；③测试 helper `dataLines` 把头部行（含 pattern 文本）算进结果计数；④`many.txt` 130 行命中会先占满 grep 100 条上限，中文/跳过用例要用更精确 pattern 或 `path` 限定。
+- **下次第一步**：S2-5（`src/tools/bash.ts`：shell 选择、超时 kill、30KB 截断、UTF-8/GBK；先读 `docs/testing.md` S2-5）。
 
 
 ```text
