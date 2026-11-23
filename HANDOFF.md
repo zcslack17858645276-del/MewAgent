@@ -170,7 +170,8 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ### 2026-11-23 · 会话 1（调研、方案、建仓）
 
-- **做了什么**：开源项目盘点与技术选型；个人版范围与排期；TS + Ink 实施方案（S0–S4、契约、提示词模板）；创建 GitHub 私有仓库并完成首次提交（README 仅标题）。
+- **做了什么**：开源项目盘点与技术选型；个人版范围与排期；TS + Ink 实施方案（S0–S4、契约、提示词模板）；创建 GitHub 私有仓库并完成首次提交（README 仅标题）；建立本交接文档与任务看板。
+- **提交**：`755d7d3`（README）；`d35d7d5`（HANDOFF + 任务板 + 三份方案文档 + research/ + .gitignore）。
 - **关键结论**：开源侧 TypeScript 占主导，TUI 正从 Ink/Textual 向 OpenTUI 换代；Claude Code 已改为原生二进制分发；个人首版砍到 P0 8 项；默认 TS + Ink，中文 IME 不可用时转 Go + Bubble Tea。
 - **遗留/坑**：① Ink 中文 IME 尚未实测，S0 必须做 spike；② 产品名 MewAgent 与 MewCode 未统一；③ `research/` 中部分事实为社区说法，引用前看每条标注。
 - **下次第一步**：S0-1 初始化工程 + IME spike，然后 S0-2 定契约。
