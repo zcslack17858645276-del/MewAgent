@@ -225,7 +225,7 @@ finish: stop
 | S0-4 | `src/llm/mock.ts` + `--mock --print` 离线两轮 | ✅ |
 | S0-5 | AGENTS.md / CLAUDE.md / docs/spec.md / docs/checklist.md + CI | ✅（Actions 3 runs 全绿，证据 `docs/evidence/s0-5-ci-actions.png`） |
 | S0-6 | 全量验收 + tag `v0.1-s0` | ✅（typecheck 0 / tests 39 / help+version / mock 幂等 / build+dist；tag 已 push） |
-| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（S1-1 完成，当前 S1-2） |
+| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（S1-1、S1-2 完成，当前 S1-3） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ⬜ |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
