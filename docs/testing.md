@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：S0-1、S0-2 已完成（S0-2 契约落地，证据 `src/types.ts` + `tests/types.test.ts`），下一任务 S0-3。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：S0-1、S0-2、S0-3 已完成（S0-3 配置层与 CLI 入口落地，证据 `src/config.ts` + `src/index.ts` + `tests/config.test.ts`，`npm test` 31/31），下一任务 S0-4。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ 🔄 S0-3（当前）｜ ⬜ S0-4 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ 🔄 S0-4（当前）｜ ⬜ S0-5 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -160,18 +160,32 @@ git status --short        # 确认没有把测试产物提交
 
 **证据**：`npm run typecheck` 退出码 0、`npm test` 6/6 全绿输出、`types.ts` diff（见 HANDOFF §7 会话 4）。
 
-#### S0-3 config + 入口骨架
+#### S0-3 config + 入口骨架（已完成 2026-11-23）
+
+> 本小节保留为复验/回归用途。证据：`src/config.ts`、`src/index.ts`、`tests/config.test.ts`、HANDOFF §7 会话 5。
 
 | # | 类型 | 步骤 | 预期 | 级别 |
 |---|---|---|---|---|
-| 1 | A | `npm run dev -- --help` | 输出用法，含 `--model --base-url --workspace --new --mock --print` | P0 |
-| 2 | A | `npm run dev -- --version` | 输出版本号，退出 0 | P0 |
-| 3 | A | 临时清空 API key（改 `.env`）后 `npm run dev` | 报错含"缺少 API key"和"下一步怎么做"，不打印 key | P0 |
-| 4 | B | `npm run dev -- --workspace D:\workplace\AIAgent\mewagent-testbed --mock` | 工作区切到 testbed（工具读文件时体现） | P1 |
-| 5 | B | 传入未知参数 `--foo` | 明确报错或提示未知参数，不静默忽略 | P1 |
-| 6 | B | `.env` 中改 `MEWCODE_MODEL` 后启动，观察状态栏/`--print` 输出 | 模型名生效 | P1 |
+| 1 | A | `npm run typecheck` | 0 错误 | P0 |
+| 2 | A | `npm test` | 31 passed / 0 failed（`tests/config.test.ts` 25 个用例 + 既有 6 个） | P0 |
+| 3 | A | `npm run dev -- --help` | 输出用法，含 `--model --base-url --workspace --new --mock --print`；退出 0 | P0 |
+| 4 | A | `npm run dev -- --version` | 输出 `0.1.0`，退出 0 | P0 |
+| 5 | A | 清空 API key 后 `npm run dev`（`$env:MEWCODE_API_KEY=''`，模型名保留） | stderr 含"缺少 API key"和"下一步怎么做"，退出 2，不打印 key | P0 |
+| 6 | B | `npm run dev -- --workspace D:\workplace\AIAgent\mewagent-testbed --mock --print "hi"` | 输出 `workspace: D:\workplace\AIAgent\mewagent-testbed`、`model: mock`；退出 0（工具读文件在 S2 体现） | P1 |
+| 7 | B | 传入未知参数 `--foo` | stderr `未知参数：--foo` + "下一步"，退出 2，不静默忽略 | P1 |
+| 8 | B | 环境变量/`.env` 里设置 `MEWCODE_MODEL` 后启动（`--mock --print`） | `model:` 行为该值（`.env` 载入由单测 `loadDotEnv` 覆盖；手工改 `.env` 需用户执行） | P1 |
+| 9 | A | `"hi" \| node --import tsx src/index.ts --mock --print` | 输出 `prompt: hi`（stdin 读取），退出 0 | P1 |
 
-**证据**：4 条命令的输出（帮助/版本/缺 key/未知参数）。
+**验收证据**（2026-11-23 AI 实测）：
+- `npm run dev -- --help` → 完整用法（8 个参数 + 4 个环境变量 + 3 条示例），exit 0。
+- `npm run dev -- --version` → `0.1.0`，exit 0。
+- `$env:MEWCODE_MODEL='deepseek-chat'; $env:MEWCODE_API_KEY=''; npm run dev -- --print "hi"` → stderr `缺少 API key。` + `下一步：复制 .env.example 为 .env 并填写 MEWCODE_API_KEY（或设置同名环境变量）；只想离线体验可以加 --mock。`，exit 2。
+- `npm run dev -- --foo` → stderr `未知参数：--foo` + `下一步：运行 npm run dev -- --help 查看可用参数。`，exit 2。
+- `npm run dev -- --mock`（无 TTY）→ stderr `当前不是交互式终端（TTY），无法启动 TUI。` + `下一步：在 Windows Terminal 里运行 npm run dev；非交互场景请加 --print "你的问题"。`，exit 2。
+- testbed 命令 → `workspace:`/`model: mock`，exit 0；stdin 命令 → `prompt: hola-stdin`，exit 0。
+- 已知限制：本机 AI agent 安全策略禁止读写 `.env`，第 8 项的手工 `.env` 复验由用户执行；`loadDotEnv` 正确性已有单测。
+
+**通过标准**：1–5 全过；6–9 无回归。
 
 #### S0-4 mock 离线两轮
 
@@ -585,7 +599,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 |---|---|
 | S0-1 ✅ | typecheck + `tests/core.test.ts`；IME 复验见附录 B |
 | S0-2 ✅ | typecheck + `tests/types.test.ts`（`npm test`） |
-| S0-3 | 手工命令集 |
+| S0-3 ✅ | typecheck + `tests/config.test.ts`（`npm test`）+ 手工命令集 |
 | S0-4 | `--mock --print` 端到端 |
 | S0-5 | CI 运行记录 |
 | S1-1 | `tests/sse.test.ts` |
@@ -616,3 +630,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | 首版：覆盖 S0–S4 全部 29 个 task；定义 A/B/C 分工、测试沙盒、阶段回归清单 |
 | 2026-11-23 | 对齐 S0-1 完成后的实际仓库：补 PowerShell 5.1 / WT 1.25 / Node 26.7 实测环境；S0-1 章节改为复验步骤；IME 脚本改为引用已提交的 `spikes/`；命令按阶段可用性标注 |
 | 2026-11-23 | S0-2 完成：`src/types.ts` 契约落地（回填 `ToolSpec`）、新增 `tests/types.test.ts`；S0-2 章节改为复验步骤，进度切到 S0-3 |
+| 2026-11-23 | S0-3 完成：`src/config.ts` + `src/index.ts`（`.env` / CLI 参数 / TTY 检查 / `--print` headless 骨架）落地、新增 `tests/config.test.ts` 25 用例（全量 31）；S0-3 章节改为复验步骤并附实测证据，进度切到 S0-4 |
