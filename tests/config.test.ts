@@ -27,6 +27,7 @@ import {
   usage,
 } from "../src/config.js";
 import { main } from "../src/index.js";
+import type { FetchLike } from "../src/llm/openai.js";
 import type { StartTuiOptions } from "../src/ui/start-tui.js";
 
 function makeTempDir(): string {
@@ -37,6 +38,46 @@ function removeTempDir(dir: string): void {
   rmSync(dir, { recursive: true, force: true });
 }
 
+function sseStream(chunks: readonly string[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      controller.close();
+    },
+  });
+}
+
+interface FetchStubOptions {
+  ok?: boolean;
+  status?: number;
+  statusText?: string;
+  body?: ReadableStream<Uint8Array> | null;
+  text?: () => Promise<string>;
+  /** 抛出的错误（模拟断网/代理失败）。 */
+  fail?: Error;
+}
+
+/** 假 fetch：记录请求体，默认返回一个空 SSE 流；测试全程不联网。 */
+function createFetchStub(options: FetchStubOptions = {}): {
+  fetchImpl: FetchLike;
+  calls: { url: string; body: string }[];
+} {
+  const calls: { url: string; body: string }[] = [];
+  const fetchImpl: FetchLike = async (url, init) => {
+    calls.push({ url, body: init.body });
+    if (options.fail !== undefined) throw options.fail;
+    return {
+      ok: options.ok ?? true,
+      status: options.status ?? 200,
+      statusText: options.statusText ?? "OK",
+      body: options.body ?? sseStream(["data: [DONE]\n\n"]),
+      text: options.text ?? (async () => ""),
+    };
+  };
+  return { fetchImpl, calls };
+}
+
 interface RunOptions {
   env?: NodeJS.ProcessEnv;
   cwd?: string;
@@ -45,6 +86,8 @@ interface RunOptions {
   readStdin?: () => string;
   /** 注入交互 TUI 启动器：测试里不真的进入 Ink 渲染。 */
   startTui?: (options: StartTuiOptions) => Promise<void>;
+  /** 注入真实 API 的 fetch：测试用假 SSE 流，避免联网。 */
+  fetchImpl?: FetchLike;
 }
 
 interface RunResult {
@@ -73,6 +116,7 @@ async function runCli(argv: string[], options: RunOptions = {}): Promise<RunResu
       err += text;
     },
     startTui: options.startTui ?? (async () => {}),
+    fetchImpl: options.fetchImpl,
   });
   return { code, out, err };
 }
@@ -497,6 +541,123 @@ test("main：--print 无 prompt 且 stdin 是 TTY 时报错", async () => {
     });
     assert.equal(result.code, 2);
     assert.match(result.err, /缺少 prompt/);
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+// ---- S1-5：--print 接真实 API（全部用假 fetch，不联网） ----
+
+test("main：--print 真实 API 流式输出到 stdout（退出 0，system prompt 在首位）", async () => {
+  const { fetchImpl, calls } = createFetchStub({
+    body: sseStream([
+      'data: {"choices":[{"delta":{"content":"你"}}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"好"}}]}\n\n',
+      'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n',
+      "data: [DONE]\n\n",
+    ]),
+  });
+  const cwd = makeTempDir();
+  try {
+    const result = await runCli(["--print", "你好"], {
+      cwd,
+      env: {
+        MEWCODE_API_KEY: "test-key",
+        MEWCODE_MODEL: "test-model",
+        MEWCODE_BASE_URL: "https://api.example.com",
+      },
+      fetchImpl,
+    });
+
+    assert.equal(result.code, 0);
+    assert.equal(result.out, "你好\n", "stdout 只放模型文本，便于管道/重定向");
+    assert.match(result.err, /headless · model: test-model/);
+    assert.ok(!result.err.includes("内部错误"));
+
+    assert.equal(calls.length, 1);
+    const call = calls[0];
+    assert.ok(call !== undefined);
+    assert.equal(call.url, "https://api.example.com/chat/completions");
+    const parsed: unknown = JSON.parse(call.body);
+    assert.ok(typeof parsed === "object" && parsed !== null && !Array.isArray(parsed));
+    const body = parsed as Record<string, unknown>;
+    assert.equal(body["stream"], true);
+    const messages = body["messages"];
+    assert.ok(Array.isArray(messages));
+    const firstMessage = messages[0] as Record<string, unknown> | undefined;
+    assert.equal(firstMessage?.["role"], "system", "system prompt 必须在首位");
+    const secondMessage = messages[1] as Record<string, unknown> | undefined;
+    assert.equal(secondMessage?.["role"], "user");
+    assert.equal(secondMessage?.["content"], "你好");
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+test("main：MEWCODE_DEBUG=1 打印请求体（不含 apiKey）", async () => {
+  const { fetchImpl } = createFetchStub();
+  const cwd = makeTempDir();
+  try {
+    const result = await runCli(["--print", "你好"], {
+      cwd,
+      env: {
+        MEWCODE_API_KEY: "sk-debug-secret",
+        MEWCODE_MODEL: "test-model",
+        MEWCODE_DEBUG: "1",
+      },
+      fetchImpl,
+    });
+
+    assert.equal(result.code, 0);
+    assert.match(result.err, /\[debug\] 请求体：/);
+    assert.match(result.err, /"role":"system"/);
+    assert.ok(!result.err.includes("sk-debug-secret"), "调试输出不能泄露 API key");
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+test("main：401 时退出 1，提示检查 key 且摘要脱敏", async () => {
+  const { fetchImpl } = createFetchStub({
+    ok: false,
+    status: 401,
+    statusText: "Unauthorized",
+    body: null,
+    text: async () =>
+      JSON.stringify({ error: { message: "Incorrect API key provided: sk-bad-secret" } }),
+  });
+  const cwd = makeTempDir();
+  try {
+    const result = await runCli(["--print", "你好"], {
+      cwd,
+      env: { MEWCODE_API_KEY: "sk-bad-secret", MEWCODE_MODEL: "test-model" },
+      fetchImpl,
+    });
+
+    assert.equal(result.code, 1);
+    assert.match(result.err, /401/);
+    assert.match(result.err, /下一步/);
+    assert.match(result.err, /MEWCODE_API_KEY/);
+    assert.match(result.err, /\[REDACTED\]/);
+    assert.ok(!result.err.includes("sk-bad-secret"), "错误消息不能泄露 API key");
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+test("main：网络失败时退出 1 并提示网络与代理", async () => {
+  const { fetchImpl } = createFetchStub({ fail: new TypeError("fetch failed") });
+  const cwd = makeTempDir();
+  try {
+    const result = await runCli(["--print", "你好"], {
+      cwd,
+      env: { MEWCODE_API_KEY: "test-key", MEWCODE_MODEL: "test-model" },
+      fetchImpl,
+    });
+
+    assert.equal(result.code, 1);
+    assert.match(result.err, /网络请求失败/);
+    assert.match(result.err, /127\.0\.0\.1:7890/);
   } finally {
     removeTempDir(cwd);
   }

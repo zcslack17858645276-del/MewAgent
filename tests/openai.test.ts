@@ -308,3 +308,36 @@ test("chat：响应没有 body 时给出明确错误", async () => {
     return true;
   });
 });
+
+test("chat：onRequest 在发请求前回调一次，请求体不含 apiKey（MEWCODE_DEBUG 用）", async () => {
+  const { fetchImpl, calls } = createFetchStub({
+    body: sseStream([
+      'data: {"choices":[{"delta":{"content":"好"}}]}\n\n',
+      "data: [DONE]\n\n",
+    ]),
+  });
+  const seen: { url: string; body: string }[] = [];
+  const client = createOpenAiLlmClient({
+    baseUrl: "https://api.example.com/",
+    apiKey: "sk-should-not-leak",
+    model: "test-model",
+    fetchImpl,
+    onRequest: (info) => seen.push(info),
+  });
+
+  await client.chat([userMessage], []);
+
+  assert.equal(seen.length, 1, "每次请求只回调一次");
+  const info = seen[0];
+  assert.ok(info !== undefined);
+  assert.equal(info.url, "https://api.example.com/chat/completions");
+  assert.ok(!info.body.includes("sk-should-not-leak"), "调试请求体不能包含 apiKey");
+  assert.equal(info.body, calls[0]?.init.body, "onRequest 收到的就是实际发送的 body");
+
+  const parsed: unknown = JSON.parse(info.body);
+  assert.ok(typeof parsed === "object" && parsed !== null && !Array.isArray(parsed));
+  const record = parsed as Record<string, unknown>;
+  assert.equal(record["model"], "test-model");
+  assert.equal(record["stream"], true);
+  assert.ok(Array.isArray(record["messages"]));
+});
