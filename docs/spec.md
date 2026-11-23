@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text 十个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths 十一个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -233,7 +233,8 @@ finish: stop
 | S1-4 | `src/ui/App.tsx`：Ink TUI（Static 历史 / 50ms 节流 / 排队 / Esc·Ctrl+C）；补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` | ✅（`tests/ui.test.ts` 6 例 + `tests/input-text.test.ts` 13 例；8 条 B 级由用户验收通过） |
 | S1-5 | `--print` headless 接真实 API（stdout 只放文本 / `MEWCODE_DEBUG` / 401·网络错误可读） | ✅（真实 API A 级复验通过；假 fetch 单测 5 例） |
 | S1-6 | S1 全量验收 + 打 tag `v0.1-s1` | ✅（typecheck 0 / tests 104 / help+version / mock 幂等 / build+dist / 真实 API 中文 / TUI 冒烟；tag 已 push） |
-| S2 | 6 工具 + 工具注册表 + Agent Loop | ⬜ |
+| S2-1 | `src/tools/paths.ts`：工作区边界校验（词法 + 真实路径两层；拒绝 `..`、越界绝对路径、盘符相对、`%VAR%`、`~`、symlink/junction 逃逸） | ✅（`tests/paths.test.ts` 10 例，全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验） |
+| S2 | 6 工具 + 工具注册表 + Agent Loop | 🔄 |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
 

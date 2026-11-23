@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S2-1（`tools/paths.ts`：工作区边界校验 + 测试）**
+**当前焦点：S2-2（`tools/registry.ts`：工具注册表 + JSON Schema + 参数解析 + 异常兜底）**
 **最后更新：2026-11-23**
 
 ---
@@ -36,7 +36,7 @@
 
 | ID | 任务 | 估时 | 状态 | 验收 |
 |---|---|---|---|---|
-| S2-1 | `tools/paths.ts`：工作区边界校验 + 测试 | 2h | todo | `../`、绝对越界均拒绝 |
+| S2-1 | `tools/paths.ts`：工作区边界校验 + 测试 | 2h | done | `../`、绝对越界均拒绝（证据见 HANDOFF §7 会话 15） |
 | S2-2 | `tools/registry.ts`：注册表、JSON Schema、参数解析、异常兜底 | 3h | todo | 非法 JSON / 未知工具不崩 |
 | S2-3 | `tools/fs.ts`：read / write / edit（唯一性 + CRLF 兼容） | 4h | todo | 0 次/多次匹配返回可操作错误 |
 | S2-4 | `tools/search.ts`：glob / grep（条数上限、跳过 .git/node_modules） | 3h | todo | 大仓库不卡死 |
