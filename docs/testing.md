@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）、S1-2（`llm/openai.ts` 流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI，代码与 A 级冒烟完成、**8 条 B 级手工项待用户验收**）已完成实现，下一任务 S1-5（`--print` 接真实 API）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）、S1-2（`llm/openai.ts` 流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI，代码与 A 级冒烟完成；**补丁已完成**：`MEWCODE_MOCK_DELAY_MS` 慢速流式 + 多行输入 `ui/InputBox.tsx`（粘贴保留换行、Shift+Enter/Ctrl+J 换行）；**8 条 B 级手工项待用户验收**）已完成实现，下一任务 S1-5（`--print` 接真实 API）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟；B 级 8 条待用户）｜ 🔄 S1-5（当前）｜ ⬜ S1-6 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；B 级 8 条待用户）｜ 🔄 S1-5（当前）｜ ⬜ S1-6 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -304,7 +304,7 @@ git status --short        # 确认没有把测试产物提交
 
 **B 级复核（用户 2026-11-23 已完成）**：抽查 `tests/messages.test.ts` + `tests/prompt.test.ts` 共 12 用例的失败/边界路径（assistant 无 toolCalls 时不带字段、tool 消息字段不多不少、`withSystemPrompt` 首位且唯一）；mutation 检验 `tool_call_id` 与 system 去重逻辑；CI 日志 `# tests 77 / # pass 77 / # fail 0`。真实请求与请求体日志两行按上表留 S1-5 联调。
 
-#### S1-4 TUI 流式与中断（实现 2026-11-23 完成；8 条 B 级手工项待用户验收）
+#### S1-4 TUI 流式与中断（实现 2026-11-23 完成；补丁同日晚完成：慢速流式 + 多行输入；8 条 B 级手工项待用户验收）
 
 > 本节没有 A 级验收项（按方案 §4，TUI 的手感/中文/闪烁只能人工判断）。AI 侧补充了两类自动化证据：纯逻辑单测 + 用假 stdin/stdout 驱动 Ink 的 TUI 冒烟。下表 8 条仍请用户逐条手工复验。
 
@@ -327,6 +327,15 @@ git status --short        # 确认没有把测试产物提交
 - TUI 冒烟（假 stdin/stdout 驱动 Ink，`spikes/.out/tui-smoke.tsx`，gitignored）：启动横幅/工作区/就绪状态、提交"你好"→ mock 两轮最终文本进历史、排队消息提示、空闲 Ctrl+C 触发 `waitUntilExit` → `SMOKE OK`
 - 完整记录：`spikes/.out/s1-4-targeted.txt`、`spikes/.out/s1-4-full.txt`、`spikes/.out/s1-4-smoke.txt`、`spikes/.out/s1-4-dist.txt`、`spikes/.out/s1-4-notty.txt`（均 gitignored）
 - CI（gh 只读）：`45187554538`（task/s1-4-tui, `864bcb6`）、`45187577002`（main, `a687cc7`）、`45187642953`（main, `e0d420c`）全部 success；`45187642953` job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 83 / # pass 83 / # fail 0`。
+
+**S1-4 补丁（2026-11-23 晚：慢速流式 + 多行输入）**：
+
+- 目的：上面第 2/3/4 条需要"可观察的慢速流式"；原 mock 一次性返回，导致流式闪烁、生成中 Esc、生成中 Ctrl+C 无法验证。
+- 慢速流式用法：`$env:MEWCODE_MOCK_DELAY_MS="80"; npm run dev -- --mock`（每块 4 个码点、块间间隔 80ms；默认 0 = 一次性返回，与补丁前行为一致；不需要配置 key/网络）。
+- 多行输入：`src/ui/InputBox.tsx` + `src/ui/input-text.ts` 替换单行 `ink-text-input`；粘贴多行保留换行（bracketed paste → `normalizePastedText`）；Enter 发送、**Shift+Enter 换行**（Kitty 键盘协议，Windows Terminal 1.25 支持；终端不支持时用 **Ctrl+J** 兜底）；caret 按行号 + 列显示宽度用 `measureElement` + `useCursor` 定位。
+- A 级自动化证据：`tests/input-text.test.ts` 13 用例（CRLF/Tab/控制符规范化、代理对删除、换行合并、上下移动/行首行尾、`lineAndColumn`）；`tests/mock.test.ts` 11 用例（慢速流式按块、abort 保留已发前缀、`MEWCODE_MOCK_DELAY_MS` 生效）；全量 `tests 99 / pass 99 / fail 0`；TUI 冒烟（假 stdin/stdout）覆盖多行粘贴、Shift+Enter（`ESC[13;2u`）、Ctrl+J、Esc 中断、空闲 Ctrl+C → `SMOKE OK`；`npm run build` exit 0、`node dist/index.js --mock --print "hi"` exit 0。
+- 完整记录：`spikes/.out/s1-4b-targeted.txt`、`s1-4b-full.txt`、`s1-4b-smoke.txt`、`s1-4b-build.txt`、`s1-4b-dist.txt`、`s1-4b-notty.txt`（均 gitignored）。
+- 补丁已知限制：Shift+Enter 依赖终端 Kitty 键盘协议（本机 WT 1.25 preview 支持；不响应 `CSI ? u` 查询的终端请用 Ctrl+J）；`MEWCODE_KITTY_KEYBOARD=0` 可关闭协议协商。
 
 **已知限制**：TUI 尚未消费 `AgentEvent`（S2-7 接线工具事件）；`--mock` 的"两轮"是 S1 临时剧本（S2 起换成真正的 Agent Loop）；真实 API 的流式观感需 S1-5 接线后复验。
 

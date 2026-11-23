@@ -5,7 +5,8 @@
 // - 历史里已有 `role: "tool"` 消息 → 第 2 轮：返回最终总结文本（finishReason "stop"）。
 //
 // 不依赖网络、随机数、时间；同一输入永远得到同一输出。
-// `onText` 在最终文本时调用一次（S1 接真实流式客户端后改为多段 delta）。
+// `onText` 默认在最终文本时调用一次；设置 `chunkDelayMs` 后改为按块慢速流式发出
+// （给多行输入 / 生成中中断等手工验收用；默认 0 保持测试确定性）。
 
 import type { LlmChatOptions, LlmChatResult, LlmClient, Message, ToolCall } from "../types.js";
 
@@ -31,19 +32,53 @@ export function isMockFirstRound(messages: readonly Message[]): boolean {
   return !messages.some((message) => message.role === "tool");
 }
 
+/** 慢速流式参数：把最终文本按 `chunkSize` 个字符切块，每块间隔 `chunkDelayMs` 毫秒发出。 */
+export interface MockStreamingOptions {
+  /** 块间延迟（毫秒）；0 或未设置时一次性发出（默认，保持测试确定性）。 */
+  chunkDelayMs?: number;
+  /** 每块字符数（按码点切，默认 4）。 */
+  chunkSize?: number;
+}
+
+const DEFAULT_CHUNK_SIZE = 4;
+
+const sleep = (delayMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+
+/** 按码点切块，避免把代理对/emoji 切坏。 */
+function splitIntoChunks(text: string, chunkSize: number): string[] {
+  const characters = Array.from(text);
+  const chunks: string[] = [];
+  for (let index = 0; index < characters.length; index += chunkSize) {
+    chunks.push(characters.slice(index, index + chunkSize).join(""));
+  }
+  return chunks;
+}
+
 function abortedError(): Error {
   const error = new Error("离线 mock 已中断（AbortSignal）。");
   error.name = "AbortError";
   return error;
 }
 
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted === true) {
+    throw abortedError();
+  }
+}
+
 /** 创建离线 mock 客户端；每次调用返回新实例，方便测试并行使用。 */
-export function createMockLlmClient(): LlmClient {
+export function createMockLlmClient(
+  streaming: MockStreamingOptions = {},
+): LlmClient {
+  const delayMs = Math.max(0, Math.floor(streaming.chunkDelayMs ?? 0));
+  const chunkSize = Math.max(1, Math.floor(streaming.chunkSize ?? DEFAULT_CHUNK_SIZE));
+
   return {
     async chat(messages, _tools, opts?: LlmChatOptions): Promise<LlmChatResult> {
-      if (opts?.signal?.aborted === true) {
-        throw abortedError();
-      }
+      throwIfAborted(opts?.signal);
       if (isMockFirstRound(messages)) {
         return {
           content: MOCK_FIRST_ROUND_TEXT,
@@ -51,9 +86,27 @@ export function createMockLlmClient(): LlmClient {
           finishReason: "tool_calls",
         };
       }
-      opts?.onText?.(MOCK_FINAL_TEXT);
+
+      if (delayMs === 0) {
+        opts?.onText?.(MOCK_FINAL_TEXT);
+        return {
+          content: MOCK_FINAL_TEXT,
+          toolCalls: [],
+          finishReason: "stop",
+        };
+      }
+
+      // 慢速流式：逐块发出，每块之间等待并由 AbortSignal 中断（生成中 Esc 用）。
+      let content = "";
+      for (const chunk of splitIntoChunks(MOCK_FINAL_TEXT, chunkSize)) {
+        throwIfAborted(opts?.signal);
+        await sleep(delayMs);
+        throwIfAborted(opts?.signal);
+        content += chunk;
+        opts?.onText?.(chunk);
+      }
       return {
-        content: MOCK_FINAL_TEXT,
+        content,
         toolCalls: [],
         finishReason: "stop",
       };

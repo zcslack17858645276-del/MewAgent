@@ -152,6 +152,19 @@ function readPromptFromStdin(deps: MainDeps, stdinIsTTY: boolean): string {
 }
 
 /**
+ * 读取 mock 慢速流式的块间延迟（毫秒）。仅交互 TUI 使用，供手工验收"流式观感/生成中中断"；
+ * 未设置或非法值一律回落到 0（一次性发出），保持自动化测试与 --print 的确定性。
+ */
+function readMockDelayMs(env: NodeJS.ProcessEnv): number {
+  const raw = env["MEWCODE_MOCK_DELAY_MS"];
+  if (raw === undefined || raw.trim() === "") {
+    return 0;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+/**
  * CLI 主流程：返回进程退出码（0 成功；2 用法/配置错误；1 未预期错误）。
  * 不调用 `process.exit`，方便测试与被其他入口复用。
  */
@@ -214,7 +227,7 @@ export async function main(
     }
 
     const client: LlmClient = config.mock
-      ? createMockLlmClient()
+      ? createMockLlmClient({ chunkDelayMs: readMockDelayMs(env) })
       : createOpenAiLlmClient({
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,

@@ -16,6 +16,21 @@ export interface StartTuiOptions {
   readonly systemPrompt: string;
 }
 
+/** 读取 Kitty 键盘协议的开关（`MEWCODE_KITTY_KEYBOARD=0/off` 可关闭）。 */
+function readKittyKeyboardMode(): "auto" | "disabled" {
+  const raw = process.env["MEWCODE_KITTY_KEYBOARD"];
+  if (raw === undefined) {
+    return "auto";
+  }
+
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "0" || normalized === "off" || normalized === "false") {
+    return "disabled";
+  }
+
+  return "auto";
+}
+
 /** 启动交互式 TUI，直到用户 Ctrl+C（空闲态）或进程被信号终止。 */
 export async function startTui(options: StartTuiOptions): Promise<void> {
   const { version, config, send, systemPrompt } = options;
@@ -33,6 +48,9 @@ export async function startTui(options: StartTuiOptions): Promise<void> {
       exitOnCtrlC: false,
       // 只重绘变化的行，减少流式时的闪烁。
       incrementalRendering: true,
+      // 开启 Kitty 键盘协议后终端能区分 Shift+Enter（ESC[13;2u）与 Enter；
+      // 不支持该协议的终端会回退到普通按键，Shift+Enter 无效时用 Ctrl+J 换行。
+      kittyKeyboard: { mode: readKittyKeyboardMode() },
     },
   );
 

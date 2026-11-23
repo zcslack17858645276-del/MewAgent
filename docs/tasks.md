@@ -28,7 +28,7 @@
 | S1-1 | `llm/sse.ts`：SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试 | 3h | done | 一行拆 3 块仍正确；`[DONE]` 不报错（证据见 HANDOFF §7 会话 9） |
 | S1-2 | `llm/openai.ts`：`fetch` 流式客户端 + tool_calls 按 index 聚合 + abort | 4h | done | mock provider 下 text/tool_calls 都正确（`tests/openai.test.ts` 13 用例；证据见 HANDOFF §7 会话 10） |
 | S1-3 | `agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换 | 2h | done | 消息角色/字段符合协议（`tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例；证据见 HANDOFF §7 会话 11） |
-| S1-4 | `ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为 | 5h | done | 流式不闪屏；生成中可中断（代码 + `tests/ui.test.ts` 6 用例 + 假终端 TUI 冒烟；8 条 B 级手工项待用户验收，见 HANDOFF §7 会话 12 / docs/testing.md S1-4） |
+| S1-4 | `ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为 | 5h | done | 流式不闪屏；生成中可中断（代码 + `tests/ui.test.ts` 6 用例 + 假终端 TUI 冒烟；8 条 B 级手工项待用户验收，见 HANDOFF §7 会话 12 / docs/testing.md S1-4）。**补丁（2026-11-23）**：`MEWCODE_MOCK_DELAY_MS` 慢速流式（让 B 级能观察流式/Esc/中断）+ 自研多行输入 `ui/InputBox.tsx`（粘贴保留换行、Shift+Enter/Ctrl+J 换行、Kitty 协议自动协商、caret 多行定位），`tests/input-text.test.ts` 13 用例，全量 99/99 |
 | S1-5 | `--print` 模式接真实 API | 1h | todo | 无 TTY 下能跑一轮 |
 | S1-6 | 手工验收 + 打 tag `v0.1-s1` | 1h | todo | 中文输入输出正常 |
 
