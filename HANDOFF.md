@@ -280,6 +280,17 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **坑**：PowerShell 5.1 下 `npm test` 的 `# tests/pass/fail` 报告行会被管道/重定向吞掉，需用 `cmd /c "... > file 2>&1"` 抓原始输出（本次记录：39/39/0，281ms）。
 - **下次第一步**：S1-1 `src/llm/sse.ts` SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试，见 `docs/testing.md` S1-1 小节。
 
+### 2026-11-23 · 会话 9 交接（新会话开工指引：从 S1-1 开始）
+
+- **交接原因**：用户计划结束当前会话、在**同一工作区**开新会话来交付 S0 之后的开发；S0 全部完成（tag `v0.1-s0` 已 push），本会话不继续写代码，只留在状态与交接信息。
+- **开工时先读**（顺序同 `AGENTS.md` §0）：`HANDOFF.md`（本条目 + §6 当前状态）→ `docs/tasks.md`（确认当前焦点 S1-1）→ `docs/testing.md` 的 S1-1 小节 → `MewCode-TS实施方案.md` §3/§4（S1 细节与 §7.1 SSE 测试用例）。`AGENTS.md` / `CLAUDE.md` 由 harness 自动加载。
+- **当前仓库状态（开工前应核对）**：`git log --oneline -1` 的 `main` 与 `origin/main` 一致；工作树干净；tag `v0.1-s0`（annotated `a49cf1f`）→ `b8d036f`（S0 收尾提交，本地/远端一致；tag 之后仅可能有 docs 交接提交）；`npm run typecheck` 0、`npm test` 39/39；CI 全绿（可用 `gh run list` 只读复核，S0 收尾 run `45151267932`）。远端保留 `task/s0-1` ~ `task/s0-6` 六个任务分支（按用户决定保留原始提交，清理由用户手动）。
+- **S0-6 B 级复核状态**：**待用户执行**（两条只读检查，命令与通过标准见 `docs/testing.md` S0-6 表格第 2、3 行：`git log --oneline -10` 与 `docs/tasks.md` / `HANDOFF.md` 状态核对；可选核对 tag）。若用户在旧会话已确认，请在本条目补一句"已复核"。
+- **本次任务范围**：只做 **S1-1** `src/llm/sse.ts`（SSE 逐行解析：一行拆多块、跨 chunk 半行、CRLF、空行、`data:` 前缀、`[DONE]`、尾部残留）+ `tests/sse.test.ts`；不动 S1-2 及以后，不改契约（`src/types.ts`）。
+- **新会话可直接使用的开场指令（建议）**：
+  > 项目：D:\workplace\AIAgent\MewCode（MewAgent）。先读 HANDOFF.md（§6、§7 会话 9 交接）、AGENTS.md、docs/tasks.md、docs/testing.md 的 S1-1 小节、MewCode-TS实施方案.md 的 §3/§4/§7.1。S0 阶段已完成并打 tag v0.1-s0；本次只做 task S1-1（`src/llm/sse.ts` SSE 逐行解析 + 测试）。
+- **遗留问题/坑**：① `gh` CLI 已装且已登录（只读自查 CI；token 含写权限，禁止用 gh 写入）；② cc-safety-net 仍会拦 `.env`、工作区外递归删除、`git push --delete`、`git branch -D`，被拦不要绕过；③ S0-6 squash 提交标题含不可见 BOM（已记录，不影响构建）。
+
 ### 交接模板（每次会话结束复制填写）
 
 ```text
