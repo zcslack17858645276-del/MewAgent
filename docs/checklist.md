@@ -51,7 +51,7 @@
 ### S2 工具 + Agent Loop（目标：tag `v0.1-s2`）
 
 - [x] `tools/paths.ts` 越界拦截（`..`、绝对路径、符号链接、Windows 盘符）单测。✅ 2026-11-23：`tests/paths.test.ts` 10 例（词法 + realpath 两层；盘符相对/`%VAR%`/`~` 一律拒绝），全量 114/114；TUI 级 B 级两项随 S2-6/S2-7 接线后验。
-- [ ] 6 个工具（read/write/edit/glob/grep/bash）参数校验、截断 30KB、`glob` ≤200 条。进度：read/write/edit 已完成（`tests/fs.test.ts` 14 例，全量 141/141）；glob/grep/bash 待 S2-4/S2-5。
+- [ ] 6 个工具（read/write/edit/glob/grep/bash）参数校验、截断 30KB、`glob` ≤200 条。进度：read/write/edit 已完成（`tests/fs.test.ts` 15 例）、glob/grep 已完成（`tests/search.test.ts` 11 例，全量 153/153）；bash 待 S2-5。
 - [ ] `tools/registry.ts` + `agent/loop.ts`：多工具连续调用、`maxSteps=30`、`turn_end` 原因正确。
 - [ ] 失败路径：bash 超时/kill、edit 多处匹配、读不存在文件、无权限。
 - [ ] mock 端到端 + 真实模型三步任务验收；更新文档、打 tag。
