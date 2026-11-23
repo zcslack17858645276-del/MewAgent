@@ -5,11 +5,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { toApiMessages } from "../src/agent/messages.js";
 import type { Message, ToolSpec } from "../src/types.js";
 import {
   createOpenAiLlmClient,
   aggregateToolCallDeltas,
-  toApiMessages,
   LlmHttpError,
   type FetchLike,
 } from "../src/llm/openai.js";
