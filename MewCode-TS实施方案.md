@@ -198,6 +198,16 @@ interface ToolDefinition {
   run(args: Record<string, unknown>, ctx: { workspace: string }): Promise<ToolResult>;
 }
 
+// 发给模型的工具声明（OpenAI tools 格式），由 ToolDefinition 转换而来
+interface ToolSpec {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>; // JSON Schema
+  };
+}
+
 interface LlmClient {
   chat(
     messages: Message[],
@@ -217,6 +227,8 @@ type AgentEvent =
 ```
 
 **契约变更规则**：`types.ts` 是合同。任何阶段想改它，必须先在 `docs/spec.md` 写明原因，再一次性改完并跑测试；不许 AI 在实现某个 task 时顺手改契约。
+
+> 注：`ToolSpec` 是 §3.3 初稿遗漏、S0-2 定契约时补齐的类型（原 `LlmClient.chat` 已引用但未定义）。`tool_start.args === null` 表示模型返回的 arguments JSON 无法解析。
 
 ### 3.4 一次请求的完整时序
 

@@ -100,6 +100,7 @@ npm run build
 | 包名/版本 | `mewagent` / `0.1.0`（private，`type: module`，engines `node>=22`） |
 | 环境变量 | `MEWCODE_API_KEY` / `MEWCODE_BASE_URL` / `MEWCODE_MODEL`（可选 `MEWCODE_SHELL`）；模板见 `.env.example` |
 | 输入法 | 中文输入走系统微软拼音（WT 实测可用）；候选框位置略偏属可接受项；S1 起在输入框用 ink 的 `useCursor` 把终端光标放到 caret 位置，改善候选框位置 |
+| 契约（S0-2） | 唯一契约文件 `src/types.ts`：`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `ToolSpec` / `LlmClient`（`LlmChatOptions`/`LlmChatResult`）/ `Gate`（`GateResult`）/ `AgentEvent`；形状以方案 §3.3 为准，禁止类型逃逸；改契约必须先改方案 §3.3 并在 §7 说明；`ToolSpec` 是 §3.3 初稿遗漏、S0-2 补齐的类型 |
 
 ---
 
@@ -172,7 +173,7 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-1 已完成（IME 判定 A），下一任务 S0-2（`types.ts` 契约）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-2 已完成（`src/types.ts` 契约落地，`npm run typecheck` 0 错误、`npm test` 6/6 全绿），下一任务 S0-3（`config.ts` + 入口骨架）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -209,6 +210,16 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **当前可运行状态**：S0-1 done；`npm run typecheck` 0 错误、`npm test` 3 passed、`npm run build` 成功。
 - **遗留/坑**：手册里的"预期测试文件"会随实现调整，以 `tests/` 实际为准；S0-2 起每个 task 完成时按手册对应小节留证据（自动输出 + 人工结论）再改 `done`。
 - **下次第一步**：S0-2 `src/types.ts` 契约，测试见 `docs/testing.md` S0-2 小节。
+
+### 2026-11-23 · 会话 4（S0-2：`src/types.ts` 核心契约）
+
+- **做了什么**：按方案 §3.3 落地 `src/types.ts`（7 类契约 + `ToolSpec`）；新增 `tests/types.test.ts`（3 个运行时用例 + 4 条 `@ts-expect-error` 负例，负例在 typecheck 时生效）；回填方案 §3.3 中 `LlmClient.chat` 已引用但初稿未定义的 `ToolSpec`；按 `docs/testing.md` S0-2 小节留证据。
+- **契约要点**：`Message` 四分支判别联合；`ToolCall.arguments` 是原始 JSON 字符串（由 registry 解析）；`ToolResult{ok,output}` 失败也走 output（"Error:" 前缀）；`ToolDefinition.run(args, { workspace })`，只读工具由 `readOnly` 标记自动放行；`ToolSpec` 为 OpenAI `tools` 格式；`LlmClient.chat(messages, tools, { signal?, onText? })`；`Gate` 只做判断不弹 UI，拒绝必须带回填模型的 `reason`；`AgentEvent` 四类事件（`tool_start.args === null` 表示模型给的 arguments JSON 解析失败）。方案 §3.3 的内联对象已提取为具名别名 `ToolRunContext` / `LlmChatOptions` / `LlmChatResult`，字段形状未变。
+- **验收（A 级自动化，P0）**：`npm run typecheck` 退出码 0、无错误输出；`npm test` → `tests 6 / pass 6 / fail 0`（原 3 个工程清单用例 + 新增 3 个契约用例）；`Select-String '\bany\b' src/types.ts` 无匹配（0 处类型逃逸）；`npm run build` 退出码 0（产出 `dist/types.js`）。
+- **B 级手工项（需用户按 docs/testing.md S0-2 复核）**：对照方案 §3.3 检查类型是否齐全、字段名一致；抽查 `tests/types.test.ts` 里假对象实现 `ToolDefinition`/`LlmClient`/`Gate` 的写法是否符合预期。
+- **提交**：分支 `task/s0-2-contract` → squash 合并回 `main` 并 push（哈希见下一次 docs 提交）。
+- **备注/坑**：① `@ts-expect-error` 若放在多行对象字面量之前、而错误实际报在 `} satisfies ...` 那行，会被判成 "Unused '@ts-expect-error' directive" → 负例改为单行声明；② 测试文件 import 写成 `../src/types.js`（NodeNext 规则），因为是 `import type`，运行时完全擦除，tsx 不受影响。
+- **下次第一步**：S0-3 `src/config.ts` + `src/index.ts`（加载 `.env`、CLI 参数、`--help`/`--version`/`--print` 骨架、缺 key 友好报错），测试见 `docs/testing.md` S0-3 小节。
 
 ### 交接模板（每次会话结束复制填写）
 
