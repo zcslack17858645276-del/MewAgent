@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S1-1（`llm/sse.ts`：SSE 逐行解析 + 测试）**
+**当前焦点：S1-2（`llm/openai.ts`：`fetch` 流式客户端 + `tool_calls` 聚合 + abort）**
 **最后更新：2026-11-23**
 
 ---
@@ -25,7 +25,7 @@
 
 | ID | 任务 | 估时 | 状态 | 验收 |
 |---|---|---|---|---|
-| S1-1 | `llm/sse.ts`：SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试 | 3h | todo | 一行拆 3 块仍正确；`[DONE]` 不报错 |
+| S1-1 | `llm/sse.ts`：SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试 | 3h | done | 一行拆 3 块仍正确；`[DONE]` 不报错（证据见 HANDOFF §7 会话 9） |
 | S1-2 | `llm/openai.ts`：`fetch` 流式客户端 + tool_calls 按 index 聚合 + abort | 4h | todo | mock provider 下 text/tool_calls 都正确 |
 | S1-3 | `agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换 | 2h | todo | 消息角色/字段符合协议 |
 | S1-4 | `ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为 | 5h | todo | 流式不闪屏；生成中可中断 |

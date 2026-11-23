@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock 四个文件
+tests/                # node:test；当前 core/types/config/mock/sse 五个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -225,7 +225,7 @@ finish: stop
 | S0-4 | `src/llm/mock.ts` + `--mock --print` 离线两轮 | ✅ |
 | S0-5 | AGENTS.md / CLAUDE.md / docs/spec.md / docs/checklist.md + CI | ✅（Actions 3 runs 全绿，证据 `docs/evidence/s0-5-ci-actions.png`） |
 | S0-6 | 全量验收 + tag `v0.1-s0` | ✅（typecheck 0 / tests 39 / help+version / mock 幂等 / build+dist；tag 已 push） |
-| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（当前 S1-1） |
+| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（S1-1 完成，当前 S1-2） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ⬜ |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
