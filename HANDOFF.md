@@ -108,6 +108,7 @@ npm run build
 | 契约（S0-2） | 唯一契约文件 `src/types.ts`：`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `ToolSpec` / `LlmClient`（`LlmChatOptions`/`LlmChatResult`）/ `Gate`（`GateResult`）/ `AgentEvent`；形状以方案 §3.3 为准，禁止类型逃逸；改契约必须先改方案 §3.3 并在 §7 说明；`ToolSpec` 是 §3.3 初稿遗漏、S0-2 补齐的类型 |
 | 配置层（S0-3） | `.env` 用 Node 内置 `process.loadEnvFile`（不新增依赖），只读「工作区 cwd 下」的 `.env`，文件缺失静默跳过；优先级 **CLI 参数 > 环境变量/`.env` > 内置默认值**；`MEWCODE_BASE_URL` 默认 `https://api.deepseek.com`（客户端负责拼 `/chat/completions`，S1 实现），值去尾斜杠；`--mock` 时模型默认 `mock`、不需要 key；**apiKey 只从环境变量/`.env` 读，不进 CLI、不进任何输出**；退出码：0 成功 / 2 可操作错误（`CliError`，stderr 带"下一步"）/ 1 内部错误；`--help`、`--version` 在加载 `.env` 和校验 key 之前处理；非 `--print` 时要求 stdin+stdout 都是 TTY，否则报错并提示 `--print`；`--print` 的 prompt 取「位置参数 → 非 TTY 的 stdin」；版本号从 `package.json` 读（`src/` 与 `dist/` 通用） |
 | mock 层（S0-4） | `src/llm/mock.ts` 导出 `createMockLlmClient(): LlmClient`；固定剧本按历史里有无 `role:"tool"` 消息判定：无 → 第 1 轮返回 `read_file` 调用（`id=call_mock_read_file_1`，`arguments='{"path":"README.md"}'`，`finishReason="tool_calls"`）；有 → 第 2 轮返回最终总结（`finishReason="stop"`）；确定性输出、不依赖网络/随机/时间；`onText` 在最终文本回调一次；已中断的 `AbortSignal` 抛 `AbortError`；S0-4 的 `--print` 只做「两轮驱动骨架」（工具结果占位），真实工具执行 S2、真实 API S1 |
+| SSE 解析（S1-1） | `src/llm/sse.ts` 导出 `parseSseStream(stream: ReadableStream<Uint8Array>, options?: { signal?: AbortSignal }): AsyncGenerator<string>`：输入字节流、输出逐条 `data:` 负载字符串（不 JSON.parse）；按 SSE 规范以空行分帧、同帧多行 `data:` 用 `\n` 连接、支持 `\n`/`\r\n` 与跨 chunk 半行、忽略 `:` 注释与 `event:`/`id:`/`retry:` 字段、剥流首 BOM；`data: [DONE]` 作为结束信号（不输出、不报错、忽略后续数据）；`TextDecoder(..., { stream: true })` 处理多字节被切断；流结束/尾部无换行时提交最后一帧（最后一条不丢）；`signal` 已中止时以 `name="AbortError"` 结束。调用方（S1-2 `openai.ts`）负责负载的 JSON 解析与错误映射 |
 | 文档与 CI（S0-5） | `AGENTS.md` 是所有 AI 代理的统一规则（开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境 / 红线）；`CLAUDE.md` 只是薄入口，指向 `AGENTS.md`；`docs/spec.md` 是 v0.1 规格（按阶段追加「要什么 / 不要什么 / 验收 / 已知边界」，§13 维护阶段状态）；`docs/checklist.md` 是验收清单（通用 DoD + S0–S4 阶段清单 + 十条成功标准证据表 + 回归/发布清单）；CI 用 GitHub Actions（`ubuntu-latest` + Node 22，`npm ci` → `npm run typecheck` → `npm test`），触发 `push` 到 `main`/`task/**`/`fix/**`/`docs/**` 与 PR 到 `main` |
 | CI 自查（S0-5 后） | 本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`，token scopes `gist, read:org, repo, workflow`）；agent 只用 `gh run list` / `gh run view <id> --json jobs` / `gh run view <id> --log` **只读**查询 Actions 自查 CI，**禁止用 gh 做 push/删除/PR 等写操作**；PR 仍由用户开（或用户明确授权后再说） |
 
@@ -190,7 +191,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）。S0 全量验收通过：`npm run typecheck` exit 0、`npm test` 39/39（281ms）、`--help` 8 参数齐全、`--version` 输出 `0.1.0`、`--mock --print "你好"` 连跑两次输出逐字节一致、`npm run build` + `node dist/index.js --mock --print "你好"` 与 dev 输出一致、`src/` 中 `any` 匹配 0；CI 全绿（gh CLI 独立复核）。下一任务 S1-1（`src/llm/sse.ts` SSE 逐行解析 + 测试）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1-1（`src/llm/sse.ts` SSE 逐行解析 + 13 个单测，全量 `npm test` 52/52）已完成，下一步 S1-2（`src/llm/openai.ts` 流式客户端 + `tool_calls` 聚合）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -284,6 +285,14 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **备注**：S0-6 的 squash 提交标题因 PowerShell 5.1 `Set-Content` 写了 UTF-8 BOM，`git log` 标题前有一个不可见 BOM 字符（不影响构建）；后续 commit 消息统一用 write 工具生成无 BOM 文件 + `git commit -F`。
 - **坑**：PowerShell 5.1 下 `npm test` 的 `# tests/pass/fail` 报告行会被管道/重定向吞掉，需用 `cmd /c "... > file 2>&1"` 抓原始输出（本次记录：39/39/0，281ms）。
 - **下次第一步**：S1-1 `src/llm/sse.ts` SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留）+ 测试，见 `docs/testing.md` S1-1 小节。
+
+### 2026-11-23 · 会话 9（S1-1：`src/llm/sse.ts` SSE 逐行解析 + 测试）
+
+- **做了什么**：新建 `src/llm/sse.ts`（约 120 行）与 `tests/sse.test.ts`（13 个用例）；`docs/tasks.md` S1-1 doing→done、当前焦点切 S1-2；`docs/testing.md` 头部进度、进度行、S1-1 小节改为"已完成"并附实测证据、附录 C/D；`docs/checklist.md` S1-1 勾选；`HANDOFF.md` §4 新增「SSE 解析（S1-1）」决策行、§6 状态、§7 本条目。
+- **设计要点**：`parseSseStream(stream, { signal? }): AsyncGenerator<string>` 只产出 `data:` 负载字符串，不做 JSON.parse（留给 S1-2）；按空行分帧、同帧多行 `data:` 用 `\n` 连接；`\n`/`\r\n` 与跨 chunk 半行都支持；忽略 `:` 注释与 `event:`/`id:`/`retry:`；剥流首 BOM；`data: [DONE]` 不输出不报错并忽略后续数据；`TextDecoder(stream: true)` 处理多字节切断；流结束/尾部无换行提交最后一帧；已中止的 `signal` 抛 `name="AbortError"`。
+- **验收（A 级自动化，P0，全部通过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/sse.test.ts` → tests 13 / pass 13 / fail 0（384ms）；全量 `npm test` → tests 52 / pass 52 / fail 0（335ms，原 39 + 新增 13）；失败/边界用例覆盖分块、UTF-8 截断、CRLF、注释、多行 data、无空格 data、`[DONE]`、尾部残留、BOM、空 data、AbortError。证据 `spikes/.out/s1-1-test.txt`（gitignored）。
+- **提交**：分支 `task/s1-1-sse` 提交（待哈希回填）→ squash 合并为 `main` → push。
+- **下次第一步**：S1-2 `src/llm/openai.ts`：`fetch` 流式客户端 + `tool_calls` 按 index 聚合 + abort，见 `docs/testing.md` S1-2 小节与方案 §6.2。
 
 ### 交接模板（每次会话结束复制填写）
 

@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）**，下一任务 S1-1（`llm/sse.ts` SSE 逐行解析）。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）已完成，下一任务 S1-2（`llm/openai.ts` 流式客户端 + tool_calls 聚合）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ 🔄 S1-1（当前）｜ ⬜ S1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ 🔄 S1-2（当前）｜ ⬜ S1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -246,13 +246,22 @@ git status --short        # 确认没有把测试产物提交
 
 ### S1 · 流式对话 + 最小 TUI
 
-#### S1-1 SSE 解析
+#### S1-1 SSE 解析（已完成 2026-11-23）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `node --import tsx --test tests/sse.test.ts` | 全绿 | P0 |
-| 2 | A | 覆盖用例：一行拆 3 块、UTF-8 多字节被切断、`\r\n`、空行、`:` 注释、`[DONE]`、无结尾换行 | 全部断言通过 | P0 |
-| 3 | B | 抽查测试代码，确认不是"只测 happy path" | 至少 3 个失败/边界用例 | P1 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `node --import tsx --test tests/sse.test.ts` | 全绿 | P0 | ✅ tests 13 / pass 13 / fail 0（384ms） |
+| 2 | A | 覆盖用例：一行拆 3 块、UTF-8 多字节被切断、`\r\n`、空行、`:` 注释、`[DONE]`、无结尾换行 | 全部断言通过 | P0 | ✅ 13 个用例覆盖全部场景，另加 BOM / 多行 data / 无空格 data / 空 data / AbortError |
+| 3 | B | 抽查测试代码，确认不是"只测 happy path" | 至少 3 个失败/边界用例 | P1 | ✅ 失败与边界用例 9 个（分块、UTF-8 截断、CRLF 拆分、注释、`[DONE]`、尾部残留、BOM、空 data、AbortError） |
+
+**实测证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` → exit 0
+- `node --import tsx --test tests/sse.test.ts` → exit 0，`tests 13 / pass 13 / fail 0`（384ms）
+- 全量 `npm test` → exit 0，`tests 52 / pass 52 / fail 0`（335ms；原 39 + 新增 13）
+- 完整记录：`spikes/.out/s1-1-test.txt`（gitignored）
+
+**已知限制**：只解析 OpenAI 兼容流式响应需要的 `data:` 字段；`event:`/`id:`/`retry:` 按设计忽略（本项目用不到），S1-2 负责负载 JSON 解析与错误映射。
 
 #### S1-2 流式客户端 + tool_calls 聚合
 
@@ -631,7 +640,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S0-3 ✅ | typecheck + `tests/config.test.ts`（`npm test`）+ 手工命令集 |
 | S0-4 ✅ | typecheck + `tests/mock.test.ts`（`npm test`）+ `--mock --print` 端到端 |
 | S0-5 ✅ | 文档文件存在性 + typecheck/test + 本地模拟 CI（`npm ci` → typecheck → test）+ GitHub Actions 变绿（用户确认） |
-| S1-1 | `tests/sse.test.ts` |
+| S1-1 ✅ | typecheck + `tests/sse.test.ts`（`npm test`，13 用例） |
 | S1-2 | `tests/openai.test.ts` + 真实流式 |
 | S1-3 | `tests/messages.test.ts` |
 | S1-4 | 手工 TUI 清单 |
@@ -663,3 +672,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S0-4 完成：新增 `src/llm/mock.ts`（离线两轮剧本）+ `src/index.ts` 两轮驱动骨架 + `tests/mock.test.ts` 8 用例（全量 39）；`--mock --print "你好"` 不依赖网络走完两轮；S0-4 章节改为复验步骤并附实测证据，进度切到 S0-5 |
 | 2026-11-23 | S0-5 完成：新增 `AGENTS.md`、`CLAUDE.md`、`docs/spec.md`、`docs/checklist.md`、`.github/workflows/ci.yml`（Node 22，`npm ci` → typecheck → test）；本地模拟 CI 全绿（52 packages / typecheck 0 / 39 测试通过）；S0-5 章节改为复验步骤并附实测证据，进度切到 S0-6 |
 | 2026-11-23 | S0-6 完成：S0 全量验收通过（typecheck 0 / tests 39 pass 39 / --help 8 参数 / --version 0.1.0 / --mock --print 两次输出一致 / build+dist 一致 / any 匹配 0）；打 tag `v0.1-s0` 并 push；S0-6 章节改为已完成并附实测证据，进度切到 S1-1 |
+| 2026-11-23 | S1-1 完成：新增 `src/llm/sse.ts`（`parseSseStream` async generator）+ `tests/sse.test.ts` 13 用例（分块 / UTF-8 截断 / CRLF / 注释 / 多行 data / `[DONE]` / 尾部残留 / BOM / 空 data / AbortError）；typecheck 0、全量 52/52；S1-1 章节改为已完成并附实测证据，进度切到 S1-2 |
