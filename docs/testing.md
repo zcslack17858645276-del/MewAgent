@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：S0-1 ~ S0-5 已完成（S0-5 落地 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` 与 `.github/workflows/ci.yml`；本地已用临时副本模拟 CI：`npm ci` + `typecheck` + `npm test` 39/39 全绿，GitHub Actions 变绿待用户确认），下一任务 S0-6（全量验收 + tag `v0.1-s0`）。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：S0-1 ~ S0-5 已完成（S0-5 落地 `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` 与 `.github/workflows/ci.yml`；本地模拟 CI 全绿，**GitHub Actions 3 次运行全部通过**：`9acc5b5` 分支 / `688b832` / `29b5178` main，截图 `docs/evidence/s0-5-ci-actions.png`），下一任务 S0-6（全量验收 + tag `v0.1-s0`）。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -209,7 +209,7 @@ git status --short        # 确认没有把测试产物提交
 | 1 | A | 检查文件存在：`AGENTS.md` `CLAUDE.md` `docs/spec.md` `docs/checklist.md` `.github/workflows/ci.yml` | 全部存在 | P0 |
 | 2 | A | `npm run typecheck` + `npm test` | 0 错误、39/39 通过 | P0 |
 | 3 | A | 本地模拟 CI：复制 `package.json` / `package-lock.json` / `tsconfig*.json` / `src` / `tests` 到临时目录，依次 `npm ci` → `typecheck` → `test` | 三步全绿，证明 CI 命令在干净环境可用 | P0 |
-| 4 | B | push 分支后在 GitHub 打开 Actions | `CI` workflow 变绿，日志可见 `npm ci` / `npm run typecheck` / `npm test`（需用户确认，本机无 gh CLI） | P0 |
+| 4 | B | push 分支后在 GitHub 打开 Actions | `CI` workflow 变绿，日志可见 `npm ci` / `npm run typecheck` / `npm test`（✅ 已确认：3 次运行全绿，截图 `docs/evidence/s0-5-ci-actions.png`） | P0 |
 | 5 | B | 读 `AGENTS.md` | 含技术栈/常用命令/架构边界/代码风格/DoD（另含开工必读、本机环境、红线） | P1 |
 | 6 | B | 读 `docs/spec.md` / `docs/checklist.md` | spec 覆盖目标/非目标/十条标准/架构/CLI/工具/权限/TUI/Windows/阶段状态；checklist 含通用 DoD、S0–S4 清单、十条标准证据表、回归与发布清单 | P1 |
 
@@ -217,7 +217,7 @@ git status --short        # 确认没有把测试产物提交
 
 **CI 设计**：`.github/workflows/ci.yml` 触发 `push`（`main` / `task/**` / `fix/**` / `docs/**`）与 `pull_request`（`main`）；`ubuntu-latest` + Node 22（`actions/setup-node@v4` 带 npm cache）；步骤固定为 `npm ci` → `npm run typecheck` → `npm test`；`permissions: contents: read`、并发组 `ci-${{ github.ref }}` 自动取消旧运行。
 
-**已知限制**：本机未装 `gh` CLI 且私有仓库未认证 API 返回 404，**Actions 变绿需要用户到仓库 Actions 页确认**（这也是 B 级证据）；PR 需用户手动开（agent 无远端写 token）。
+**已知限制**：本机未装 `gh` CLI 且私有仓库未认证 API 返回 404，Actions 状态需用户从网页确认（本次已确认：3 次运行全绿，截图 `docs/evidence/s0-5-ci-actions.png`）；若后续希望 agent 自查，可由用户提供一个**只读** fine-grained PAT（Actions: read、Contents: read、Metadata: read）通过环境变量/本地文件传入，agent 用 `GET /repos/{owner}/{repo}/actions/runs` 读取，不写入仓库、不打印。PR 需用户手动开（agent 无远端写 token）。
 
 #### S0-6 S0 收尾
 

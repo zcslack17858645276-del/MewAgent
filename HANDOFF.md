@@ -182,7 +182,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-5 已完成（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml` 落地；本地模拟 CI `npm ci` → `typecheck` → `test` 全绿，`npm run typecheck` 0 错误、`npm test` 39/39；GitHub Actions 变绿待用户确认），下一任务 S0-6（S0 收尾：全量验收 + 打 tag `v0.1-s0`）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-5 已完成（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml` 落地；本地模拟 CI 全绿，`npm run typecheck` 0 错误、`npm test` 39/39；GitHub Actions 3 次运行全部通过：`9acc5b5` 分支 / `688b832` / `29b5178` main，截图 `docs/evidence/s0-5-ci-actions.png`），下一任务 S0-6（S0 收尾：全量验收 + 打 tag `v0.1-s0`）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -261,7 +261,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 - **做了什么**：新增 `AGENTS.md`（AI 代理统一规则：开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境注意事项 / 红线）；`CLAUDE.md`（薄入口，指向 `AGENTS.md` + 开工三步 + 红线摘要）；`docs/spec.md`（v0.1 规格 13 节：目标 / 非目标 / 十条成功标准及现状 / 架构分层与目录 / 契约表 / 请求时序 / CLI 与配置 / 工具系统 / 权限 / 上下文与会话 / TUI / Windows 专项 / 错误与限制 / 阶段状态）；`docs/checklist.md`（通用 DoD、S0–S4 阶段清单、十条成功标准证据表、阶段回归清单、发布清单）；`.github/workflows/ci.yml`（ubuntu-latest + Node 22，`npm ci` → `npm run typecheck` → `npm test`，push/PR 触发）。
 - **验收（A 级自动化，P0）**：5 个文件全部存在；`npm run typecheck` 退出 0；`npm test` 39/39；本地模拟 CI——把 `package.json` / `package-lock.json` / `tsconfig*.json` / `src` / `tests` 复制到 `spikes/.out/ci-local` 干净副本，`npm ci`（52 packages，2s）→ `typecheck` 退出 0 → `npm test` 39/39（250ms），随后删除临时目录。
-- **B 级（需用户）**：push 本分支后在 GitHub Actions 页确认 `CI` workflow 变绿（本机无 `gh` CLI、私有仓库未认证 API 404，无法自查）；读 `AGENTS.md` 五节 + `docs/spec.md` / `docs/checklist.md`。
+- **B 级（已由用户复核，2026-11-23）**：GitHub Actions 3 次运行全部通过 —— #1 `9acc5b5`（`task/s0-5-docs-ci`）、#2 `688b832`（`main`）、#3 `29b5178`（`main`）；截图已入库 `docs/evidence/s0-5-ci-actions.png`。用户已读 `AGENTS.md` / `docs/spec.md` / `docs/checklist.md` 并确认。
 - **提交**：分支 `task/s0-5-docs-ci` 提交 `9acc5b5`（已 push 触发 CI，远端保留原始提交）→ squash 合并为 `main` 的 `688b832` 并 push → 哈希回填提交 `docs: 记录 S0-5 提交哈希`（`main` 最新提交）。
 - **坑**：① 首次编辑 `docs/tasks.md` 遇 `FS_STALE_VERSION`（文件被外部会话改过），重读后按最新内容重放；② 本地模拟 CI 的临时目录必须放在工作区内（安全网禁止 cwd 外递归删除），用完即删。
 - **下次第一步**：S0-6 全量验收（typecheck / test / `--help` / `--version` / `--mock --print` 幂等重跑）→ 勾选 `docs/checklist.md` §2 的 S0 清单 → 打 tag `v0.1-s0` 并 push。

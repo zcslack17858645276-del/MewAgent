@@ -25,8 +25,8 @@
 - [x] **S0-2** `src/types.ts` 契约齐全、可编译、无 `any`；4 条负例 `@ts-expect-error`。
 - [x] **S0-3** CLI 骨架：`--help` 全参数、`--version`、缺 key 友好报错不泄露 key、未知参数报错、`--print`/TTY 分支、25 个单测。
 - [x] **S0-4** `src/llm/mock.ts` 离线两轮：`--mock --print "你好"` 输出工具调用→最终文本，断代理可跑，39 个测试全绿。
-- [ ] **S0-5** `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml`；CI 在 GitHub Actions 变绿（需用户确认）。
-  - 证据：CI run 链接/截图（用户提供）；本地模拟 `npm ci && npm run typecheck && npm test` 输出。
+- [x] **S0-5** `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml`；CI 在 GitHub Actions 变绿（用户复核确认，2026-11-23）。
+  - 证据：Actions 3 次运行全部通过 —— #1 `9acc5b5`（`task/s0-5-docs-ci`）、#2 `688b832`（`main`）、#3 `29b5178`（`main`）；截图 `docs/evidence/s0-5-ci-actions.png`；本地模拟 `npm ci` + `typecheck` + `test`（39/39）输出见 HANDOFF §7 会话 7。
 - [ ] **S0-6** 全量验收（typecheck/test/`--help`/`--version`/`--mock --print` 幂等重跑）→ `docs/checklist.md` §3 全部勾选 → 打 tag `v0.1-s0` 并 push。
 
 ### S1 SSE + TUI（目标：tag `v0.1-s1`）
