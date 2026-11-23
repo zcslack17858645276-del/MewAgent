@@ -375,8 +375,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/registry.test.ts` → **tests 13 / pass 13 / fail 0（332.7ms）**；全量 `npm test` → **tests 127 / pass 127 / fail 0（1350.4ms）**。证据：`spikes/.out/s2-2-typecheck.txt`、`s2-2-registry.txt`、`s2-2-full.txt`（均 gitignored）。
 - **B 级（待后续）**：`docs/testing.md` S2-2 第 2 行的"6 个工具齐全"要等 S2-3~S2-5 真实工具接入；第 3 行"description 可读性"也随真实工具就位后由用户抽查。已写入 testing.md 结果列。
 - **文档**：`docs/tasks.md` S2-2 done、焦点 S2-3；`docs/testing.md` L7/L128 进度、S2-2 小节已完成（3 行结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C 行；`docs/spec.md` line 83 测试文件改十二个、§13 新增 S2-2 ✅ 行；`HANDOFF.md` line 5 状态、§4「工具注册表（S2-2）」决策行、§6 状态。
-- **提交**：分支 `task/s2-2-registry` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
-- **CI**：`<待回填>`。
+- **提交**：分支 `task/s2-2-registry` 提交 `2fe4998`（已 push，远端保留原始提交）→ squash 合并 main `f2b58e0`；本条哈希回填提交并 push。
+- **CI**：`45199605857`（task/s2-2-registry, `2fe4998`）、`45199640913`（main, `f2b58e0`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 127 / # pass 127 / # fail 0`。
 - **坑**：`arguments` 是模型给的原始 JSON 字符串，不能假设合法——所有解析失败都要转成"模型能看懂并自我修正"的 `Error:` 文案；工具实现 bug（抛异常/返回非法结构）同样不能炸 loop，所以注册表统一兜底。
 - **下次第一步**：S2-3（`src/tools/fs.ts`：read / write / edit，唯一性 + CRLF 兼容）；文件操作一律先 `resolveInside(workspace, path)`，再走注册表；对照 `docs/testing.md` S2-3。
 

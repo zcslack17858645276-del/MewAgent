@@ -427,7 +427,8 @@ git status --short        # 确认没有把测试产物提交
 - `npm run typecheck` exit 0
 - `node --import tsx --test tests/registry.test.ts` → **tests 13 / pass 13 / fail 0**（332.7ms）
 - 全量 `npm test` → **tests 127 / pass 127 / fail 0**（1350.4ms；原 114 + 新增 13）
-- 完整记录：`spikes/.out/s2-2-typecheck.txt`、`s2-2-registry.txt`、`s2-2-full.txt`（均 gitignored）
+- 完整记录：`spikes/.out/s2-2-typecheck.txt`、`s2-2-registry.txt`、`s2-2-full.txt`、`s2-2-typecheck-final.txt`、`s2-2-full-final.txt`（均 gitignored）
+- CI（gh 只读）：`45199605857`（task/s2-2-registry, `2fe4998`）、`45199640913`（main, `f2b58e0`）全部 success；job `typecheck + test (Node 22)` 步骤成功，日志 `# tests 127 / # pass 127 / # fail 0`。
 
 **实现要点**：`ToolRegistry` 提供 `register`/`has`/`get`/`names`/`size`/`specs()`/`run(call, ctx)`。`run` 是模型输入的唯一收敛点：未知工具 → 可读错误 + 可用工具列表；`arguments` 空串按 `{}`、非法 JSON/非对象/非字符串 → 明确错误 + "下一步"；工具抛异常（含非 Error）→ `Error: 工具 X 执行失败：…`；工具返回非法结构 → `Error: … 返回了非法结果`；**任何情况都不向 loop 抛异常**。重复注册/非法定义属于实现方 bug，`register` 直接抛错（启动期暴露）。**已知限制**：v0.1 不在注册表层做 JSON Schema 的 required/type 深度校验（各工具自己校验并给可操作错误）；工具执行超时由 `bash` 工具自己处理（§6.4）；`createDefaultRegistry`（`tools/index.ts`）等 S2-3~S2-5 工具就位后再加。
 
