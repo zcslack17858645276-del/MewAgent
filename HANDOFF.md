@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 进行中（S1-1 ~ S1-5 完成）｜ 下一任务：S1-6
+> 最后更新：2026-11-23 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）｜ 下一任务：S2-1
 
 ---
 
@@ -12,8 +12,8 @@
 - **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（私有，默认分支 `main`）
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
-- **当前状态**：S0 阶段已完成并打 tag `v0.1-s0`；S1 进行中——S1-1（SSE 解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI：Static 历史 / 50ms 节流 / 输入框 / 错误行 / Esc·Ctrl+C / 排队；补丁：自研多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式）、S1-5（`--print` headless 接真实 API：system prompt 首位 → 一轮流式 → stdout 只放模型文本；`MEWCODE_DEBUG=1` 打印请求体；401/网络失败可读"下一步"并退出 1）已完成，`npm test` **104/104**、CI 全绿。S1-4 的 8 条 B 级手工项与补丁项已由用户于 2026-11-23 验收通过。S1-5 的真实 API A 级复验已完成（用户换有效 key 后：A1 `"你好" | npm run dev -- --print` 输出中文并 exit 0；A4 假 key 401 + 下一步 + exit 1；B3 重定向 UTF-8 无乱码）。
-- **下一步**：按 `docs/tasks.md` 做 S1-6（S1 手工验收 + 打 tag `v0.1-s1`）：用户换有效 key 后复验 `"你好" | npm run dev -- --print`，跑 S1 手工回归，打 tag 并更新文档。
+- **当前状态**：S0 阶段已完成并打 tag `v0.1-s0`；**S1 阶段已完成并打 tag `v0.1-s1`**——S1-1（SSE 解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI：Static 历史 / 50ms 节流 / 输入框 / 错误行 / Esc·Ctrl+C / 排队；补丁：自研多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式）、S1-5（`--print` headless 接真实 API）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，`npm test` **104/104**、CI 全绿。S1-4 的 8 条 B 级手工项与补丁项、S1-5 的真实 API 复验（中文输出 / 无 TTY 无 raw mode / B3 重定向 UTF-8 / 假 key 401）均已由用户于 2026-11-23 验收通过。
+- **下一步**：按 `docs/tasks.md` 做 S2-1（`tools/paths.ts`：工作区边界校验 + `tests/paths.test.ts`），依据 `docs/testing.md` S2-1 四行验收；契约先行（`src/types.ts` 已有 `ToolDefinition`，不改契约）。
 
 ---
 
@@ -41,8 +41,8 @@
 ```text
 项目：D:\workplace\AIAgent\MewCode（MewAgent，TypeScript + Ink 的 CLI Coding Agent）。
 开工前按顺序读：HANDOFF.md（§1/§4/§5/§6/§7）、AGENTS.md、docs/tasks.md、docs/testing.md 的本次 task 小节、MewCode-TS实施方案.md 的 §3/§4。
-先核对：git status 干净、main 与 origin/main 同步、tag v0.1-s0 存在。
-本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S1-6：S1 手工验收 + 打 tag `v0.1-s1`；前置：用户换有效 `MEWCODE_API_KEY` 后复验 `"你好" | npm run dev -- --print`）。
+先核对：git status 干净、main 与 origin/main 同步、tag v0.1-s0 / v0.1-s1 存在。
+本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S2-1：`tools/paths.ts` 工作区边界校验 + 测试）。
 要求：
 1) 先给实现计划，等我确认后再写代码；
 2) 只改与本 task 相关的文件；不改契约（src/types.ts），确需改先停下说明理由；
@@ -161,7 +161,7 @@ git push origin v0.1-s0
 
 Tag 计划：`v0.1-s0` → `v0.1-s1` → `v0.1-s2` → `v0.1-s3` → `v0.1.0`（S4 完成）。
 
-已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）。
+已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）。
 
 ### 5.4 回滚
 
@@ -196,7 +196,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个）已完成且真实 API A 级复验通过（用户换有效 key 后），全量 `npm test` **104/104**、CI 全绿；下一步 S1-6（S1 手工验收 + tag `v0.1-s1`）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；下一步 S2-1（`tools/paths.ts` 工作区边界校验 + 测试）。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -344,6 +344,17 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **提交**：分支 `task/s1-5-headless` 提交 `c29ede0`（已 push，远端保留原始提交）→ squash 合并 main `60f0cb2` → 本条哈希回填提交并 push。
 - **CI**：`45192982541`（task/s1-5-headless, `c29ede0`）、`45193019580`（main, `60f0cb2`）全部 success；`45193019580` job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 104 / # pass 104 / # fail 0`。
 - **下次第一步**：S1-6（S1 手工验收 + tag `v0.1-s1`）：用户换有效 `MEWCODE_API_KEY` 后复验 `"你好" | npm run dev -- --print`（行 1/3），跑 S1 手工回归清单（TUI 8 条已过，补 S1-5 真实输出 + 中断 + 重定向），更新文档后打 tag `v0.1-s1` 并 push。
+- **B 级复核**：用户 2026-11-23 已完成 S1-5 全部 B 级项——真实 `--print` 一轮中文正常、无 TTY 无 raw mode、B3 重定向文件 UTF-8 无乱码（cmd 重定向 → `Get-Content -Encoding UTF8` → `Format-Hex` 字节验证）、假 key 401 可读报错；并确认 PS 5.1 管道写法问题（见坑 ④）。
+
+### 2026-11-23 · 会话 14（S1-6：S1 全量验收 + tag `v0.1-s1`）
+
+- **做了什么**：S1 全量验收重跑（证据 `spikes/.out/s1-6-acceptance.txt`，gitignored）：`npm run typecheck` exit 0；`npm test` exit 0（**tests 104 / pass 104 / fail 0**，duration ≈ 996ms）；`npm run dev -- --help` exit 0 且 8 参数齐全；`--version` exit 0 输出 `0.1.0`；`--mock --print 你好` 连跑两次 exit 0 且去 npm notice 后输出完全一致（幂等、含两轮）；`npm run build` exit 0，`node dist/index.js --mock --print 你好` 与 dev 输出一致；`src/` 中 `\bany\b` 匹配 0；真实 API `node --import tsx src/index.ts --print 你好` → exit 0、stdout 415B 中文、stderr 仅 headless 头部行；TUI 假终端冒烟 `SMOKE OK`（exit 0）。文档：`docs/tasks.md` S1-6=done、焦点 S2-1；`docs/testing.md` S1-6 小节重写为已完成表格 + 全量证据 + S1-5 B 级复核段、进度与 L128 进度行、S1 回归清单全勾；`docs/checklist.md` S1 清单剩余两项勾选、§4 阶段回归清单补 S1 数据；`docs/spec.md` 状态行、§1 成功标准 1 改 ✅、§13 展开 S1-1~S1-6 明细；本条 HANDOFF 记录。
+- **验收（A 级，P0 全过）**：见上；S1 手工回归五项（S0 全部 / `npm test` 含 SSE / 真实流式+中断 / `--print` 管道 / 错误 key）全部有证据（S1-4 B 级、S1-5 B 级、S1-6 重跑）。
+- **tag**：`v0.1-s1`（annotated，`git tag -a v0.1-s1 -m "S1: 流式对话 + 最小 TUI（SSE / OpenAI 客户端 / Ink TUI / headless 真实 API；typecheck 0 / tests 104 / CI 全绿）"`）打在 S1 收尾提交并 `git push origin v0.1-s1`；`git rev-parse "v0.1-s1^{commit}"` == main。
+- **提交**：分支 `task/s1-6-acceptance` 提交 `<待回填>` → squash 合并 main `<待回填>` → docs 哈希回填提交 `<待回填>` 并 push。
+- **CI**：`<待回填>`。
+- **坑**：①Node 26 的 `npm test` 报告用 `ℹ tests N` / `ℹ pass N` 而非 `# tests N`，grep 计数要同时匹配两种；②dev 与 dist 输出比较必须先过滤 `npm notice` 行（notice 走 stderr，重定向时会混进文件）；③PS 5.1 `Set-Content -Encoding UTF8` 会写 BOM（commit message 用 write 工具写无 BOM 文件 + `git commit -F`）。
+- **下次第一步**：S2-1（`src/tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts`）：拒绝 `../x`、`..\x`、绝对路径、盘符路径、`%TEMP%` 等越界；允许 `src/a.ts`、`./a.ts`、带空格/中文文件名；对照 `docs/testing.md` S2-1 四行，先用 `path.resolve` + `path.relative` 判边界（方案 §6.10）。
 
 ### 交接模板（每次会话结束复制填写）
 

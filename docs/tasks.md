@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S1-6（S1 手工验收 + 打 tag `v0.1-s1`）**
+**当前焦点：S2-1（`tools/paths.ts`：工作区边界校验 + 测试）**
 **最后更新：2026-11-23**
 
 ---
@@ -30,7 +30,7 @@
 | S1-3 | `agent/prompt.ts` + `messages.ts`：system prompt 与 API JSON 转换 | 2h | done | 消息角色/字段符合协议（`tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例；证据见 HANDOFF §7 会话 11） |
 | S1-4 | `ui/App.tsx`：消息列表、流式区、输入框、错误行；`<Static>` + 50ms 节流；Esc/Ctrl+C 行为 | 5h | done | 流式不闪屏；生成中可中断（代码 + `tests/ui.test.ts` 6 用例 + 假终端 TUI 冒烟；B 级 8 条已由用户验收通过，2026-11-23）。**补丁（2026-11-23）**：`MEWCODE_MOCK_DELAY_MS` 慢速流式（让 B 级能观察流式/Esc/中断）+ 自研多行输入 `ui/InputBox.tsx`（粘贴保留换行、Shift+Enter/Ctrl+J 换行、Kitty 协议自动协商、caret 多行定位），`tests/input-text.test.ts` 13 用例，全量 99/99；补丁项（多行粘贴 / Shift+Enter 生效）也已由用户确认 |
 | S1-5 | `--print` 模式接真实 API | 1h | done | 无 TTY 下能跑一轮：headless 真实链路已接（system prompt 首位 → 一轮流式 → stdout 只放模型文本；`MEWCODE_DEBUG=1` 打印请求体；401/网络失败可读错误 + exit 1）。A 级：`tests/openai.test.ts` +1、`tests/config.test.ts` +4、`tests/mock.test.ts` 改写 1；全量 104/104；真实 API 冒烟先测到 HTTP 401（最初未配置 key），用户换有效 key 后 A 级复验通过：`"你好" \| npm run dev -- --print` → 中文回复 + exit 0、无 TTY 无 raw mode 报错、重定向 UTF-8 无乱码、假 key 401 + exit 1 且不泄露 key。证据见 HANDOFF §7 会话 13 / docs/testing.md S1-5 |
-| S1-6 | 手工验收 + 打 tag `v0.1-s1` | 1h | todo | 中文输入输出正常 |
+| S1-6 | 手工验收 + 打 tag `v0.1-s1` | 1h | done | 中文输入输出正常。全量验收：typecheck 0、`npm test` 104/104、`--help` 8 参数齐全、`--version` 0.1.0、`--mock --print` 幂等两轮、`npm run build` + dist 输出与 dev 一致、`any` 0；真实 API `--print 你好` → exit 0 + 中文回复；TUI 假终端冒烟 `SMOKE OK`；S1 手工回归由用户验收通过；tag `v0.1-s1` 已打并 push（证据见 HANDOFF §7 会话 14） |
 
 ## S2 · 工具系统 + Agent Loop（3 天）
 

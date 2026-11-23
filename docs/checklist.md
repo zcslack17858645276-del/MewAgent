@@ -43,8 +43,10 @@
   - 补丁（2026-11-23）：`src/ui/InputBox.tsx` 多行输入（粘贴保留换行、Shift+Enter/Ctrl+J 换行、Kitty 协议协商、caret 多行定位）+ `MEWCODE_MOCK_DELAY_MS` 慢速流式；`tests/input-text.test.ts` 13 用例、`tests/mock.test.ts` 11 用例、全量 `npm test` 99/99；假终端冒烟覆盖多行粘贴 / Shift+Enter / Ctrl+J → `SMOKE OK`。B 级补丁项（用户 2026-11-23 确认）：多行粘贴保留换行、Shift+Enter 换行生效（WT 1.25 Kitty 协议）、`MEWCODE_MOCK_DELAY_MS=80` 慢速流式可观察。
 - [x] `--print` 接真实 API（S1-5）：headless 真实链路（system prompt 首位 → 一轮流式 → stdout 只放模型文本）、`MEWCODE_DEBUG=1` 请求体调试、401/网络失败可读错误 + 退出码 1。
   - 证据：`tests/openai.test.ts` 14 用例（含 onRequest 请求体回调）、`tests/config.test.ts` 29 用例（含 4 个假 fetch 真实链路用例：输出仅模型文本、DEBUG 请求体不泄露 key、401 脱敏 + 下一步、网络失败代理提示）、`tests/mock.test.ts` 11 用例；`npm run typecheck` exit 0；全量 `npm test` 104/104；真实 API 冒烟 → HTTP 401（用户 `.env` key 被供应商判 invalid，错误链路真机验证；"真实输出文本"行待用户换有效 key 后复验），见 `docs/testing.md` S1-5 与 HANDOFF §7 会话 13。
-- [ ] 真实 API 冒烟（用户提供 key）：流式首字 < 2s、可中断、中文不乱码。
-- [ ] 单测 + 手工验收证据，更新文档、打 tag。
+- [x] 真实 API 冒烟（用户提供 key）：流式首字 < 2s、可中断、中文不乱码。
+  - 证据：用户换有效 `MEWCODE_API_KEY` 后 A 级复验通过（`--print` 中文回复 + exit 0、无 TTY 无 raw mode、B3 重定向 UTF-8 无乱码、假 key 401 + exit 1）；TUI 侧真实流式/中断手感由用户在 S1-4 补丁验收（`MEWCODE_MOCK_DELAY_MS=80`）与 S1-5 真机复验中确认。详见 `docs/testing.md` S1-5、S1-6。
+- [x] 单测 + 手工验收证据，更新文档、打 tag。
+  - 证据：S1-6 全量验收 typecheck 0 / `npm test` 104/104 / `--help` 8 参数 / `--version 0.1.0` / `--mock --print` 幂等两轮 / `build` + dist 一致 / `any` 0 / 真实 API `--print` exit 0 中文 / TUI 冒烟 `SMOKE OK`；tag `v0.1-s1` 已打并 push（附注见 HANDOFF §7 会话 14、§5.3；证据文件 `spikes/.out/s1-6-acceptance.txt`）。
 
 ### S2 工具 + Agent Loop（目标：tag `v0.1-s2`）
 
@@ -85,12 +87,12 @@
 
 ## 4. 阶段回归清单（每个阶段完成后跑一遍）
 
-- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S0-6 typecheck exit 0、tests 39/39）
-- [x] `npm run dev -- --help` / `--version` 正常，退出码 0。
-- [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。
-- [x] `npm run build && npm start` 正常。（S0-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致）
-- [x] Windows Terminal 下中文输入/输出一次（人工）。（S0-1 IME spike 在 WT 内完成中文输入与显示，证据 `spikes/.out/r1-03-committed.png`；S0-6 mock 中文输出在终端无乱码）
-- [x] `git status` 干净、无敏感文件；远端 main 与本地一致。（S0-6 提交 tag 后核对）
+- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104）
+- [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0）
+- [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等）
+- [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致）
+- [x] Windows Terminal 下中文输入/输出一次（人工）。（S0-1 IME spike 在 WT 内完成中文输入与显示，证据 `spikes/.out/r1-03-committed.png`；S1-4 多行输入/Shift+Enter 与 S1-5 真实 API 中文输出均由用户在 WT 验收通过）
+- [x] `git status` 干净、无敏感文件；远端 main 与本地一致。（S1-6 提交 tag 后核对；tag `v0.1-s0`/`v0.1-s1` 均已 push）
 
 ## 5. 发布清单（v0.1.0）
 
