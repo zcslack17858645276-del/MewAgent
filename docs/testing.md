@@ -224,8 +224,8 @@ git status --short        # 确认没有把测试产物提交
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
 | 1 | A | `git tag -l`；`git ls-remote --tags origin` | 有 `v0.1-s0`，远端也存在 | P0 | ✅ 本地/远端均有 `v0.1-s0` |
-| 2 | B | `git log --oneline -10` | S0 任务都有对应 commit，无"大杂烩"提交 | P1 | ✅ 每 task 独立 commit + squash 记录 |
-| 3 | B | 更新 HANDOFF §7 与 tasks 状态 | 状态为 done | P1 | ✅ tasks S0-6=done、HANDOFF §7 会话 8 |
+| 2 | B | `git log --oneline -10` | S0 任务都有对应 commit，无"大杂烩"提交 | P1 | ✅ 每 task 独立 commit + squash 记录；用户已复核（2026-11-23） |
+| 3 | B | 更新 HANDOFF §7 与 tasks 状态 | 状态为 done | P1 | ✅ tasks S0-6=done、HANDOFF §7 会话 8；用户已复核（2026-11-23） |
 
 **S0-6 全量验收证据（2026-11-23 17:53，本地 Node v26.7.0）**：
 
@@ -237,6 +237,8 @@ git status --short        # 确认没有把测试产物提交
 - `npm run build` → exit 0；`node dist/index.js --mock --print "你好"` exit 0 且输出与 dev 一致
 - `src/` 中 `\bany\b` 匹配 0
 - 完整记录：`spikes/.out/s0-6-acceptance.txt`（gitignored）
+
+**B 级复核（用户，2026-11-23，已完成）**：用户已按表格第 2、3 行自行执行并通过 —— 提交历史清晰（S0 各 task 独立提交 + squash 记录，无大杂烩）、`docs/tasks.md` S0-6=done 且 `HANDOFF.md` §7 会话 8 已更新；另核对 tag `v0.1-s0` 本地与远端一致。
 
 **已知限制**：无（S0 阶段）；tag 之后的 `S1-1` 起按新小节执行。
 

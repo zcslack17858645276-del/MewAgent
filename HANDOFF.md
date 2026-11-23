@@ -279,7 +279,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 - **做了什么**：`docs/tasks.md` S0-6 改 doing→done、当前焦点切 S1-1；S0 全量验收（typecheck / test / `--help` / `--version` / `--mock --print` 幂等两次 / build+dist / any 扫描）；`docs/checklist.md` S0-6 勾选并补证据、§4 阶段回归清单全部勾选；`docs/testing.md` 头部进度、进度行、S0-6 小节改为"已完成"并附实测证据、附录 D 追加记录；`docs/spec.md` 阶段状态 S0 收尾；`HANDOFF.md` §5.3 记录已打 tag、§6 状态改 S0 完成、§7 本条目。
 - **验收（A 级自动化，P0，全部通过）**：`npm run typecheck` exit 0；`npm test` exit 0（tests 39 / pass 39 / fail 0，281ms）；`npm run dev -- --help` exit 0（8 参数齐全）；`--version` exit 0 输出 `0.1.0`；`--mock --print "你好"` 连跑两次均 exit 0 且输出逐字节一致；`npm run build` exit 0，`node dist/index.js --mock --print "你好"` exit 0 且与 dev 输出一致；`src/` 中 `\bany\b` 匹配 0。证据 `spikes/.out/s0-6-acceptance.txt`（gitignored）。
-- **B 级（待用户复核）**：tag `v0.1-s0` 已在本地与远端；`git log` 可读；`docs/checklist.md` §4 回归项由本会话依据实测勾选，如需可复跑 `npm run dev -- --mock --print "你好"`。
+- **B 级（已由用户复核，2026-11-23）**：用户按 `docs/testing.md` S0-6 表格第 2、3 行自行检查并通过 —— 提交历史清晰（S0 各 task 独立提交 + squash 记录，无大杂烩）、`docs/tasks.md` S0-6=done 且本 §7 会话 8 已更新；另核对 tag `v0.1-s0` 本地与远端一致。`docs/checklist.md` §4 回归项由本会话依据实测勾选，如需可复跑 `npm run dev -- --mock --print "你好"`。
 - **提交**：分支 `task/s0-6-acceptance` 提交 `a810d70`（已 push，远端保留原始提交）→ squash 合并为 `main` 的 `b6bc04e` 并 push → 本条 docs 哈希回填提交并 push；`git tag -a v0.1-s0` 打在回填后的 `main` 提交上，`git push origin v0.1-s0`。
 - **备注**：S0-6 的 squash 提交标题因 PowerShell 5.1 `Set-Content` 写了 UTF-8 BOM，`git log` 标题前有一个不可见 BOM 字符（不影响构建）；后续 commit 消息统一用 write 工具生成无 BOM 文件 + `git commit -F`。
 - **坑**：PowerShell 5.1 下 `npm test` 的 `# tests/pass/fail` 报告行会被管道/重定向吞掉，需用 `cmd /c "... > file 2>&1"` 抓原始输出（本次记录：39/39/0，281ms）。

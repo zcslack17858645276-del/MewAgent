@@ -28,7 +28,7 @@
 - [x] **S0-5** `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml`；CI 在 GitHub Actions 变绿（用户复核确认，2026-11-23）。
   - 证据：Actions 全部运行 success，agent 已用 `gh run list/view` 独立复核 —— run `45144911048`（`9acc5b5`，task 分支）、`45144932628`（`688b832` main）、`45144982815`（`29b5178` main）、`45149633152`（`2068dac` main，证据提交后再次通过）；`45144982815` 的步骤 Checkout/Setup Node.js/Install dependencies/Typecheck/Test 全 success，测试日志 `# tests 39 / # pass 39 / # fail 0`；截图 `docs/evidence/s0-5-ci-actions.png`；本地模拟 `npm ci` + `typecheck` + `test`（39/39）见 HANDOFF §7 会话 7。
 - [x] **S0-6** 全量验收（typecheck/test/`--help`/`--version`/`--mock --print` 幂等重跑）→ `docs/checklist.md` §3 全部勾选 → 打 tag `v0.1-s0` 并 push。
-  - 证据：`npm run typecheck` exit 0；`npm test` exit 0（tests 39 / pass 39 / fail 0）；`npm run dev -- --help` exit 0 且 8 个参数齐全；`--version` exit 0 输出 `0.1.0`；`--mock --print "你好"` 连跑两次 exit 0 且输出完全一致（幂等）；`npm run build` exit 0、`node dist/index.js --mock --print "你好"` 与 dev 输出一致；`src/` 中 `any` 匹配 0；tag `v0.1-s0` 已打并 push（证据文件 `spikes/.out/s0-6-acceptance.txt`，gitignored；摘要见 HANDOFF §7 会话 8）。
+  - 证据：`npm run typecheck` exit 0；`npm test` exit 0（tests 39 / pass 39 / fail 0）；`npm run dev -- --help` exit 0 且 8 个参数齐全；`--version` exit 0 输出 `0.1.0`；`--mock --print "你好"` 连跑两次 exit 0 且输出完全一致（幂等）；`npm run build` exit 0、`node dist/index.js --mock --print "你好"` 与 dev 输出一致；`src/` 中 `any` 匹配 0；tag `v0.1-s0` 已打并 push（证据文件 `spikes/.out/s0-6-acceptance.txt`，gitignored；摘要见 HANDOFF §7 会话 8）。B 级复核（`git log` 历史 + tasks/HANDOFF 状态 + tag 一致性）已由用户于 2026-11-23 确认通过。
 
 ### S1 SSE + TUI（目标：tag `v0.1-s1`）
 
