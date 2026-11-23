@@ -101,6 +101,7 @@ npm run build
 | 环境变量 | `MEWCODE_API_KEY` / `MEWCODE_BASE_URL` / `MEWCODE_MODEL`（可选 `MEWCODE_SHELL`）；模板见 `.env.example` |
 | 输入法 | 中文输入走系统微软拼音（WT 实测可用）；候选框位置略偏属可接受项；S1 起在输入框用 ink 的 `useCursor` 把终端光标放到 caret 位置，改善候选框位置 |
 | 契约（S0-2） | 唯一契约文件 `src/types.ts`：`Message` / `ToolCall` / `ToolResult` / `ToolDefinition` / `ToolSpec` / `LlmClient`（`LlmChatOptions`/`LlmChatResult`）/ `Gate`（`GateResult`）/ `AgentEvent`；形状以方案 §3.3 为准，禁止类型逃逸；改契约必须先改方案 §3.3 并在 §7 说明；`ToolSpec` 是 §3.3 初稿遗漏、S0-2 补齐的类型 |
+| 配置层（S0-3） | `.env` 用 Node 内置 `process.loadEnvFile`（不新增依赖），只读「工作区 cwd 下」的 `.env`，文件缺失静默跳过；优先级 **CLI 参数 > 环境变量/`.env` > 内置默认值**；`MEWCODE_BASE_URL` 默认 `https://api.deepseek.com`（客户端负责拼 `/chat/completions`，S1 实现），值去尾斜杠；`--mock` 时模型默认 `mock`、不需要 key；**apiKey 只从环境变量/`.env` 读，不进 CLI、不进任何输出**；退出码：0 成功 / 2 可操作错误（`CliError`，stderr 带"下一步"）/ 1 内部错误；`--help`、`--version` 在加载 `.env` 和校验 key 之前处理；非 `--print` 时要求 stdin+stdout 都是 TTY，否则报错并提示 `--print`；`--print` 的 prompt 取「位置参数 → 非 TTY 的 stdin」；版本号从 `package.json` 读（`src/` 与 `dist/` 通用） |
 
 ---
 
@@ -173,7 +174,7 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-2 已完成（`src/types.ts` 契约落地，`npm run typecheck` 0 错误、`npm test` 6/6 全绿），下一任务 S0-3（`config.ts` + 入口骨架）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-3 已完成（`src/config.ts` + `src/index.ts` 配置层与 CLI 入口骨架落地，`npm run typecheck` 0 错误、`npm test` 31/31 全绿），下一任务 S0-4（`src/llm/mock.ts` + 离线两轮验证）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -220,6 +221,16 @@ git status               # 确认没有 .env / node_modules / 密钥
 - **提交**：分支 `task/s0-2-contract` 提交 `313cc5d`（已 push 到远端）→ squash 合并为 `main` 的 `1e9a401` 并 push。远端分支保留供 review（删除远端引用需用户手动执行，与 S0-1 同类限制）。
 - **备注/坑**：① `@ts-expect-error` 若放在多行对象字面量之前、而错误实际报在 `} satisfies ...` 那行，会被判成 "Unused '@ts-expect-error' directive" → 负例改为单行声明；② 测试文件 import 写成 `../src/types.js`（NodeNext 规则），因为是 `import type`，运行时完全擦除，tsx 不受影响。
 - **下次第一步**：S0-3 `src/config.ts` + `src/index.ts`（加载 `.env`、CLI 参数、`--help`/`--version`/`--print` 骨架、缺 key 友好报错），测试见 `docs/testing.md` S0-3 小节。
+
+### 2026-11-23 · 会话 5（S0-3：`src/config.ts` + `src/index.ts`）
+
+- **做了什么**：新增 `src/config.ts`（`parseArgs` / `loadDotEnv` / `resolveConfig` / `readPackageVersion` / `usage` / `CliError` / 类型 `CliOptions`、`AppConfig`）与重写 `src/index.ts`（`main(argv, deps)` 可注入 IO，`--help` / `--version` / TTY 检查 / `--print` headless 骨架 / 交互模式占位横幅）；新增 `tests/config.test.ts`（25 个用例，覆盖参数解析、配置优先级、缺 key/缺模型/workspace 校验、help/version/未知参数/非 TTY/stdin prompt）；按 `docs/testing.md` S0-3 小节留证据。
+- **配置要点**：见 §4「配置层（S0-3）」。`.env.example` 的 `MEWCODE_BASE_URL` 示例改为 `https://api.deepseek.com`（与代码默认值一致，`/v1` 由需要它的服务自行带上）。
+- **验收（A 级自动化，P0 全过）**：`npm run typecheck` 退出码 0；`npm test` → `tests 31 / pass 31 / fail 0`（3 工程清单 + 3 契约 + 25 config），耗时约 1.4s。手工命令实测：`npm run dev -- --help` 输出完整用法（8 参数 + 4 环境变量 + 3 示例）exit 0；`--version` 输出 `0.1.0` exit 0；`MEWCODE_API_KEY=''` 时 exit 2 且 stderr 为 `缺少 API key。`+`下一步：复制 .env.example 为 .env 并填写 MEWCODE_API_KEY（或设置同名环境变量）；只想离线体验可以加 --mock。`（不打印 key）；`--foo` exit 2 且 `未知参数：--foo`+`下一步`；无 TTY 时 `当前不是交互式终端（TTY）…`+下一步 exit 2；`--workspace <testbed> --mock --print "hi"` 正确显示 `workspace:`/`model: mock`；`"hi" | node --import tsx src/index.ts --mock --print` 正确显示 `prompt: hi`。
+- **B 级手工项**：`docs/testing.md` S0-3 第 6–8 项（testbed 工作区在 S2 工具阶段体现、未知参数、`.env` 改 `MEWCODE_MODEL`）。其中"改 `.env`"一项受本机 agent 安全策略限制（禁止读写 `.env`）无法由 AI 执行，由用户在真实 key 场景复验；`loadDotEnv` 正确性已由单测覆盖。
+- **提交**：分支 `task/s0-3-config` 提交 `<待回填>` → squash 合并为 `main`；哈希在随后的 docs 提交回填。
+- **坑**：① `npm test` 一度挂死 —— 根因是 `--print` 分支无条件 `readFileSync(0)`，在 `node --test` 子进程里继承的 pipe stdin 永不 EOF 而阻塞；修复为「有 `config.prompt` 就不读 stdin」。② 测试必须给 `main` 注入 `readStdin`/`write` 等（不能碰真实 stdout/stdin）；③ PS 5.1 把管道输入传给 `npm.ps1` 会拼进 npm 参数（报 `EUNKNOWNCONFIG`），stdin prompt 测试要直接 `node --import tsx src/index.ts`；④ 本机 agent 安全网禁止访问 `.env`、禁止在 cwd 外递归删除（testbed 需用户手动清理）；⑤ npm 会在 stderr 打 `npm notice run ...` 噪音，筛掉即可。
+- **下次第一步**：S0-4 `src/llm/mock.ts` + 离线两轮验证（`--mock --print "你好"` 走"工具调用 → 最终文本"），测试见 `docs/testing.md` S0-4 小节。
 
 ### 交接模板（每次会话结束复制填写）
 
