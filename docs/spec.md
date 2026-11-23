@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 进行中（S1-1 SSE、S1-2 流式客户端、S1-3 prompt 与消息转换、S1-4 Ink TUI、S1-5 `--print` headless 真实 API 已完成，当前 S1-6 S1 手工验收 + tag `v0.1-s1`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成，当前进入 S2-1 工具系统）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -16,7 +16,7 @@ MCP / Skill / Hook / SubAgent / Agent Teams / Git Worktree / 多模型路由 / �
 
 | # | 标准 | v0.1 目标 | 当前状态（2026-11-23） |
 |---|---|---|---|
-| 1 | 流式回复，可中断，首字 < 2s | 是 | 🔄 代码完成（SSE + OpenAI 客户端 + TUI 流式/中断已实现并有单测；真实 API 首字时延与手感待 S1-5 接线后复验） |
+| 1 | 流式回复，可中断，首字 < 2s | 是 | ✅ 代码完成并验收：SSE + OpenAI 客户端 + TUI 流式/中断（S1-4 8 条 B 级用户验收通过）；真实 API 中文输出与 401 链路已真机复验（S1-5/S1-6）；首字时延本机实测秒级（未专门压测） |
 | 2 | 6 个工具可用：read/write/edit/glob/grep/bash | 是 | ⬜ 待 S2 |
 | 3 | 多工具自主连续调用，能完成 3 步以上任务 | 是 | 🚧 mock 两轮链路已通（S0-4），真实执行待 S2 |
 | 4 | 写文件与执行命令前必须人工确认，拒绝原因回填模型 | 是 | ⬜ 待 S3 |
@@ -227,7 +227,12 @@ finish: stop
 | S0-4 | `src/llm/mock.ts` + `--mock --print` 离线两轮 | ✅ |
 | S0-5 | AGENTS.md / CLAUDE.md / docs/spec.md / docs/checklist.md + CI | ✅（Actions 3 runs 全绿，证据 `docs/evidence/s0-5-ci-actions.png`） |
 | S0-6 | 全量验收 + tag `v0.1-s0` | ✅（typecheck 0 / tests 39 / help+version / mock 幂等 / build+dist；tag 已 push） |
-| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔁 进行中（S1-1 ~ S1-5 完成，当前 S1-6） |
+| S1-1 | `src/llm/sse.ts`：SSE 逐行解析（分块 / CRLF / `[DONE]` / 尾部残留 / BOM / UTF-8 切断） | ✅（`tests/sse.test.ts` 13 例） |
+| S1-2 | `src/llm/openai.ts`：fetch 流式客户端 + `tool_calls` 按 index 聚合 + abort + 错误映射 | ✅（`tests/openai.test.ts` 13 例；B 级模块级用户已复核） |
+| S1-3 | `src/agent/prompt.ts` + `src/agent/messages.ts`：system prompt 与 API JSON 转换 | ✅（`tests/messages.test.ts` + `tests/prompt.test.ts` 共 12 例） |
+| S1-4 | `src/ui/App.tsx`：Ink TUI（Static 历史 / 50ms 节流 / 排队 / Esc·Ctrl+C）；补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` | ✅（`tests/ui.test.ts` 6 例 + `tests/input-text.test.ts` 13 例；8 条 B 级由用户验收通过） |
+| S1-5 | `--print` headless 接真实 API（stdout 只放文本 / `MEWCODE_DEBUG` / 401·网络错误可读） | ✅（真实 API A 级复验通过；假 fetch 单测 5 例） |
+| S1-6 | S1 全量验收 + 打 tag `v0.1-s1` | ✅（typecheck 0 / tests 104 / help+version / mock 幂等 / build+dist / 真实 API 中文 / TUI 冒烟；tag 已 push） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ⬜ |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |

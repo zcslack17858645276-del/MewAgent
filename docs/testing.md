@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）已完成，下一任务 S1-6（S1 手工验收 + tag `v0.1-s1`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；下一任务 S2-1（`tools/paths.ts` 工作区边界校验）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ 🔄 S1-6（当前）｜ ⬜ S2-1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ 🔄 S2-1（当前）｜ ⬜ S2-2 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -368,9 +368,28 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：headless 只跑一轮、不执行工具（S2 Agent Loop 后再扩展）；`--print` 不处理 SIGINT（管道场景直接结束进程）；`MEWCODE_DEBUG` 输出可能较长，勿在公开场合粘贴；真实 API 的"流式首字/中断"手感留到 S1-6 手工回归。
 
-#### S1-6 S1 收尾
+#### S1-6 S1 收尾（已完成 2026-11-23，tag `v0.1-s1` 已推送）
 
-同 S0-6：tag `v0.1-s1`、远端存在、HANDOFF 更新、S1 手工回归全过。
+| # | 检查项 | 预期 | 结果 |
+|---|---|---|---|
+| 1 | 全量验收重跑（typecheck / test / `--help` / `--version` / `--mock --print` 幂等 / build + dist / `any` 扫描） | 全部退出码 0、输出符合预期 | ✅ 见下 |
+| 2 | 真实 API `--print` 一轮（中文正常） | exit 0 + 中文输出 | ✅ `node --import tsx src/index.ts --print 你好` → exit 0，stdout 415B 中文、stderr 只有 headless 头部行 |
+| 3 | TUI 假终端冒烟（`spikes/.out/tui-smoke.tsx`） | `SMOKE OK`、exit 0 | ✅ exit 0，输出含 `SMOKE OK` 与"排队消息"提示 |
+| 4 | S1 手工回归（真实流式/中断/中文/管道/错误 key） | 与 S1-4/S1-5 记录一致 | ✅ 由用户在 S1-4 补丁验收 + S1-5 A 级复验中完成 |
+| 5 | tag `v0.1-s1` | annotated tag 指向 S1 收尾提交并 push 到远端 | ✅ tag 对象已 push，`git rev-parse "v0.1-s1^{commit}"` == 收尾提交 |
+
+**全量验收证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` → exit 0；`npm test` → exit 0，**tests 104 / pass 104 / fail 0**（duration_ms ≈ 996）
+- `npm run dev -- --help` → exit 0，8 个参数（`--model --base-url --workspace --new --mock --print --help --version`）齐全
+- `npm run dev -- --version` → exit 0，输出 `0.1.0`
+- `npm run dev -- --mock --print 你好` 连跑两次 → exit 0 且去掉 npm notice 后输出完全一致（幂等），含"第 1 轮 / 第 2 轮"
+- `npm run build` → exit 0；`node dist/index.js --mock --print 你好` 输出与 dev 完全一致
+- `src/` 中 `\bany\b` 匹配 0
+- 真实 API：`node --import tsx src/index.ts --print 你好` → exit 0、stdout 415B 中文、stderr 仅 `mewagent 0.1.0 · headless · model: deepseek-flash · base-url: https://api.deepseek.com`
+- 记录文件：`spikes/.out/s1-6-acceptance.txt`、`s1-6-test.txt`、`s1-6-help.txt`、`s1-6-version.txt`、`s1-6-mock1.txt`/`s1-6-mock2.txt`、`s1-6-build.txt`、`s1-6-dist.txt`、`s1-6-real*.txt`、`s1-6-smoke.txt`（均 gitignored）
+
+**S1-5 B 级复核（用户 2026-11-23 已完成）**：用户按 S1-5 小节完成 `--print` 真实一轮、无 TTY 无 raw mode、重定向 UTF-8 无乱码（B3，cmd 重定向 → `Get-Content -Encoding UTF8` → `Format-Hex` 字节验证）、假 key 401 可读报错；PS 5.1 管道写法问题一并确认（详见 S1-5「Windows PowerShell 5.1 注意」段）。
 
 ---
 
@@ -550,11 +569,11 @@ tag `v0.1-s2`；跑 S0–S2 全部自动化；按 §4 S2 回归清单手工过�
 
 ### S1 回归
 
-- [ ] S0 全部
-- [ ] `npm test`（含 SSE 用例）
-- [ ] 真实流式对话 1 次：中文、逐段、Esc 中断
-- [ ] `--print` 管道 1 次
-- [ ] 错误 key 1 次（可读报错）
+- [x] S0 全部（S1-6 重跑通过：typecheck 0 / tests 104 / `--help` / `--version` / `--mock --print` 幂等 / build + dist 一致）
+- [x] `npm test`（含 SSE 用例）→ 104/104，其中 `tests/sse.test.ts` 13 例
+- [x] 真实流式对话 1 次：中文、逐段、Esc 中断（用户 S1-4 补丁验收：`MEWCODE_MOCK_DELAY_MS=80` 慢速流式 + Esc 中断；真实 API 中文输出在 S1-5 A1 / S1-6 复验）
+- [x] `--print` 管道 1 次（cmd 管道 + 位置参数两种写法均 exit 0；PS 5.1 原生管道见 S1-5「Windows PowerShell 5.1 注意」）
+- [x] 错误 key 1 次（可读报错）（假 key → HTTP 401 + `下一步` + exit 1，不泄露 key）
 
 ### S2 回归
 
