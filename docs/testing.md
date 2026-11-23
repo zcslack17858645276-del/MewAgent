@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）、S1-2（`llm/openai.ts` 流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）已完成，下一任务 S1-4（Ink TUI）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1-1（`llm/sse.ts` SSE 逐行解析）、S1-2（`llm/openai.ts` 流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI，代码与 A 级冒烟完成、**8 条 B 级手工项待用户验收**）已完成实现，下一任务 S1-5（`--print` 接真实 API）**。S0-5 的 CI 已在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核，日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`）；S0-6 全量验收证据见下方 S0-6 小节与 HANDOFF §7 会话 8。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ 🔄 S1-4（当前）｜ ⬜ S1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟；B 级 8 条待用户）｜ 🔄 S1-5（当前）｜ ⬜ S1-6 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -302,7 +302,11 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：`buildSystemPrompt()` / `withSystemPrompt()` 尚未接进 `src/index.ts`（`--print` 接真实 API 属 S1-5，TUI 属 S1-4）；`toApiMessages` 已从 `openai.ts` 迁入 `src/agent/messages.ts`（`tests/openai.test.ts` 的引用同步更新，HANDOFF §4 已回填）。
 
-#### S1-4 TUI 流式与中断
+**B 级复核（用户 2026-11-23 已完成）**：抽查 `tests/messages.test.ts` + `tests/prompt.test.ts` 共 12 用例的失败/边界路径（assistant 无 toolCalls 时不带字段、tool 消息字段不多不少、`withSystemPrompt` 首位且唯一）；mutation 检验 `tool_call_id` 与 system 去重逻辑；CI 日志 `# tests 77 / # pass 77 / # fail 0`。真实请求与请求体日志两行按上表留 S1-5 联调。
+
+#### S1-4 TUI 流式与中断（实现 2026-11-23 完成；8 条 B 级手工项待用户验收）
+
+> 本节没有 A 级验收项（按方案 §4，TUI 的手感/中文/闪烁只能人工判断）。AI 侧补充了两类自动化证据：纯逻辑单测 + 用假 stdin/stdout 驱动 Ink 的 TUI 冒烟。下表 8 条仍请用户逐条手工复验。
 
 | # | 类型 | 步骤 | 预期 | 级别 |
 |---|---|---|---|---|
@@ -314,6 +318,16 @@ git status --short        # 确认没有把测试产物提交
 | 6 | B | 粘贴多行文本（≥10 行） | 不触发多次提交、内容完整 | P1 |
 | 7 | B | 空输入直接回车 | 无请求、无报错 | P1 |
 | 8 | B | 连续快速发 3 条 | 不串轮、不丢消息 | P1 |
+
+**A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
+
+- `npm run typecheck` → exit 0；`npm run build` → exit 0（`.tsx` 进 dist 正常，`node dist/index.js --mock --print "hi"` 两轮输出正常）
+- `node --import tsx --test tests/ui.test.ts` → 6 用例全绿（`displayWidth` 7 断言、`ThrottledEmitter` 首次立即/50ms 合并/flush/cancel/空 delta、`HistoryItem` 中文渲染）
+- 全量 `npm test` → exit 0，`tests 83 / pass 83 / fail 0`（原 77 + 新增 6）
+- TUI 冒烟（假 stdin/stdout 驱动 Ink，`spikes/.out/tui-smoke.tsx`，gitignored）：启动横幅/工作区/就绪状态、提交"你好"→ mock 两轮最终文本进历史、排队消息提示、空闲 Ctrl+C 触发 `waitUntilExit` → `SMOKE OK`
+- 完整记录：`spikes/.out/s1-4-targeted.txt`、`spikes/.out/s1-4-full.txt`、`spikes/.out/s1-4-smoke.txt`、`spikes/.out/s1-4-dist.txt`、`spikes/.out/s1-4-notty.txt`（均 gitignored）
+
+**已知限制**：TUI 尚未消费 `AgentEvent`（S2-7 接线工具事件）；`--mock` 的"两轮"是 S1 临时剧本（S2 起换成真正的 Agent Loop）；真实 API 的流式观感需 S1-5 接线后复验。
 
 #### S1-5 `--print` headless
 
@@ -664,7 +678,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S1-1 ✅ | typecheck + `tests/sse.test.ts`（`npm test`，13 用例） |
 | S1-2 ✅ | typecheck + `tests/openai.test.ts`（`npm test`，13 用例）；真实流式联调见 S1-5 |
 | S1-3 ✅ | typecheck + `tests/messages.test.ts` + `tests/prompt.test.ts`（`npm test`，各 6 用例） |
-| S1-4 | 手工 TUI 清单 |
+| S1-4 ⏳ | 手工 TUI 清单（8 条 B 级）+ UI 单测 `tests/ui.test.ts`（A 级补充） |
 | S1-5 | 管道命令 |
 | S2-1 | `tests/paths.test.ts` |
 | S2-2 | `tests/registry.test.ts` |
@@ -696,3 +710,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S1-1 完成：新增 `src/llm/sse.ts`（`parseSseStream` async generator）+ `tests/sse.test.ts` 13 用例（分块 / UTF-8 截断 / CRLF / 注释 / 多行 data / `[DONE]` / 尾部残留 / BOM / 空 data / AbortError）；typecheck 0、全量 52/52；S1-1 章节改为已完成并附实测证据，进度切到 S1-2 |
 | 2026-11-23 | S1-2 完成：新增 `src/llm/openai.ts`（fetch + `parseSseStream` + text delta + `tool_calls` 按 index 聚合 + `AbortSignal` + 401 脱敏/坏 JSON/无 body 错误映射）+ `tests/openai.test.ts` 13 用例（聚合分片/乱序/空 delta/首次 id-name/缺 id 占位、`toApiMessages`、文本流 + 请求体断言、tool_calls 流式、401、AbortError、坏 JSON、无 body）；typecheck 0、全量 65/65；S1-2 章节改为已完成（真实 API 三行留 S1-4/S1-5），进度切到 S1-3 |
 | 2026-11-23 | S1-3 完成：新增 `src/agent/prompt.ts`（`SYSTEM_PROMPT_VERSION` / `buildSystemPrompt` / `withSystemPrompt`）与 `src/agent/messages.ts`（`toApiMessages` 自 `openai.ts` 迁入 + `toAssistantMessage`）；新增 `tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例（全量 77/77）；S1-3 章节改为已完成（真实请求/请求体日志留 S1-5），进度切到 S1-4 |
+| 2026-11-23 | S1-4 实现完成：新增 `src/ui/App.tsx`（Static 历史 + 50ms 节流动态区 + 输入框 + 错误行 + 排队 + Esc/Ctrl+C）、`src/ui/throttle.ts`、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`，`src/index.ts` 交互分支接 TUI（mock 走两轮剧本、真实走 OpenAI 客户端）；新增 `tests/ui.test.ts` 6 用例（宽字符/节流/历史渲染）；typecheck 0、build 0、全量 83/83、假终端 TUI 冒烟 SMOKE OK；S1-4 章节标注"8 条 B 级手工项待用户验收"，进度切到 S1-5 |

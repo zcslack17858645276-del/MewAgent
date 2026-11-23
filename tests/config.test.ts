@@ -27,6 +27,7 @@ import {
   usage,
 } from "../src/config.js";
 import { main } from "../src/index.js";
+import type { StartTuiOptions } from "../src/ui/start-tui.js";
 
 function makeTempDir(): string {
   return mkdtempSync(path.join(tmpdir(), "mewagent-test-"));
@@ -42,6 +43,8 @@ interface RunOptions {
   stdinIsTTY?: boolean;
   stdoutIsTTY?: boolean;
   readStdin?: () => string;
+  /** 注入交互 TUI 启动器：测试里不真的进入 Ink 渲染。 */
+  startTui?: (options: StartTuiOptions) => Promise<void>;
 }
 
 interface RunResult {
@@ -69,6 +72,7 @@ async function runCli(argv: string[], options: RunOptions = {}): Promise<RunResu
     writeError: (text: string) => {
       err += text;
     },
+    startTui: options.startTui ?? (async () => {}),
   });
   return { code, out, err };
 }
@@ -392,18 +396,37 @@ test("main：非 TTY 交互模式报错并提示 --print（退出 2）", async (
   }
 });
 
-test("main：TTY 下交互模式打印 S1 骨架横幅（退出 0）", async () => {
+test("main：TTY 下启动交互 TUI（注入 startTui，退出 0）", async () => {
   const cwd = makeTempDir();
   try {
+    const captured: StartTuiOptions[] = [];
     const result = await runCli(["--mock"], {
       cwd,
       env: {},
       stdinIsTTY: true,
       stdoutIsTTY: true,
+      startTui: async (options) => {
+        captured.push(options);
+      },
     });
     assert.equal(result.code, 0);
-    assert.match(result.out, /TUI 将在 S1 实现/);
-    assert.ok(result.out.includes(`workspace: ${path.resolve(cwd)}`));
+    const tui = captured[0];
+    assert.ok(tui !== undefined);
+    assert.equal(tui.config.mock, true);
+    assert.equal(tui.config.workspace, path.resolve(cwd));
+    assert.equal(tui.config.model, DEFAULT_MOCK_MODEL);
+    assert.equal(tui.version, readPackageVersion());
+    assert.match(tui.systemPrompt, /MewAgent/);
+    assert.match(tui.systemPrompt, /工作区/);
+
+    // mock 模式下 send 能离线跑出"工具调用 → 最终文本"两轮。
+    const reply = await tui.send([{ role: "user", content: "你好" }], {
+      signal: new AbortController().signal,
+      onDelta: () => {
+        // 流式回调在下面单独断言，这里只要不抛错。
+      },
+    });
+    assert.match(reply.content, /离线 mock|两轮/);
   } finally {
     removeTempDir(cwd);
   }

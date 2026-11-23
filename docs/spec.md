@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 进行中（S1-1 SSE、S1-2 流式客户端、S1-3 prompt 与消息转换已完成，当前 S1-4 TUI）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 进行中（S1-1 SSE、S1-2 流式客户端、S1-3 prompt 与消息转换、S1-4 Ink TUI 已完成，当前 S1-5 `--print` 接真实 API）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -16,7 +16,7 @@ MCP / Skill / Hook / SubAgent / Agent Teams / Git Worktree / 多模型路由 / �
 
 | # | 标准 | v0.1 目标 | 当前状态（2026-11-23） |
 |---|---|---|---|
-| 1 | 流式回复，可中断，首字 < 2s | 是 | ⬜ 待 S1（SSE + TUI） |
+| 1 | 流式回复，可中断，首字 < 2s | 是 | 🔄 代码完成（SSE + OpenAI 客户端 + TUI 流式/中断已实现并有单测；真实 API 首字时延与手感待 S1-5 接线后复验） |
 | 2 | 6 个工具可用：read/write/edit/glob/grep/bash | 是 | ⬜ 待 S2 |
 | 3 | 多工具自主连续调用，能完成 3 步以上任务 | 是 | 🚧 mock 两轮链路已通（S0-4），真实执行待 S2 |
 | 4 | 写文件与执行命令前必须人工确认，拒绝原因回填模型 | 是 | ⬜ 待 S3 |
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse 五个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui 九个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -160,7 +160,7 @@ tool_call: read_file {"path":"README.md"}
 finish: stop
 ```
 
-真实 API 模式在 S1 接入；当前非 mock 的 `--print` 只打印占位说明。
+真实 API：交互 TUI 已在非 mock 下调用 `createOpenAiLlmClient`（S1-4）；`--print` headless 的真实 API 接线属 S1-5，当前非 mock 的 `--print` 只打印占位说明。
 
 ## 6. 工具系统（S2）
 
@@ -190,8 +190,9 @@ finish: stop
 
 ## 9. TUI（S1）
 
-- 状态机：`idle | streaming | tool_running | awaiting_approval | error`。
+- 状态机：`idle | streaming | tool_running | awaiting_approval | error`（S1-4 已实现 `idle | streaming`，其余随 S2-7/S3-2 接入）。
 - 历史用 Ink `<Static>` 渲染；流式文本按 50ms 节流重绘；`Esc`/`Ctrl+C` 中止当前请求。
+- S1-4 实现：`src/ui/App.tsx`（输入框 + Static 历史 + 流式动态区 + 错误行 + 排队）、`src/ui/throttle.ts`（可注入时钟的 50ms 合并）、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`（中英混排列宽）；`send` 函数注入（S2 换成 AgentEvent 事件源）；`exitOnCtrlC:false`，生成中 Ctrl+C 只 abort、空闲退出。
 - 输入框使用 `ink-text-input`；中文 IME 判定 A（可输入、退格整字删除，候选框位置略偏可接受）。
 - 终端要求 Windows Terminal；conhost 不做保证。
 
@@ -225,7 +226,7 @@ finish: stop
 | S0-4 | `src/llm/mock.ts` + `--mock --print` 离线两轮 | ✅ |
 | S0-5 | AGENTS.md / CLAUDE.md / docs/spec.md / docs/checklist.md + CI | ✅（Actions 3 runs 全绿，证据 `docs/evidence/s0-5-ci-actions.png`） |
 | S0-6 | 全量验收 + tag `v0.1-s0` | ✅（typecheck 0 / tests 39 / help+version / mock 幂等 / build+dist；tag 已 push） |
-| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔄 进行中（S1-1、S1-2、S1-3 完成，当前 S1-4） |
+| S1 | SSE + OpenAI 兼容客户端 + Ink TUI | 🔁 进行中（S1-1 ~ S1-4 完成，当前 S1-5） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ⬜ |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
