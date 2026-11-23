@@ -314,7 +314,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0）**：`npm run typecheck` exit 0；`node --import tsx --test tests/messages.test.ts tests/prompt.test.ts` → tests 12 / pass 12 / fail 0（375ms）；全量 `npm test` → tests 77 / pass 77 / fail 0（499ms，原 65 + 新增 12）。证据 `spikes/.out/s1-3-target-test.txt`、`spikes/.out/s1-3-full-test.txt`（gitignored）。
 - **B 级**：真实请求（模型知道自己是 CLI 助手/工具可用）与 `MEWCODE_DEBUG=1` 请求体检查需真实 API 接线，留 S1-5 联调；`withSystemPrompt` 的「首位且唯一」已单测覆盖。
 - **坑**：首版测试断言文案与实现不一致（期望「当前没有可调用的工具」、实现为「当前没有可用工具」）→ 以实现为准修正测试；PS 5.1 `Get-Content` 默认 ANSI 会把 `cmd /c` 重定向的 UTF-8 输出显示成乱码，需 `-Encoding UTF8`。
-- **提交**：分支 `task/s1-3-prompt-messages` 提交 `TBD`（已 push，远端保留）→ squash 合并 main `TBD` → 本条哈希回填提交并 push。
+- **提交**：分支 `task/s1-3-prompt-messages` 提交 `2eb6ead`（已 push，远端保留）→ squash 合并 main `774a621` → 本条哈希回填提交并 push。
 - **下次第一步**：S1-4 `src/ui/App.tsx` Ink TUI（消息列表 / 流式区 / 输入框 / 错误行 / `<Static>` + 50ms 节流 / Esc·Ctrl+C），见 `docs/testing.md` S1-4 小节。
 
 ### 交接模板（每次会话结束复制填写）
