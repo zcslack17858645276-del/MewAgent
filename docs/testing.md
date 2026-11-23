@@ -442,14 +442,14 @@ git status --short        # 确认没有把测试产物提交
 | 4 | B | "把 sample.txt 第 2 行改成 line-two" | 审批后文件真的变了，`Get-Content` 确认 | P0 | ⏳ 待审批（S3）+ loop 接线 |
 | 5 | B | "把文件里所有的 line 换成 row" | 提示多处匹配，要求 replace_all | P0 | ⏳ 待 loop 接线后手工验 |
 | 6 | B | 对 crlf.txt 做同样 edit | 不因 `\r\n` 失败，且不整文件改成 LF | P1 | ✅ 单测级（CRLF 保留 + LF 归一化匹配）；交互观感 ⏳ |
-| 7 | B | 让 read 一个大文件 | 输出被截断，有"已截断/落盘"提示 | P1 | ✅ 单测级（30KB / 500 行上限 + 提示）；交互观感 ⏳ |
+| 7 | B | 让 read 一个大文件 | 输出被截断，有"已截断/落盘"提示 | P1 | ✅ 单测级（30KB / 500 行上限 + 提示，字节截断时续读 offset 不跳行）；交互观感 ⏳ |
 
 **A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
 
-- `npm run typecheck` → exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 14 / pass 14 / fail 0（609.9ms）**；全量 `npm test` → **tests 141 / pass 141 / fail 0（1441.2ms）**；`src/` 中 `\bany\b` 0 匹配
+- `npm run typecheck` → exit 0；`node --import tsx --test tests/fs.test.ts` → **tests 15 / pass 15 / fail 0（605.6ms）**；全量 `npm test` → **tests 142 / pass 142 / fail 0（1449.4ms）**；`src/` 中 `\bany\b` 0 匹配
 - 覆盖点：write 自动建目录 + 字节/行数、覆盖与空文件；read 中文行号/CRLF 标记/空文件/无尾换行行数、offset/limit 分段、默认 500 行上限与单行 40_000 字符的 30KB 字节截断；edit 唯一匹配 + ±3 行上下文、0 匹配、空 old_string、多匹配默认报错、`replace_all` 全替换、CRLF 文件原样与 LF 写法两种匹配、LF 文件不引入 CRLF；三个工具都拒绝 `../evil.txt` 等越界路径；参数类型错误；`readOnly` 标记与 `ToolRegistry(fsTools)` 集成
-- 完整记录：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`（均 gitignored）
-- CI（gh 只读）：`45201159170`（task/s2-3-fs, `fb495d6`）、`45201176216`（main, `03ae006`）全部 success；job `typecheck + test (Node 22)` 日志 `# tests 141 / # pass 141 / # fail 0`
+- 完整记录：`spikes/.out/s2-3-typecheck.txt`、`s2-3-fs.txt`、`s2-3-full.txt`、`s2-3-fix-fs.txt`、`s2-3-fix-full.txt`（均 gitignored）
+- CI（gh 只读）：`45201159170`（task/s2-3-fs, `fb495d6`）、`45201176216`（main, `03ae006`）全部 success；修复后 `45202219673`（fix/s2-3-read-offset, `d41b8ed`）、`45202237093`（main, `54e5976`）success；job `typecheck + test (Node 22)` 日志 `# tests 142 / # pass 142 / # fail 0`
 
 **已知限制**：`read_file` 的截断按行裁剪（超长单行会在行内截断加 `…`）；`edit_file` 只做精确字符串替换（§6.5），不支持行号 patch 或正则；`write_file` 会整文件覆盖、不做追加；三个工具目前只被 `tests/` 直接调用，尚未接入 loop/TUI（S2-6/S2-7 接线，S3 加审批）。
 
