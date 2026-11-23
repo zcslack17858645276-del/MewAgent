@@ -61,6 +61,7 @@ npm run build && npm start       # 产物运行
 - 终端用 **Windows Terminal**（IME 候选框位置比 conhost 好）；S0-1 的 Ink 中文 IME spike 判定 **A**（可正常输入/退格，候选框略偏可接受），不转 Go。
 - 外网命令需要代理 `http://127.0.0.1:7890`（`HTTP_PROXY` / `HTTPS_PROXY`）；`npmmirror.com` 可直连。
 - 本机装有 `cc-safety-net` 策略层，以下操作会被拦截且**不要绕过**：读写 `.env`、在会话工作区外递归删除、`git push --delete`（删远端分支须由用户手动执行）、`git branch -D`（用 `-d`）。
+- `gh` CLI 2.105.0 已安装并处于登录状态（keyring，账号 `zcslack17858645276-del`）。可用 `gh run list` / `gh run view <id> --json jobs` / `gh run view <id> --log` **只读**查询 GitHub Actions 自查 CI；该 token 含 `repo`/`workflow` 写权限，因此**不要用 gh 做 push/删除/PR 等写操作**（这些仍走 `git` 命令并经用户确认）。
 - 前端/桌面 GUI 类操作会打扰用户：默认不做；必须做时先确认用户空闲，结束后把焦点还给 DSH 窗口。
 
 ## 7. 红线

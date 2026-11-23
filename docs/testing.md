@@ -209,7 +209,7 @@ git status --short        # 确认没有把测试产物提交
 | 1 | A | 检查文件存在：`AGENTS.md` `CLAUDE.md` `docs/spec.md` `docs/checklist.md` `.github/workflows/ci.yml` | 全部存在 | P0 |
 | 2 | A | `npm run typecheck` + `npm test` | 0 错误、39/39 通过 | P0 |
 | 3 | A | 本地模拟 CI：复制 `package.json` / `package-lock.json` / `tsconfig*.json` / `src` / `tests` 到临时目录，依次 `npm ci` → `typecheck` → `test` | 三步全绿，证明 CI 命令在干净环境可用 | P0 |
-| 4 | B | push 分支后在 GitHub 打开 Actions | `CI` workflow 变绿，日志可见 `npm ci` / `npm run typecheck` / `npm test`（✅ 已确认：3 次运行全绿，截图 `docs/evidence/s0-5-ci-actions.png`） | P0 |
+| 4 | B | push 分支后在 GitHub 打开 Actions（或由 agent 用 `gh run list/view` 查询） | `CI` workflow 变绿，日志可见 `npm ci` / `npm run typecheck` / `npm test`（✅ 已确认：全部运行 success，`gh` 复核日志 `# tests 39 / pass 39 / fail 0`，run `45144982815`；截图 `docs/evidence/s0-5-ci-actions.png`） | P0 |
 | 5 | B | 读 `AGENTS.md` | 含技术栈/常用命令/架构边界/代码风格/DoD（另含开工必读、本机环境、红线） | P1 |
 | 6 | B | 读 `docs/spec.md` / `docs/checklist.md` | spec 覆盖目标/非目标/十条标准/架构/CLI/工具/权限/TUI/Windows/阶段状态；checklist 含通用 DoD、S0–S4 清单、十条标准证据表、回归与发布清单 | P1 |
 
@@ -217,7 +217,7 @@ git status --short        # 确认没有把测试产物提交
 
 **CI 设计**：`.github/workflows/ci.yml` 触发 `push`（`main` / `task/**` / `fix/**` / `docs/**`）与 `pull_request`（`main`）；`ubuntu-latest` + Node 22（`actions/setup-node@v4` 带 npm cache）；步骤固定为 `npm ci` → `npm run typecheck` → `npm test`；`permissions: contents: read`、并发组 `ci-${{ github.ref }}` 自动取消旧运行。
 
-**已知限制**：本机未装 `gh` CLI 且私有仓库未认证 API 返回 404，Actions 状态需用户从网页确认（本次已确认：3 次运行全绿，截图 `docs/evidence/s0-5-ci-actions.png`）；若后续希望 agent 自查，可由用户提供一个**只读** fine-grained PAT（Actions: read、Contents: read、Metadata: read）通过环境变量/本地文件传入，agent 用 `GET /repos/{owner}/{repo}/actions/runs` 读取，不写入仓库、不打印。PR 需用户手动开（agent 无远端写 token）。
+**已知限制与自查能力**：本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`），agent 可直接 `gh run list` / `gh run view <id> --json jobs|--log` 只读查询 Actions，**不需要再靠用户截图**；本次已独立复核 4 次运行全部 success（run `45144911048` / `45144932628` / `45144982815` / `45149633152`），并确认 `45144982815` 的步骤与 `# tests 39 / # pass 39 / # fail 0` 日志。注意该 token 含 `repo`/`workflow` 写权限，agent 仅使用只读命令、不通过 gh 做任何 push/删除；PR 仍建议用户手动开（或明确授权后再由 agent 操作）。
 
 #### S0-6 S0 收尾
 

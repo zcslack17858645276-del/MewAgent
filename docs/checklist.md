@@ -26,7 +26,7 @@
 - [x] **S0-3** CLI 骨架：`--help` 全参数、`--version`、缺 key 友好报错不泄露 key、未知参数报错、`--print`/TTY 分支、25 个单测。
 - [x] **S0-4** `src/llm/mock.ts` 离线两轮：`--mock --print "你好"` 输出工具调用→最终文本，断代理可跑，39 个测试全绿。
 - [x] **S0-5** `AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml`；CI 在 GitHub Actions 变绿（用户复核确认，2026-11-23）。
-  - 证据：Actions 3 次运行全部通过 —— #1 `9acc5b5`（`task/s0-5-docs-ci`）、#2 `688b832`（`main`）、#3 `29b5178`（`main`）；截图 `docs/evidence/s0-5-ci-actions.png`；本地模拟 `npm ci` + `typecheck` + `test`（39/39）输出见 HANDOFF §7 会话 7。
+  - 证据：Actions 全部运行 success，agent 已用 `gh run list/view` 独立复核 —— run `45144911048`（`9acc5b5`，task 分支）、`45144932628`（`688b832` main）、`45144982815`（`29b5178` main）、`45149633152`（`2068dac` main，证据提交后再次通过）；`45144982815` 的步骤 Checkout/Setup Node.js/Install dependencies/Typecheck/Test 全 success，测试日志 `# tests 39 / # pass 39 / # fail 0`；截图 `docs/evidence/s0-5-ci-actions.png`；本地模拟 `npm ci` + `typecheck` + `test`（39/39）见 HANDOFF §7 会话 7。
 - [ ] **S0-6** 全量验收（typecheck/test/`--help`/`--version`/`--mock --print` 幂等重跑）→ `docs/checklist.md` §3 全部勾选 → 打 tag `v0.1-s0` 并 push。
 
 ### S1 SSE + TUI（目标：tag `v0.1-s1`）

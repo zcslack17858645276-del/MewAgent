@@ -104,6 +104,7 @@ npm run build
 | 配置层（S0-3） | `.env` 用 Node 内置 `process.loadEnvFile`（不新增依赖），只读「工作区 cwd 下」的 `.env`，文件缺失静默跳过；优先级 **CLI 参数 > 环境变量/`.env` > 内置默认值**；`MEWCODE_BASE_URL` 默认 `https://api.deepseek.com`（客户端负责拼 `/chat/completions`，S1 实现），值去尾斜杠；`--mock` 时模型默认 `mock`、不需要 key；**apiKey 只从环境变量/`.env` 读，不进 CLI、不进任何输出**；退出码：0 成功 / 2 可操作错误（`CliError`，stderr 带"下一步"）/ 1 内部错误；`--help`、`--version` 在加载 `.env` 和校验 key 之前处理；非 `--print` 时要求 stdin+stdout 都是 TTY，否则报错并提示 `--print`；`--print` 的 prompt 取「位置参数 → 非 TTY 的 stdin」；版本号从 `package.json` 读（`src/` 与 `dist/` 通用） |
 | mock 层（S0-4） | `src/llm/mock.ts` 导出 `createMockLlmClient(): LlmClient`；固定剧本按历史里有无 `role:"tool"` 消息判定：无 → 第 1 轮返回 `read_file` 调用（`id=call_mock_read_file_1`，`arguments='{"path":"README.md"}'`，`finishReason="tool_calls"`）；有 → 第 2 轮返回最终总结（`finishReason="stop"`）；确定性输出、不依赖网络/随机/时间；`onText` 在最终文本回调一次；已中断的 `AbortSignal` 抛 `AbortError`；S0-4 的 `--print` 只做「两轮驱动骨架」（工具结果占位），真实工具执行 S2、真实 API S1 |
 | 文档与 CI（S0-5） | `AGENTS.md` 是所有 AI 代理的统一规则（开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境 / 红线）；`CLAUDE.md` 只是薄入口，指向 `AGENTS.md`；`docs/spec.md` 是 v0.1 规格（按阶段追加「要什么 / 不要什么 / 验收 / 已知边界」，§13 维护阶段状态）；`docs/checklist.md` 是验收清单（通用 DoD + S0–S4 阶段清单 + 十条成功标准证据表 + 回归/发布清单）；CI 用 GitHub Actions（`ubuntu-latest` + Node 22，`npm ci` → `npm run typecheck` → `npm test`），触发 `push` 到 `main`/`task/**`/`fix/**`/`docs/**` 与 PR 到 `main` |
+| CI 自查（S0-5 后） | 本机已装 `gh` CLI 2.105.0（`C:\Program Files\GitHub CLI\gh.exe`）且处于已登录状态（keyring，账号 `zcslack17858645276-del`，token scopes `gist, read:org, repo, workflow`）；agent 只用 `gh run list` / `gh run view <id> --json jobs` / `gh run view <id> --log` **只读**查询 Actions 自查 CI，**禁止用 gh 做 push/删除/PR 等写操作**；PR 仍由用户开（或用户明确授权后再说） |
 
 ---
 
@@ -176,13 +177,13 @@ git status               # 确认没有 .env / node_modules / 密钥
 
 ### 5.7 CI（S0 任务之一）
 
-S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/**` / `docs/**`）与 `pull_request`（`main`）时执行 `npm ci` → `npm run typecheck` → `npm test`（ubuntu-latest + Node 22）。本地已用干净副本模拟通过（52 packages / typecheck 0 / 39 测试全绿）；GitHub Actions 实际运行需在仓库 Actions 页确认（本机无 `gh` CLI、私有仓库未认证 API 404）。CI 变绿前，PR 只作为 diff 审查手段。
+S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/**` / `docs/**`）与 `pull_request`（`main`）时执行 `npm ci` → `npm run typecheck` → `npm test`（ubuntu-latest + Node 22）。本地已用干净副本模拟通过（52 packages / typecheck 0 / 39 测试全绿）；GitHub Actions 实际运行已由 agent 用 `gh` CLI 独立复核全绿（4 次 run `45144911048` / `45144932628` / `45144982815` / `45149633152`，测试日志 `# tests 39 / pass 39 / fail 0`），以后 CI 可由 agent 自查。PR 仍作为 diff 审查手段。
 
 ---
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-5 已完成（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml` 落地；本地模拟 CI 全绿，`npm run typecheck` 0 错误、`npm test` 39/39；GitHub Actions 3 次运行全部通过：`9acc5b5` 分支 / `688b832` / `29b5178` main，截图 `docs/evidence/s0-5-ci-actions.png`），下一任务 S0-6（S0 收尾：全量验收 + 打 tag `v0.1-s0`）**。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0-5 已完成（`AGENTS.md` / `CLAUDE.md` / `docs/spec.md` / `docs/checklist.md` / `.github/workflows/ci.yml` 落地；本地模拟 CI 全绿，`npm run typecheck` 0 错误、`npm test` 39/39；GitHub Actions 运行全部通过——用户截图确认 3 次，agent 用 `gh` CLI 独立复核 4 次 run 全绿、日志 `# tests 39 / pass 39 / fail 0`，截图 `docs/evidence/s0-5-ci-actions.png`），下一任务 S0-6（S0 收尾：全量验收 + 打 tag `v0.1-s0`）**。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -261,8 +262,9 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 - **做了什么**：新增 `AGENTS.md`（AI 代理统一规则：开工必读顺序 / 技术栈 / 常用命令 / 架构边界 / 代码风格 / DoD / 本机环境注意事项 / 红线）；`CLAUDE.md`（薄入口，指向 `AGENTS.md` + 开工三步 + 红线摘要）；`docs/spec.md`（v0.1 规格 13 节：目标 / 非目标 / 十条成功标准及现状 / 架构分层与目录 / 契约表 / 请求时序 / CLI 与配置 / 工具系统 / 权限 / 上下文与会话 / TUI / Windows 专项 / 错误与限制 / 阶段状态）；`docs/checklist.md`（通用 DoD、S0–S4 阶段清单、十条成功标准证据表、阶段回归清单、发布清单）；`.github/workflows/ci.yml`（ubuntu-latest + Node 22，`npm ci` → `npm run typecheck` → `npm test`，push/PR 触发）。
 - **验收（A 级自动化，P0）**：5 个文件全部存在；`npm run typecheck` 退出 0；`npm test` 39/39；本地模拟 CI——把 `package.json` / `package-lock.json` / `tsconfig*.json` / `src` / `tests` 复制到 `spikes/.out/ci-local` 干净副本，`npm ci`（52 packages，2s）→ `typecheck` 退出 0 → `npm test` 39/39（250ms），随后删除临时目录。
-- **B 级（已由用户复核，2026-11-23）**：GitHub Actions 3 次运行全部通过 —— #1 `9acc5b5`（`task/s0-5-docs-ci`）、#2 `688b832`（`main`）、#3 `29b5178`（`main`）；截图已入库 `docs/evidence/s0-5-ci-actions.png`。用户已读 `AGENTS.md` / `docs/spec.md` / `docs/checklist.md` 并确认。
-- **提交**：分支 `task/s0-5-docs-ci` 提交 `9acc5b5`（已 push 触发 CI，远端保留原始提交）→ squash 合并为 `main` 的 `688b832` 并 push → 哈希回填提交 `docs: 记录 S0-5 提交哈希`（`main` 最新提交）。
+- **B 级（已由用户复核，2026-11-23）**：GitHub Actions 运行全部通过 —— 用户截图确认 #1 `9acc5b5`（`task/s0-5-docs-ci`）、#2 `688b832`（`main`）、#3 `29b5178`（`main`），截图已入库 `docs/evidence/s0-5-ci-actions.png`；用户已读 `AGENTS.md` / `docs/spec.md` / `docs/checklist.md` 并确认。
+- **补充（2026-11-23，gh CLI 独立复核）**：按用户指示安装 `gh` CLI 2.105.0（winget；`C:\Program Files\GitHub CLI\gh.exe`），发现本机已处于登录态（keyring，账号 `zcslack17858645276-del`，token scopes `gist, read:org, repo, workflow`）；agent 只用只读命令复核 Actions：4 次运行全部 success（run `45144911048` task 分支 / `45144932628` / `45144982815` / `45149633152` main），run `45144982815` 的步骤 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 全 success，日志含 `node --import tsx --test tests/*.test.ts` 与 `# tests 39 / pass 39 / fail 0`。token 含 `repo`/`workflow` 写权限，故约定 agent 不使用 gh 做写操作（见 §4 决策行）。
+- **提交**：分支 `task/s0-5-docs-ci` 提交 `9acc5b5`（已 push 触发 CI，远端保留原始提交）→ squash 合并为 `main` 的 `688b832` 并 push → 哈希回填 `29b5178` → 证据提交 `2068dac`（CI 截图入库）并 push。
 - **坑**：① 首次编辑 `docs/tasks.md` 遇 `FS_STALE_VERSION`（文件被外部会话改过），重读后按最新内容重放；② 本地模拟 CI 的临时目录必须放在工作区内（安全网禁止 cwd 外递归删除），用完即删。
 - **下次第一步**：S0-6 全量验收（typecheck / test / `--help` / `--version` / `--mock --print` 幂等重跑）→ 勾选 `docs/checklist.md` §2 的 S0 清单 → 打 tag `v0.1-s0` 并 push。
 
