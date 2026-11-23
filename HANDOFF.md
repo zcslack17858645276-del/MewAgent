@@ -329,7 +329,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **坑**：①`<Static items>` 要求 `T[]` 可变数组、`LlmClient.chat` 形参是 `Message[]`，而 `SendMessage`/历史用 `readonly`，触发 4 个 TS4104 → 状态改可变数组 + `[...messages]` 复制；②假 stdin 必须实现 `_read()`，否则报 `ERR_METHOD_NOT_IMPLEMENTED`；③向假 stdin 写"文字+回车"必须分两次 `push`，一次写入会被 ink 当成整段粘贴（`onSubmit` 不触发，send 根本没跑）；④`npm test` 计数仍被 PS 5.1 管道吞，需 `cmd /c "... > file 2>&1"`。
 - **提交**：分支 `task/s1-4-tui` 提交 `864bcb6`（已 push，远端保留原始提交）→ squash 合并 main `a687cc7` → 本条哈希回填提交并 push。
 - **补丁（2026-11-23 晚，用户 B 级前反馈）**：mock 秒回导致 B 级第 2/3/4 条（流式闪烁、生成中 Esc、生成中 Ctrl+C）无法观察；粘贴多行丢换行；换行键是 Ctrl+J。实现：①`src/llm/mock.ts` 增加 `chunkDelayMs`/`chunkSize`（默认 0 = 原行为不变，按码点切块、块间可 abort），`src/index.ts` 读 `MEWCODE_MOCK_DELAY_MS` 传给交互 TUI；②新增 `src/ui/input-text.ts`（纯逻辑：粘贴规范化/代理对安全编辑/上下移动/行首行尾/lineAndColumn）+ `src/ui/InputBox.tsx`（受控多行输入），替换 `ink-text-input`：粘贴保留换行、Shift+Enter 换行（Kitty 协议；WT 1.25 preview 支持）+ Ctrl+J 兜底、caret 多行定位；③`src/ui/start-tui.tsx` 开启 `kittyKeyboard: { mode: "auto" }`（`MEWCODE_KITTY_KEYBOARD=0` 可关）；④`.env.example` 加 `MEWCODE_MOCK_DELAY_MS` 注释；⑤新增 `tests/input-text.test.ts` 13 用例、`tests/mock.test.ts` +3（11 用例）。验收：typecheck 0、全量 `npm test` **99/99**（原 83 + 13 + 3）、假 stdin 冒烟覆盖多行粘贴/Shift+Enter（`ESC[13;2u`）/Ctrl+J/Esc/退出 → `SMOKE OK`、`npm run build` 0。
-- **提交（补丁）**：分支 `task/s1-4b-input` 提交 `<待回填>`（已 push）→ squash 合并 main `<待回填>` → 本条哈希回填提交并 push。
+- **提交（补丁）**：分支 `task/s1-4b-input` 提交 `ade8248`（已 push，远端保留原始提交）→ squash 合并 main `a47c8d1` → 本条哈希回填提交并 push。
+- **CI（补丁）**：`45190701975`（task/s1-4b-input, `ade8248`）、`45190737489`（main, `a47c8d1`）全部 success；`45190737489` job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 99 / # pass 99 / # fail 0`。
 - **下次第一步**：S1-5 `--print` 接真实 API：把 `createOpenAiLlmClient` + `buildSystemPrompt`/`withSystemPrompt` 接进 headless 分支（无 TTY 下能跑一轮），加 `MEWCODE_DEBUG=1` 请求体日志，见 `docs/testing.md` S1-5 小节；同时把 S1-4 的 8 条 B 级复核结论入库。
 
 ### 交接模板（每次会话结束复制填写）

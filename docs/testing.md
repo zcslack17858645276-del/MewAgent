@@ -335,6 +335,7 @@ git status --short        # 确认没有把测试产物提交
 - 多行输入：`src/ui/InputBox.tsx` + `src/ui/input-text.ts` 替换单行 `ink-text-input`；粘贴多行保留换行（bracketed paste → `normalizePastedText`）；Enter 发送、**Shift+Enter 换行**（Kitty 键盘协议，Windows Terminal 1.25 支持；终端不支持时用 **Ctrl+J** 兜底）；caret 按行号 + 列显示宽度用 `measureElement` + `useCursor` 定位。
 - A 级自动化证据：`tests/input-text.test.ts` 13 用例（CRLF/Tab/控制符规范化、代理对删除、换行合并、上下移动/行首行尾、`lineAndColumn`）；`tests/mock.test.ts` 11 用例（慢速流式按块、abort 保留已发前缀、`MEWCODE_MOCK_DELAY_MS` 生效）；全量 `tests 99 / pass 99 / fail 0`；TUI 冒烟（假 stdin/stdout）覆盖多行粘贴、Shift+Enter（`ESC[13;2u`）、Ctrl+J、Esc 中断、空闲 Ctrl+C → `SMOKE OK`；`npm run build` exit 0、`node dist/index.js --mock --print "hi"` exit 0。
 - 完整记录：`spikes/.out/s1-4b-targeted.txt`、`s1-4b-full.txt`、`s1-4b-smoke.txt`、`s1-4b-build.txt`、`s1-4b-dist.txt`、`s1-4b-notty.txt`（均 gitignored）。
+- CI（gh 只读）：`45190701975`（task/s1-4b-input, `ade8248`）、`45190737489`（main, `a47c8d1`）success；`45190737489` job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 99 / # pass 99 / # fail 0`。
 - 补丁已知限制：Shift+Enter 依赖终端 Kitty 键盘协议（本机 WT 1.25 preview 支持；不响应 `CSI ? u` 查询的终端请用 Ctrl+J）；`MEWCODE_KITTY_KEYBOARD=0` 可关闭协议协商。
 
 **已知限制**：TUI 尚未消费 `AgentEvent`（S2-7 接线工具事件）；`--mock` 的"两轮"是 S1 临时剧本（S2 起换成真正的 Agent Loop）；真实 API 的流式观感需 S1-5 接线后复验。
