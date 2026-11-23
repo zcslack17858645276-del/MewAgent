@@ -326,6 +326,7 @@ git status --short        # 确认没有把测试产物提交
 - 全量 `npm test` → exit 0，`tests 83 / pass 83 / fail 0`（原 77 + 新增 6）
 - TUI 冒烟（假 stdin/stdout 驱动 Ink，`spikes/.out/tui-smoke.tsx`，gitignored）：启动横幅/工作区/就绪状态、提交"你好"→ mock 两轮最终文本进历史、排队消息提示、空闲 Ctrl+C 触发 `waitUntilExit` → `SMOKE OK`
 - 完整记录：`spikes/.out/s1-4-targeted.txt`、`spikes/.out/s1-4-full.txt`、`spikes/.out/s1-4-smoke.txt`、`spikes/.out/s1-4-dist.txt`、`spikes/.out/s1-4-notty.txt`（均 gitignored）
+- CI（gh 只读）：`45187554538`（task/s1-4-tui, `864bcb6`）、`45187577002`（main, `a687cc7`）、`45187642953`（main, `e0d420c`）全部 success；`45187642953` job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 83 / # pass 83 / # fail 0`。
 
 **已知限制**：TUI 尚未消费 `AgentEvent`（S2-7 接线工具事件）；`--mock` 的"两轮"是 S1 临时剧本（S2 起换成真正的 Agent Loop）；真实 API 的流式观感需 S1-5 接线后复验。
 
