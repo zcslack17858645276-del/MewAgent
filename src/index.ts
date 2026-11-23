@@ -1,15 +1,16 @@
 // MewAgent CLI 入口：参数解析 → 配置校验 → 交互 / headless 分发。
 //
 // 边界（方案 §3.1）：本文件只做参数与 IO 编排，不直接调 LLM、不读输入循环；
-// 真正的 TUI 在 S1、真实 API 客户端在 S1；本文件目前保证：
-// `--help` / `--version` 可用、缺 key / 未知参数 / 无 TTY 的报错可操作、配置可验证；
-// `--mock --print` 用离线 mock 客户端走完“工具调用 → 回填 → 最终文本”两轮（S0-4）。
+// 交互 TUI 在 src/ui/（S1-4），真实 API 客户端在 src/llm/openai.ts（S1-2）；
+// 本文件保证：`--help` / `--version` 可用、缺 key / 未知参数 / 无 TTY 的报错可操作、
+// `--print` 走 headless（S1-5 接真实 API）、`--mock --print` 走离线两轮（S0-4）。
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
+import { buildSystemPrompt } from "./agent/prompt.js";
 import {
   CliError,
   loadDotEnv,
@@ -20,7 +21,11 @@ import {
 } from "./config.js";
 import type { AppConfig } from "./config.js";
 import { createMockLlmClient } from "./llm/mock.js";
-import type { Message, ToolResult } from "./types.js";
+import { createOpenAiLlmClient } from "./llm/openai.js";
+import type { LlmClient, Message, ToolResult } from "./types.js";
+import type { SendMessage } from "./ui/App.js";
+import { startTui } from "./ui/start-tui.js";
+import type { StartTuiOptions } from "./ui/start-tui.js";
 
 /** 入口依赖（测试注入用）：默认全部走真实 `process` / 文件系统。 */
 export interface MainDeps {
@@ -34,6 +39,8 @@ export interface MainDeps {
   readStdin?: () => string;
   /** 加载 `.env` 的钩子；测试传空函数即可让用例完全确定。 */
   loadDotEnv?: (envPath: string) => void;
+  /** 交互 TUI 启动钩子；测试注入假实现，避免真的进入 Ink 渲染。 */
+  startTui?: (options: StartTuiOptions) => Promise<void>;
 }
 
 function formatConfigLines(config: AppConfig): string[] {
@@ -96,13 +103,36 @@ async function runMockTwoRounds(
   write(`finish: ${second.finishReason}\n`);
 }
 
-function formatInteractiveOutput(version: string, config: AppConfig): string {
-  return [
-    `mewagent ${version}`,
-    ...formatConfigLines(config),
-    "（S0-3 骨架：TUI 将在 S1 实现；现在可直接用 --print 走 headless 模式）",
-    "",
-  ].join("\n");
+/** 真实客户端：把 LlmClient.chat 适配成 TUI 需要的 SendMessage（流式回调 + abort）。 */
+function createRealSend(client: LlmClient): SendMessage {
+  return (messages, { signal, onDelta }) =>
+    client.chat([...messages], [], { signal, onText: onDelta });
+}
+
+/**
+ * mock 客户端：S1 还没有 Agent Loop（S2），这里用"脚本化两轮"代替
+ * 工具调用 → 回填占位结果 → 最终文本，让 TUI 在无 key 时也能演示流式与中断。
+ */
+function createMockSend(client: LlmClient): SendMessage {
+  return async (messages, { signal, onDelta }) => {
+    const history: Message[] = [...messages];
+    const first = await client.chat(history, [], { signal, onText: onDelta });
+    if (first.toolCalls.length === 0) {
+      return first;
+    }
+
+    const toolResults: Message[] = first.toolCalls.map((call) => ({
+      role: "tool",
+      toolCallId: call.id,
+      content: `（S0-4 占位工具结果：${call.name} 将在 S2 实现）`,
+    }));
+    const withToolResults: Message[] = [
+      ...history,
+      { role: "assistant", content: first.content, toolCalls: first.toolCalls },
+      ...toolResults,
+    ];
+    return client.chat(withToolResults, [], { signal, onText: onDelta });
+  };
 }
 
 function readPromptFromStdin(deps: MainDeps, stdinIsTTY: boolean): string {
@@ -183,7 +213,21 @@ export async function main(
       return 0;
     }
 
-    write(formatInteractiveOutput(version, config));
+    const client: LlmClient = config.mock
+      ? createMockLlmClient()
+      : createOpenAiLlmClient({
+          baseUrl: config.baseUrl,
+          apiKey: config.apiKey,
+          model: config.model,
+        });
+    const send = config.mock ? createMockSend(client) : createRealSend(client);
+    const launchTui = deps.startTui ?? startTui;
+    await launchTui({
+      version,
+      config,
+      send,
+      systemPrompt: buildSystemPrompt({ workspace: config.workspace }),
+    });
     return 0;
   } catch (error) {
     if (error instanceof CliError) {
