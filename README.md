@@ -28,7 +28,7 @@ MewAgent 是一个类 Claude Code 的命令行编程助手，用 TypeScript + [I
 
 | 项 | 要求 |
 | --- | --- |
-| Node.js | **≥ 22**（开发机实测 v26.7.0） |
+| Node.js | **≥ 22（推荐）**；开发机实测 v26.7.0。低于 20.12 的 Node 缺少 `process.loadEnvFile`，程序会自动退回内置 `.env` 解析（已兜底，`--mock` 可跑），但未做完整兼容验证，建议升级到 Node 22 LTS |
 | npm | 随 Node 提供 |
 | 终端 | **Windows 建议 Windows Terminal**（cmd / 旧版 PowerShell 窗口的 TUI 观感与中文输入体验较差） |
 | 真实 API | 任意 OpenAI 兼容的 `/chat/completions` 端点与 API key |
@@ -438,7 +438,8 @@ npm run build         # 输出 dist/
 - 上下文压缩是“整轮丢弃”，没有 LLM 摘要；
 - TUI 为纯文本渲染，没有 Markdown 语法高亮；
 - 工具单次输出上限 30KB、glob 200 条、grep 100 条；
-- 主要在 Windows 上开发与验收，macOS/Linux 仅保证 CI 单测通过。
+- 主要在 Windows 上开发与验收，macOS/Linux 仅保证 CI 单测通过；
+- Node < 20.12 时没有 `process.loadEnvFile`，程序会自动改用内置 `.env` 解析（已模拟验证）；其他 Node 22 相关差异未逐一适配。
 
 v0.2 候选（尚未排期）：
 

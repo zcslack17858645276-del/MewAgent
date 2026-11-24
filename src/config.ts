@@ -3,7 +3,8 @@
 // 边界（方案 §3.1）：
 // - 本文件不打印任何内容、不读 stdin、不 import Ink；发现的用户错误统一抛 `CliError`。
 // - 优先级：CLI 参数 > 环境变量（`.env` 或 shell）> 默认值。
-// - 不新增依赖：`.env` 用 Node 内置 `process.loadEnvFile`（Node >= 22）。
+// - 不新增依赖：`.env` 优先用 Node 内置 `process.loadEnvFile`（Node >= 22），
+//   老版本 Node（< 20.12）缺少该 API 时退回本文件内的最小解析器（行为对齐，仍不新增依赖）。
 // - key 只从环境变量/`.env` 读取，绝不通过 CLI 参数传入，也不出现在任何输出里。
 
 import { readFileSync, statSync } from "node:fs";
@@ -170,14 +171,24 @@ export function parseArgs(argv: readonly string[]): CliOptions {
   return options;
 }
 
+/** `.env` 加载器：默认优先 Node 内置实现，老版本 Node 退回内置兜底解析器。 */
+export type EnvFileLoader = (envPath: string) => void;
+
 /**
- * 加载 `.env`（Node 内置实现：已存在的环境变量优先，不会被文件覆盖）。
+ * 加载 `.env`（已存在的环境变量优先，不会被文件覆盖）。
  * 文件不存在时静默跳过；文件存在但格式非法时转成可操作的 `CliError`。
+ * `loader` 仅用于测试注入；正常运行由 `resolveEnvFileLoader()` 选择实现。
  */
-export function loadDotEnv(envPath: string): void {
+export function loadDotEnv(
+  envPath: string,
+  loader: EnvFileLoader = resolveEnvFileLoader(),
+): void {
   try {
-    process.loadEnvFile(envPath);
+    loader(envPath);
   } catch (error) {
+    if (error instanceof CliError) {
+      throw error;
+    }
     const code =
       error instanceof Error && "code" in error
         ? (error as { code?: unknown }).code
@@ -191,6 +202,70 @@ export function loadDotEnv(envPath: string): void {
       { cause: error },
     );
   }
+}
+
+/**
+ * 选择 `.env` 加载器：Node >= 20.12 有 `process.loadEnvFile`，直接用；
+ * 更老的 Node（如 18.x）没有该 API，退回本文件内实现，避免整个 CLI 起不来。
+ */
+function resolveEnvFileLoader(): EnvFileLoader {
+  const builtin = (process as { loadEnvFile?: (envPath: string) => void })
+    .loadEnvFile;
+  if (typeof builtin === "function") {
+    return (envPath) => builtin(envPath);
+  }
+  return loadDotEnvFallback;
+}
+
+/**
+ * 老版本 Node 的 `.env` 兜底解析：逐行读 KEY=VALUE 写入 `process.env`。
+ * 对齐内置实现的语义——已存在的环境变量优先；忽略空行与 `#` 注释；
+ * 支持 `export ` 前缀与成对的单/双引号（值内不做转义处理，避免误伤 Windows 路径）。
+ */
+export function loadDotEnvFallback(envPath: string): void {
+  // 文件不存在时让 ENOENT 冒泡，由 loadDotEnv 统一静默跳过。
+  applyEnvContent(readFileSync(envPath, "utf8"), envPath);
+}
+
+/** 解析并应用 `.env` 文本；格式非法时抛带行号的 `CliError`（不打印值，避免泄露密钥）。 */
+export function applyEnvContent(content: string, source = ".env"): void {
+  const lines = content.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]!.trim();
+    if (line === "" || line.startsWith("#")) {
+      continue;
+    }
+    const body = line.startsWith("export ")
+      ? line.slice("export ".length).trim()
+      : line;
+    const separator = body.indexOf("=");
+    if (separator <= 0) {
+      throw new CliError(
+        `读取 .env 失败：${source}\n原因：第 ${index + 1} 行不是 KEY=VALUE 格式。\n下一步：改成每行一个 KEY=VALUE；值里含空格时用双引号包起来。`,
+      );
+    }
+    const key = body.slice(0, separator).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+      throw new CliError(
+        `读取 .env 失败：${source}\n原因：第 ${index + 1} 行的变量名不合法。\n下一步：变量名只能用字母、数字、下划线，且不能以数字开头。`,
+      );
+    }
+    const value = stripQuotes(body.slice(separator + 1).trim());
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
+function stripQuotes(value: string): string {
+  if (value.length >= 2) {
+    const first = value[0];
+    const last = value[value.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
 }
 
 function firstNonEmpty(
