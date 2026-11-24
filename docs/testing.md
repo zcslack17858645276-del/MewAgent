@@ -764,6 +764,8 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 - E2E：临时 `MEWCODE_HOME` 写 `config.json`（base-url 指向本地不可达端口、model `deepseek-chat`、假 key），从无关 cwd 运行 `node dist/index.js --print "hi"` → 输出 `model: deepseek-chat`、`base-url: http://127.0.0.1:9` 并报网络失败 ⇒ 证明配置来自用户级 `config.json`（否则会报缺少模型名）。
 - 证据：`spikes/.out/wiz-typecheck.txt`、`wiz-targeted.txt`、`wiz-full.txt`、`wiz-build.txt`、`wiz-a-level.txt`（均 gitignored）。
 
+**CI（2026-11-24）**：task 分支 run `45364288887`（`1772859`）与 main run `45364316431`（`98f75dd`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
+
 **B 级复核（待用户）**：见上表 4 条；建议先用错 key 验证向导的错误提示，再填真实 key。
 
 #### S4-4 十条成功标准 + demo
