@@ -437,8 +437,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`tests/tool-display.test.ts` 9/9；定向 5 个测试文件 74/74（979.2ms）；全量 `npm test` **195/195（4388.7ms；原 186 + 9）**；假 stdin/stdout 冒烟 `SMOKE OK`（启动含 6 工具列表、4 条工具历史按序、失败行 `Error:` 可读、长参数 `…` 截断、Esc 中断、多行粘贴/Shift+Enter/Ctrl+J/空闲 Ctrl+C 均正常）。证据：`spikes/.out/s2-7-typecheck.txt`、`s2-7-targeted.txt`、`s2-7-full.txt`、`s2-7-smoke.txt`（均 gitignored）。
 - **B 级（4 条待用户，均为 B 级手工）**：`npm run dev` 里 ① 让它读一个文件 → 看到 `✅ read_file {…} · Nms`；② 让它读不存在的文件 → 看到 `❌ … · Error: 文件不存在：…` 且不崩；③ 连续让它调 3 个工具 → 历史按序增长不覆盖；④ 给一个超长路径/命令 → 参数摘要截断且布局不撑爆。A3（`MEWCODE_DEBUG=1` + 工具可用）也可在 S2-7 后复验。
 - **文档**：`docs/tasks.md` S2-7 done、焦点 S2-8；`docs/testing.md` 跨任务 A 组 B 级补验段 + S1-2/S2-2/S2-5 相关行标用户已实测、S2-7 小节已完成（结果列 + A 证据 + 实现要点 + 已知限制）、L7/L128；`docs/spec.md` line 3、line 83（十七个测试文件）、§9 状态机与工具事件段、§13 S2-7 ✅；`docs/checklist.md` S2 新增 S2-7 项 `[x]`；`HANDOFF.md` line 5、§4「TUI 事件接线（S2-7）」决策行、§6。
-- **提交**：<待回填>（分支 `task/s2-7-ui-events` → squash main）。
-- **CI**：<待回填>。
+- **提交**：分支 `task/s2-7-ui-events` 提交 `3496e79`（已 push，远端保留原始提交）→ squash 合并 main `a527565`；本条哈希回填提交并 push。
+- **CI**：`45309525895`（task/s2-7-ui-events, `3496e79`）、`45309557707`（main, `a527565`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 195 / # pass 195 / # fail 0`。
 - **坑**：①`tests/config.test.ts`/`tests/mock.test.ts` 新增局部变量 `result` 与既有变量重名 → TS2451，改名 `turnResult`；②冒烟断言"长参数摘要被截断"不能按单行检查——Ink 会按终端宽度折行、`…` 落在续行 → 改为在整段输出里找 `…`；③`App` 消息历史直接以 `result.messages`（去 system）覆盖，避免流式/工具轮次重复；④`turn_end` 事件不单独渲染（避免与历史重复），只用 `stopReason` 追加提示。
 - **下次第一步**：S2-8（手工验收 + tag `v0.1-s2`）；先读 `docs/testing.md` S2-8 与方案 §4，跑全量验收并让用户做真实模型"读 README → 总结"三步任务。
 

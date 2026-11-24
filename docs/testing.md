@@ -545,6 +545,7 @@ git status --short        # 确认没有把测试产物提交
 - 全量 `npm test` → **tests 195 / pass 195 / fail 0（4388.7ms；原 186 + 新增 9）**
 - 假 stdin/stdout 驱动 Ink 冒烟（`spikes/.out/tui-smoke.tsx`）：`SMOKE OK`（exit 0）——启动横幅含 6 工具列表；一轮 4 次工具调用（成功/失败/成功/长参数）历史按序增长；失败行带可读 `Error:`；长参数截断出现 `…`；生成中 Esc → 历史 `（已中断）`；多行粘贴/Shift+Enter/Ctrl+J/空闲 Ctrl+C 均正常。
 - 记录：`spikes/.out/s2-7-typecheck.txt`、`s2-7-targeted.txt`、`s2-7-full.txt`、`s2-7-smoke.txt`（gitignored）。
+- CI（gh 只读）：`45309525895`（task/s2-7-ui-events, `3496e79`）、`45309557707`（main, `a527565`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 195 / # pass 195 / # fail 0`。
 
 **实现要点**：新增 `src/ui/tool-display.ts`（纯函数：参数摘要截断 120 码点、错误首行截断 160、耗时 ms/s、`turn_end` 提示）；`App` 改为注入 `runTurn: RunAgentTurn`（`(messages, { signal, emit }) => runAgent({...})`），消费 `assistant_text`（50ms 节流）/`tool_start`（状态行"⚙ 工具运行中"）/`tool_end`（历史项 ✅/❌）/`turn_end`；`StartTuiOptions` 改为 `{ version, config, runTurn, toolNames }`；`src/index.ts` 交互分支创建 `createDefaultRegistry()` + 带工具名的 system prompt + `runAgent` 闭包，删除 S1 临时 `createRealSend`/`createMockSend`（mock 也走真 loop、真工具真执行）；状态机现为 `idle | streaming | tool_running`（`awaiting_approval`/`error` 随 S3-2）。
 
