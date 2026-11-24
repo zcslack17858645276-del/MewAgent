@@ -597,7 +597,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 | 7 | B | 同类写操作先选一次 `a`，再做第二次 | 本会话不再询问 | ⏳ 待 S3-2（白名单逻辑已有单测） | P1 |
 | 8 | B | `--print` 模式下让它写文件 | 直接拒绝并说明 headless 限制 | ✅ 已由 `tests/config.test.ts` 端到端覆盖（假 fetch 剧本：write_file → 拒绝原因回填 → 模型改用文本回答；文件未创建） | P0 |
 
-**A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/danger.test.ts` 9/9、`tests/permissions.test.ts` 18/18；定向 config+mock+danger+permissions 68/68（994.6ms）；全量 `npm test` **232/232**（4056.4ms）。记录文件 `spikes/.out/s3-1-typecheck4.txt`、`s3-1-targeted.txt`、`s3-1-full2.txt`（gitignored）。
+**A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/danger.test.ts` 9/9、`tests/permissions.test.ts` 18/18；定向 config+mock+danger+permissions 68/68（994.6ms）；全量 `npm test` **232/232**（4056.4ms）。记录文件 `spikes/.out/s3-1-typecheck4.txt`、`s3-1-targeted.txt`、`s3-1-full2.txt`（gitignored）。CI（GitHub Actions, ubuntu Node 22）：`45318939161`（fix 分支）/`45318945962`（main, `899a60b`）success，日志 `# tests 232 / # pass 232 / # fail 0`；首轮曾因测试写死反斜杠路径在 POSIX 上红，已由 `tests/permissions.test.ts` 改用 `path.join("..", "secret.txt")` 修复。
 
 **实现要点**：危险规则 13 条 + 包装器剥壳（`sudo`/`env`/`nohup`/`time`/`command`/`sh`/`bash`/`powershell`/`cmd`，最多 4 层）；gate 顺序见方案 §6.6（arguments → 未知工具 → 路径边界 → readOnly → 危险命令 → headless → 白名单 → `ask`）；拒绝文案带具体原因与"下一步"；`runRealHeadless` 升级为 loop + 只读工具，`[工具]`/`[工具结果]` 走 stderr。
 
@@ -888,3 +888,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-24 | S2-7 补丁：修复"流式输出时向上滚动导致输出反复叠加"——新增 `src/ui/stream-lines.ts`（完整行立即提交 `<Static>`、未完成尾巴只留最后 ≤800 码点、CRLF `\r` 剥离），`App` 改为按行提交；新增 `tests/stream-lines.test.ts` 9 用例（全量 204/204），冒烟增加"60 行长输出每行只出现一次"断言；文档同步（spec §9 流式渲染、S2-7 小节补丁段、tasks/checklist） |
 | 2026-11-24 | S2-8 完成：S2 全量验收通过（typecheck 0 / tests 204/204 / --help 8 参数 / --version 0.1.0 / --mock --print 幂等 / build+dist 一致 / any 0 / TUI 冒烟 SMOKE OK / 6 工具 loop 演示 ALL TOOLS OK / 真实 API exit 0）；真实模型自主 `read_file`+`glob` 读 README 并总结 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项用户 2026-11-24 通过；打 tag `v0.1-s2` 并 push；S2-8 章节改为已完成并附证据，进度切到 S3-1 |
 | 2026-11-24 | S3-1 完成：新增 `src/safety/danger.ts`（13 类危险命令识别 + `sudo`/`sh`/`powershell` 等包装器剥壳，最多 4 层）与 `src/safety/permissions.ts`（`createPermissionGate` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → `ask` y/a/n；headless 只读；拒绝原因回填 `Error: 权限被拒绝：…`）；`src/index.ts` 交互分支接 gate、`runRealHeadless` 升级为 Agent Loop + 只读工具；新增 `tests/danger.test.ts` 9 例、`tests/permissions.test.ts` 18 例、`tests/config.test.ts` headless 端到端 1 例（全量 232/232）；S3-1 章节改为已完成并附证据，进度切到 S3-2 |
+| 2026-11-24 | S3-1 补丁：CI（ubuntu）暴露出 `tests/permissions.test.ts` 写死反斜杠路径在 POSIX 下被当成合法文件名 → 越界读取用例失败；改用 `path.join("..", "secret.txt")` 生成平台正确路径，CI 复绿（232/232） |

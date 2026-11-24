@@ -461,8 +461,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收**：`npm run typecheck` exit 0；danger 9/9、permissions 18/18；定向 config+mock+danger+permissions 68/68（994.6ms）；全量 `npm test` **232/232**（4056.4ms）；证据 `spikes/.out/s3-1-typecheck4.txt`、`s3-1-targeted.txt`、`s3-1-full2.txt`（gitignored）。
 - **B 级**：第 5/6/8 行可由用户先在 TUI / `--print` 验（危险命令硬拦、headless 拒写）；第 2/3/4/7 行待 S3-2 审批 UI 后验。
 - **文档**：`docs/tasks.md` S3-1 done、焦点 S3-2；`docs/testing.md` S3-1 已完成小节 + 附录 C/D + L7/L128 进度；`docs/spec.md` L3/L83/§7/§13；`docs/checklist.md` S3 前两项 `[x]` 与标准 #5 更新；本节。
-- **提交**：`<待回填>`（分支 `task/s3-1-permissions`）→ squash main `<待回填>`；CI `<待回填>`。
-- **坑**：①`sudo`/`powershell -Command` 等包装需剥壳才能识别（首版 3 个单测红）；②`summarizeToolCall` 需整体截断（含 `$ ` 前缀，163 > 161 字符）；③`PermissionGate` 是对象不是函数，`runAgent` 要传 `permissions.gate`（TS2322）。
+- **提交**：`ca805bf` "feat(safety): 权限三道闸与 headless 只读规则"（分支 `task/s3-1-permissions`，已 push）→ squash main `a3d6fd4`；CI 首轮在 ubuntu 上红（`45318767001`/`45318782732`：`tests/permissions.test.ts` 写死反斜杠路径，POSIX 下反斜杠是合法文件名 → 越界读取未被判越界）→ 修复 `d198123` "fix(safety): 权限越界读取测试兼容 POSIX"（`fix/s3-1-ci-posix`）→ squash main `899a60b`；修复后 CI `45318939161`（fix 分支）/`45318945962`（main, 899a60b）success，日志 `# tests 232 / # pass 232 / # fail 0`。
+- **坑**：①`sudo`/`powershell -Command` 等包装需剥壳才能识别（首版 3 个单测红）；②`summarizeToolCall` 需整体截断（含 `$ ` 前缀，163 > 161 字符）；③`PermissionGate` 是对象不是函数，`runAgent` 要传 `permissions.gate`（TS2322）；④跨平台反斜杠：测试里写死 `..\\x` 在 POSIX 会被当成合法文件名（与 S2-1 同一个坑，改用 `path.join("..", …)`）。
 - **下次第一步**：S3-2 `ui/ApprovalPrompt.tsx`（y / a / n / Esc；TUI 增加 `awaiting_approval` 阶段，审批时输入框失焦；接 `PermissionGate.ask`，完成后复验 S3-1 第 2/3/4/7 行）。
 
 
