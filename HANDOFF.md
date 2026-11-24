@@ -551,8 +551,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **修复**：`src/config.ts` 改为 `loadDotEnv(envPath, loader?)`——默认仍用 `process.loadEnvFile`，缺失时退回 `loadDotEnvFallback`：新增 `applyEnvContent` 逐行解析 KEY=VALUE（忽略空行与 `#` 注释、支持 `export ` 前缀与成对单/双引号、已有环境变量优先、兼容 CRLF；格式非法时报行号 + 「下一步」，且不回显值）；`loadDotEnv` 捕获到 `CliError` 时不再二次包裹，避免把“函数不存在”误报成“文件格式问题”。
 - **验证**：`npm run typecheck` exit 0；`tests/config.test.ts` **35/35**（新增 fallback 与 `applyEnvContent` 用例）；全量 `npm test` **298/298**；`npm run build` exit 0；模拟老 Node（`Object.defineProperty(process, "loadEnvFile", { value: undefined })` + 临时 `.env`）脚本 `spikes/.out/sim-old-node-env.ts` → `老 Node 模拟：OK`（兜底解析生效、错误信息可操作）。
 - **文档**：README「环境要求」补 Node < 20.12 自动兜底说明，「已知限制」补一条兼容说明。
-- **提交**：分支 `fix/env-fallback` 提交（占位，回填时更新）→ squash 合并 main。
-- **CI**：待回填。
+- **提交**：分支 `fix/env-fallback` 提交 `2b5d55a`（4 files +164/−6，已 push，远端保留）→ squash 合并 main `79ed275`（同标题）。
+- **CI**：task 分支 run `45344244876`（`2b5d55a`）与 main run `45344251000`（`79ed275`）均 success，日志均为 `# tests 298 / # pass 298 / # fail 0`。
 - **坑**：①原错误把 `TypeError`（函数不存在）当成“文件格式问题”，误导排查方向；②cc-safety-net 会拦截 shell 命令里出现 `.env` 的模式串（改用 grep/read 工具，与代码无关）；③Node 22 才有 `process.loadEnvFile` 的部分形态，老机器直接克隆会起不来，故选择“兜底兼容 + 文档”而非只报错。
 - **下次第一步**：S4-3（打包与启动）不变。
 
