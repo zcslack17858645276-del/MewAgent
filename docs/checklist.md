@@ -52,7 +52,7 @@
 
 - [x] `tools/paths.ts` 越界拦截（`..`、绝对路径、符号链接、Windows 盘符）单测。✅ 2026-11-23：`tests/paths.test.ts` 10 例（词法 + realpath 两层；盘符相对/`%VAR%`/`~` 一律拒绝），全量 114/114；TUI 级 B 级两项随 S2-6/S2-7 接线后验。
 - [x] 6 个工具（read/write/edit/glob/grep/bash）参数校验、截断 30KB、`glob` ≤200 条。✅ 2026-11-24：read/write/edit（`tests/fs.test.ts` 15 例）、glob/grep（`tests/search.test.ts` 11 例）、bash（`tests/bash.test.ts` 14 例：shell 选择/超时 kill/30KB 截断/UTF-8→GBK/GBK 回退/cwd 固定工作区）；全量 `npm test` 167/167。
-- [ ] `tools/registry.ts` + `agent/loop.ts`：多工具连续调用、`maxSteps=30`、`turn_end` 原因正确。
+- [x] `tools/registry.ts` + `agent/loop.ts`：多工具连续调用、`maxSteps=30`、`turn_end` 原因正确。✅ 2026-11-24：loop 19 例（工具→文本事件顺序、多工具配对、maxSteps 默认 30、abort 三种时机、未知工具/坏 JSON/ok:false 回填、gate 拒绝/抛异常、system prompt 归一、非流式补发、signal 与 specs 透传、`createDefaultRegistry` 6 工具）；全量 186/186。B 级真实模型多工具任务随 S2-7 UI 接线后验。
 - [x] 失败路径：bash 超时/kill（`tests/bash.test.ts` 超时用例，1000ms 超时约 1.5s 返回）、edit 多处匹配（`tests/fs.test.ts`）、读不存在文件（fs/search）、越界路径拒绝（`tests/paths.test.ts`）；审批级"无权限"交互随 S3-2 Gate 接线后验。
 - [ ] mock 端到端 + 真实模型三步任务验收；更新文档、打 tag。
 
