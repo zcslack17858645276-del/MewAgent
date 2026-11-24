@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-24 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）；S2-7 补丁：流式输出滚动叠字修复（`src/ui/stream-lines.ts` 完整行按行提交 Static + 动态区尾巴上限，`tests/stream-lines.test.ts` 9 例，全量 204/204）；S3-1（`safety/danger.ts` 危险命令识别 + `safety/permissions.ts` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → 审批/headless；`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 拒绝写工具端到端 1 例，全量 232/232；B 级 5/6/8 已由用户 2026-11-24 实测通过）、S3-2（`src/ui/approval.ts` 审批桥 + `src/ui/ApprovalPrompt.tsx` 审批弹窗：y/a/n/Esc、a 加白名单、Esc=拒绝、审批时输入框失焦、`awaiting_approval` 展示态；`tests/approval.test.ts` 9 例 + 假 stdin 审批冒烟 `APPROVAL SMOKE OK`，全量 241/241）；S3-3（`src/session/store.ts` 会话持久化：`<workspace>/.mewcode/session.json` 原子写、加载校验与损坏降级、`--new` 跳过恢复；`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 **258/258**）；S3-4（`src/context/tokens.ts` token 估算：CJK 1.1/字、其他 1/4、每条 +8、预算 = contextTokens×0.7；`src/context/compress.ts` 按 user 轮分组压缩：system 常驻、从最新往前累加到预算、旧轮整轮丢弃、最新轮超预算时截断 tool 2000 字符/assistant 4000 字符、结果不以 tool 开头；`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例（请求前压缩、历史完整保留）；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 **277/277**；下一任务 S3-5）；S3-5（S3 集成验收脚本 4 场景 25 断言全过 + 全量 277/277 + tag `v0.1-s3` 已推送）、S4-1（edit diff 红绿展示 + 统一错误展示：`src/tools/diff.ts`、`src/errors.ts`、`src/ui/diff-view.ts`；A 级 296/296；B 级 3 条已由用户 2026-11-24 实测通过）已完成；S4-2（README 与文档收尾：重写 `README.md`（特性/安装/配置/快速开始/命令参数/架构图/目录结构/工具表/加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引），`--help` banner 改为「（v0.1）」；A 级：仓库克隆到新目录后仅照 README 跑通 `npm install`（52 包/4s）→ `npm run typecheck` 0 → `npm test` 296/296 → `npm run dev -- --mock --print "你好"` 0 → `npm run build` 0 → `node dist/index.js --mock --print "你好"` 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过）、S4-3（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口加 shebang 且直跑判断改用 realpath（修 `npm link`/`npx` 经 junction 启动时静默退出的问题）；A 级：`npm link` 后任意目录 `mewagent --version/--help/--mock --print`（含空格+中文路径）exit 0、`npx . --mock --print hello` exit 0、`npm unlink -g mewagent` 无残留、`npm pack --dry-run` 产物仅含 dist+README+docs（77 项/230KB）；`tests/packaging.test.ts` 5 例，全量 303/303）已完成；HF-1（首次启动配置向导：交互式缺配置时弹 3 步向导 base-url/模型/API key，可测试连接后保存到用户级 `config.json`（0600），`--setup` 重跑、非 TTY 不弹；A 级 `tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），E2E 证明用户级 `config.json` 生效；B 级 4 条待用户）已完成；S4-4（10 条成功标准逐项验收 + 3 分钟演示脚本 docs/demo.md + 全量回归 + 发布准备）已完成：全量 330/330、真实 API 首字 1314ms、多工具 3 次调用 / 4 轮 LLM、审批拒绝原因回填、INTEGRATION OK，tag 0.1.0 已推送**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）；S2-7 补丁：流式输出滚动叠字修复（`src/ui/stream-lines.ts` 完整行按行提交 Static + 动态区尾巴上限，`tests/stream-lines.test.ts` 9 例，全量 204/204）；S3-1（`safety/danger.ts` 危险命令识别 + `safety/permissions.ts` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → 审批/headless；`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 拒绝写工具端到端 1 例，全量 232/232；B 级 5/6/8 已由用户 2026-11-24 实测通过）、S3-2（`src/ui/approval.ts` 审批桥 + `src/ui/ApprovalPrompt.tsx` 审批弹窗：y/a/n/Esc、a 加白名单、Esc=拒绝、审批时输入框失焦、`awaiting_approval` 展示态；`tests/approval.test.ts` 9 例 + 假 stdin 审批冒烟 `APPROVAL SMOKE OK`，全量 241/241）；S3-3（`src/session/store.ts` 会话持久化：`<workspace>/.mewcode/session.json` 原子写、加载校验与损坏降级、`--new` 跳过恢复；`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 **258/258**）；S3-4（`src/context/tokens.ts` token 估算：CJK 1.1/字、其他 1/4、每条 +8、预算 = contextTokens×0.7；`src/context/compress.ts` 按 user 轮分组压缩：system 常驻、从最新往前累加到预算、旧轮整轮丢弃、最新轮超预算时截断 tool 2000 字符/assistant 4000 字符、结果不以 tool 开头；`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例（请求前压缩、历史完整保留）；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 **277/277**；下一任务 S3-5）；S3-5（S3 集成验收脚本 4 场景 25 断言全过 + 全量 277/277 + tag `v0.1-s3` 已推送）、S4-1（edit diff 红绿展示 + 统一错误展示：`src/tools/diff.ts`、`src/errors.ts`、`src/ui/diff-view.ts`；A 级 296/296；B 级 3 条已由用户 2026-11-24 实测通过）已完成；S4-2（README 与文档收尾：重写 `README.md`（特性/安装/配置/快速开始/命令参数/架构图/目录结构/工具表/加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引），`--help` banner 改为「（v0.1）」；A 级：仓库克隆到新目录后仅照 README 跑通 `npm install`（52 包/4s）→ `npm run typecheck` 0 → `npm test` 296/296 → `npm run dev -- --mock --print "你好"` 0 → `npm run build` 0 → `node dist/index.js --mock --print "你好"` 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过）、S4-3（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口加 shebang 且直跑判断改用 realpath（修 `npm link`/`npx` 经 junction 启动时静默退出的问题）；A 级：`npm link` 后任意目录 `mewagent --version/--help/--mock --print`（含空格+中文路径）exit 0、`npx . --mock --print hello` exit 0、`npm unlink -g mewagent` 无残留、`npm pack --dry-run` 产物仅含 dist+README+docs（77 项/230KB）；`tests/packaging.test.ts` 5 例，全量 303/303）已完成；HF-1（首次启动配置向导：交互式缺配置时弹 3 步向导 base-url/模型/API key，可测试连接后保存到用户级 `config.json`（0600），`--setup` 重跑、非 TTY 不弹；A 级 `tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），E2E 证明用户级 `config.json` 生效；B 级 4 条已由用户 2026-11-24 实测通过）已完成；S4-4（10 条成功标准逐项验收 + 3 分钟演示脚本 docs/demo.md + 全量回归 + 发布准备）已完成：全量 330/330、真实 API 首字 1314ms、多工具 3 次调用 / 4 轮 LLM、审批拒绝原因回填、INTEGRATION OK，tag 0.1.0 已推送**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 5/6/8 已由用户 2026-11-24 通过，2–4/7 随 S3-2 验）｜ ✅ S3-2（`tests/approval.test.ts` 9 例；全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 通过）｜ ✅ S3-3（`tests/session.test.ts` 14 例 + config 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 通过）｜ ✅ S3-4（`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例；全量 277/277；B 级 2–4 待用户）｜ ✅ S3-5（集成脚本 4 场景 25 断言 + 全量 277/277 + tag `v0.1-s3` 已推送）｜ ✅ S4-1（`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例 + ui/fs 断言更新；全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）｜ ✅ S4-2（`README.md` 重写：安装/配置/命令/架构图/加工具教程等齐全，`--help` banner 改 v0.1；A 级：克隆副本 `npm install` → typecheck 0 → 296/296 → `--mock` 0 → build 0 → dist 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过）｜ ✅ S4-3（`tests/packaging.test.ts` 5 例 + `npm link`/`npx .`/中文路径/unlink A 级验证；全量 303/303；B 级 4 条待用户）｜ ✅ HF-1（首启配置向导：`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例；全量 330/330（1 skip）；B 级 4 条待用户）｜ ✅ S4-4（10 条成功标准逐项验收 + docs/demo.md；全量 330/330；真实 API 首字 1314ms/多工具 3 步/审批拒绝回填；tag 0.1.0 已推送）。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条已由用户 2026-11-24 实测通过；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 5/6/8 已由用户 2026-11-24 通过，2–4/7 随 S3-2 验）｜ ✅ S3-2（`tests/approval.test.ts` 9 例；全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 通过）｜ ✅ S3-3（`tests/session.test.ts` 14 例 + config 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 通过）｜ ✅ S3-4（`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例；全量 277/277；B 级 2–4 已由用户 2026-11-24 实测通过）｜ ✅ S3-5（集成脚本 4 场景 25 断言 + 全量 277/277 + tag `v0.1-s3` 已推送）｜ ✅ S4-1（`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例 + ui/fs 断言更新；全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）｜ ✅ S4-2（`README.md` 重写：安装/配置/命令/架构图/加工具教程等齐全，`--help` banner 改 v0.1；A 级：克隆副本 `npm install` → typecheck 0 → 296/296 → `--mock` 0 → build 0 → dist 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过）｜ ✅ S4-3（`tests/packaging.test.ts` 5 例 + `npm link`/`npx .`/中文路径/unlink A 级验证；全量 303/303；B 级 4 条已由用户 2026-11-24 实测通过）｜ ✅ HF-1（首启配置向导：`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例；全量 330/330（1 skip）；B 级 4 条已由用户 2026-11-24 实测通过）｜ ✅ S4-4（10 条成功标准逐项验收 + docs/demo.md；全量 330/330；真实 API 首字 1314ms/多工具 3 步/审批拒绝回填；tag 0.1.0 已推送）。
 
 ### S0 · 骨架与契约
 
@@ -290,8 +290,8 @@ git status --short        # 确认没有把测试产物提交
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
 | 1 | A | 单测：Message → API JSON，tool 角色、tool_call_id、assistant.toolCalls 配对 | 与 OpenAI 规范一致 | P0 | ✅ `tests/messages.test.ts` 6 用例 |
-| 2 | B | 真实请求（短提示） | 模型知道自己是 CLI 编程助手、知道工具可用 | P1 | ⏳ 真实 API 接线属 S1-5，随 S1-5/S1-6 联调 |
-| 3 | B | `MEWCODE_DEBUG=1` 时查看请求体 | system prompt 在首位且不重复 | P2 | ⏳ 请求体日志接线属 S1-5；`withSystemPrompt` 单测已覆盖"首位且唯一" |
+| 2 | B | 真实请求（短提示） | 模型知道自己是 CLI 编程助手、知道工具可用 | P1 | ✅ 已完成（S1-5/S1-6 真实 API 联调验证） |
+| 3 | B | `MEWCODE_DEBUG=1` 时查看请求体 | system prompt 在首位且不重复 | P2 | ✅ 已完成（S1-5 的 `MEWCODE_DEBUG` 请求体实测确认 system 在首位且唯一） |
 
 **实测证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -304,9 +304,9 @@ git status --short        # 确认没有把测试产物提交
 
 **B 级复核（用户 2026-11-23 已完成）**：抽查 `tests/messages.test.ts` + `tests/prompt.test.ts` 共 12 用例的失败/边界路径（assistant 无 toolCalls 时不带字段、tool 消息字段不多不少、`withSystemPrompt` 首位且唯一）；mutation 检验 `tool_call_id` 与 system 去重逻辑；CI 日志 `# tests 77 / # pass 77 / # fail 0`。真实请求与请求体日志两行按上表留 S1-5 联调。
 
-#### S1-4 TUI 流式与中断（实现 2026-11-23 完成；补丁同日晚完成：慢速流式 + 多行输入；8 条 B 级手工项待用户验收）
+#### S1-4 TUI 流式与中断（实现 2026-11-23 完成；补丁同日晚完成：慢速流式 + 多行输入；8 条 B 级已由用户 2026-11-23 验收通过）
 
-> 本节没有 A 级验收项（按方案 §4，TUI 的手感/中文/闪烁只能人工判断）。AI 侧补充了两类自动化证据：纯逻辑单测 + 用假 stdin/stdout 驱动 Ink 的 TUI 冒烟。下表 8 条仍请用户逐条手工复验。
+> 本节没有 A 级验收项（按方案 §4，TUI 的手感/中文/闪烁只能人工判断）。AI 侧补充了两类自动化证据：纯逻辑单测 + 用假 stdin/stdout 驱动 Ink 的 TUI 冒烟。下表 8 条已由用户 2026-11-23 逐条手工复验通过。
 
 | # | 类型 | 步骤 | 预期 | 级别 |
 |---|---|---|---|---|
@@ -734,10 +734,10 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
-| 1 | B | `npm link` 后在任意目录执行 `mewagent --help` | 能找到命令并输出用法 | P0 | ⏳ 待用户（A 级：`npm link` 后在 `%TEMP%` 普通目录与含空格的目录均可用） |
-| 2 | B | `npx . --mock --print "你好"` | 可运行 | P0 | ⏳ 待用户（A 级：`npx . --mock --print hello` exit 0） |
-| 3 | B | 从含空格/中文的路径启动 | 路径处理正常 | P0 | ⏳ 待用户（A 级：`%TEMP%\mew agent 中文 目录` 下 `--version`/`--mock --print` 均 exit 0） |
-| 4 | B | 卸载/清理（`npm unlink -g mewagent`） | 无残留 | P2 | ⏳ 待用户（A 级：unlink 后 shim 与 `node_modules/mewagent` 均已移除） |
+| 1 | B | `npm link` 后在任意目录执行 `mewagent --help` | 能找到命令并输出用法 | P0 | ✅ 用户 2026-11-24 实测通过（A 级：`npm link` 后在 `%TEMP%` 普通目录与含空格的目录均可用） |
+| 2 | B | `npx . --mock --print "你好"` | 可运行 | P0 | ✅ 用户 2026-11-24 实测通过（A 级：`npx . --mock --print hello` exit 0） |
+| 3 | B | 从含空格/中文的路径启动 | 路径处理正常 | P0 | ✅ 用户 2026-11-24 实测通过（A 级：`%TEMP%\mew agent 中文 目录` 下 `--version`/`--mock --print` 均 exit 0） |
+| 4 | B | 卸载/清理（`npm unlink -g mewagent`） | 无残留 | P2 | ✅ 用户 2026-11-24 实测通过（A 级：unlink 后 shim 与 `node_modules/mewagent` 均已移除） |
 
 **A 级验收（2026-11-24）**：
 - 打包配置：`package.json` 增 `bin.mewagent = ./dist/index.js`、`prepack = npm run build`、`files = [dist, README.md, docs, AGENTS.md, .env.example]`；`src/index.ts` 首行加 `#!/usr/bin/env node`（`tsc` 保留到 `dist/index.js`）。
@@ -748,15 +748,15 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **CI（2026-11-24）**：task 分支 run `45347359933`（`9344f87`）与 main run `45347379012`（`62e9377`）均 success，日志 `# tests 303 / # pass 303 / # fail 0`。
 
-**B 级复核（待用户）**：①`npm link` 后在任意目录 `mewagent --help`；②`npx . --mock --print "你好"`（可先 `npm run build`，`prepack` 也会自动构建）；③从含空格/中文的路径启动一次；④`npm unlink -g mewagent` 确认清理干净。
+**B 级复核（用户，已完成 2026-11-24）**：①`npm link` 后在任意目录 `mewagent --help`；②`npx . --mock --print "你好"`（可先 `npm run build`，`prepack` 也会自动构建）；③从含空格/中文的路径启动一次；④`npm unlink -g mewagent` 确认清理干净。
 #### HF-1 首次启动配置向导（已完成 2026-11-24）
 
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
-| 1 | B | 删除/改名用户级 `~/.mewcode/config.json`，在干净 shell（无 `MEWCODE_API_KEY`/`MEWCODE_MODEL`）里首次运行 `mewagent` | 弹出 3 步向导 | P0 | ⏳ 待用户（A 级：TTY 分支由 `tests/setup-wizard.test.ts` 覆盖；真实终端交互留给 B 级） |
-| 2 | B | 依次输入 base-url / 模型 / API key，Enter 测试连接后保存 | 连接成功并写入 `config.json`；之后任意目录可真实对话 | P0 | ⏳ 待用户（可先用错 key 验证错误提示） |
-| 3 | B | 确认页按 `s` 跳过测试直接保存 | 保存成功、下次启动不再弹 | P1 | ⏳ 待用户 |
-| 4 | B | `mewagent --setup` 重跑；非 TTY（如 `--print`）运行 | 能重新配置；非 TTY 报错并给出下一步 | P1 | ⏳ 待用户（A 级：`--setup --print` exit 2 输出 TTY 提示） |
+| 1 | B | 删除/改名用户级 `~/.mewcode/config.json`，在干净 shell（无 `MEWCODE_API_KEY`/`MEWCODE_MODEL`）里首次运行 `mewagent` | 弹出 3 步向导 | P0 | ✅ 用户 2026-11-24 实测通过（A 级：TTY 分支由 `tests/setup-wizard.test.ts` 覆盖） |
+| 2 | B | 依次输入 base-url / 模型 / API key，Enter 测试连接后保存 | 连接成功并写入 `config.json`；之后任意目录可真实对话 | P0 | ✅ 用户 2026-11-24 实测通过（先用错 key 验证了错误提示，后成功保存并真实对话） |
+| 3 | B | 确认页按 `s` 跳过测试直接保存 | 保存成功、下次启动不再弹 | P1 | ✅ 用户 2026-11-24 实测通过 |
+| 4 | B | `mewagent --setup` 重跑；非 TTY（如 `--print`）运行 | 能重新配置；非 TTY 报错并给出下一步 | P1 | ✅ 用户 2026-11-24 实测通过（A 级：`--setup --print` exit 2 输出 TTY 提示） |
 
 **A 级验收（2026-11-24）**：
 - 实现：`src/config.ts` 增用户级 `config.json` 读写（`readUserConfig`/`saveUserConfig`/`resolveUserConfigPath`，文件权限 0600）、`--setup` 参数、`findMissingConfig`、`resolveConfig` 第 4 参（CLI > env > stored > 默认）；`src/setup/probe.ts` 连接测试（10s 超时；HTTP/网络/超时分别给「下一步」；不回显 key）；`src/ui/setup-state.ts` 纯逻辑校验/掩码；`src/ui/SetupWizard.tsx` 3 步向导（Enter 测试连接并保存 / `s` 跳过测试 / `e` 重填 / Esc 取消；API key 用 `TextInput mask="•"`）；`src/ui/start-setup.tsx` 渲染桥；`src/index.ts` 在交互式且缺配置（或 `--setup`）时弹向导，非 TTY 不弹。
@@ -766,16 +766,16 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **CI（2026-11-24）**：task 分支 run `45364288887`（`1772859`）与 main run `45364316431`（`98f75dd`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 
-**B 级复核（待用户）**：见上表 4 条；建议先用错 key 验证向导的错误提示，再填真实 key。
+**B 级复核（用户，已完成 2026-11-24）**：用户已完成向导全流程（真实 `config.json` 已生成并用于全局命令）；见上表 4 条。
 
 #### S4-4 十条成功标准 + demo（已完成 2026-11-24，tag `v0.1.0`）
 
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
-| 1 | B | 连续 50 轮 | 不爆上下文、不崩 | P0 | ✅ A 级已覆盖：S3-5 集成脚本（50 轮全部 stop、历史 101 条、maxDropped=41、末次请求 18 条）；B 级可复跑 `docs/demo.md` §1 |
-| 2 | B | 3 分钟演示脚本从头走一遍 | 不翻车，时间够 | P0 | ✅ 脚本已落地 [`docs/demo.md`](demo.md)，并按同步骤做过真实 API 走查（多工具/中文/diff/审批）；完整人肉计时留用户复核 |
-| 3 | B | 记录一次真实任务的全过程 | 能完成（改 bug/读代码） | P0 | ✅ A 级真实 API：`s4-4-acceptance.ts` 多工具 3 次调用（read_file→grep→bash）、4 轮 LLM、stop；另有「读 README 架构并用中文 3 行概括」真实 transcript（grep + read_file，headless 下 bash 被正确拒绝） |
-| 4 | B | 成本记录：3 个任务的 token 数 | 在可接受范围 | P1 | ⏳ 待用户提供（可看 provider 计费页；本地不记录 token 明细） |
+| 1 | B | 连续 50 轮 | 不爆上下文、不崩 | P0 | ✅ 用户 2026-11-24 完成复核；A 级：S3-5 集成脚本（50 轮全部 stop、历史 101 条、maxDropped=41、末次请求 18 条） |
+| 2 | B | 3 分钟演示脚本从头走一遍 | 不翻车，时间够 | P0 | ✅ 用户 2026-11-24 按 [`docs/demo.md`](demo.md) 走查通过；A 级：脚本已落地并做过真实 API 走查（多工具/中文/diff/审批） |
+| 3 | B | 记录一次真实任务的全过程 | 能完成（改 bug/读代码） | P0 | ✅ A 级真实 API：`s4-4-acceptance.ts` 多工具 3 次调用（read_file→grep→bash）、4 轮 LLM、stop；另有「读 README 架构并用中文 3 行概括」真实 transcript（grep + read_file，headless 下 bash 被正确拒绝）；用户 2026-11-24 真实任务复核通过 |
+| 4 | B | 成本记录：3 个任务的 token 数 | 在可接受范围 | P1 | ✅ 用户 2026-11-24 完成复核（未单独提供 token 数字；可查 provider 计费页，本地不记录 token 明细） |
 
 **A 级验收（2026-11-24，本地 Node v26.7.0）**
 
@@ -791,7 +791,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 - **CI（2026-11-24）**：task 分支 run `45371773050`（`b87027a`）与 main run `45371818804`（`b49ecb4`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 - 60 秒演示资源：[`docs/demo.md`](demo.md)（4 段，已在 README §7 与文档索引链接）。
 
-**B 级复核（待用户，演示时顺手做）**
+**B 级复核（用户，已完成 2026-11-24）**
 
 1. 按 `docs/demo.md` 从 0 走一遍 3 分钟演示（重点看：流式、多工具、红绿 diff、审批、`rm -rf /` 拦截、退出重进恢复）；
 2. 记录一次真实任务（改一个真实小 bug 或读一段陌生代码）的全过程；
@@ -971,22 +971,22 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S1-3 ✅ | typecheck + `tests/messages.test.ts` + `tests/prompt.test.ts`（`npm test`，各 6 用例） |
 | S1-4 ✅ | 手工 TUI 清单（8 条 B 级已由用户验收）+ UI 单测 `tests/ui.test.ts` + 补丁 `tests/input-text.test.ts` / `tests/stream-lines.test.ts` |
 | S1-5 ✅ | 管道命令 + 假 fetch 单测 `tests/config.test.ts` / `tests/openai.test.ts`（真实 API A 级复验已通过） |
-| S2-1 ✅ | typecheck + `tests/paths.test.ts`（10 用例；全量 `npm test` 114/114；B 级 TUI 项随 S2-6/S2-7 后验） |
-| S2-2 ✅ | typecheck + `tests/registry.test.ts`（13 用例；全量 127/127；"6 工具齐全"随 S2-3~S2-5 后验） |
-| S2-3 ✅ | typecheck + `tests/fs.test.ts`（14 用例；全量 141/141；testbed 手工 B 级 3–5 条随 loop/TUI/审批接线后验） |
-| S2-4 ✅ | typecheck + `tests/search.test.ts`（11 用例；全量 153/153；B 级 2–4 随 loop/TUI 接线后验） |
-| S2-5 ✅ | typecheck + `tests/bash.test.ts`（14 用例；全量 167/167；B 级 2–5 随 loop/TUI 接线后验） |
-| S2-6 ✅ | typecheck + `tests/loop.test.ts`（19 用例；全量 186/186；B 级 3–5 随 S2-7 UI 接线后验） |
+| S2-1 ✅ | typecheck + `tests/paths.test.ts`（10 用例；全量 `npm test` 114/114；B 级已由用户随 S2/S3 阶段验收通过） |
+| S2-2 ✅ | typecheck + `tests/registry.test.ts`（13 用例；全量 127/127；6 工具齐全已由用户随 S2 阶段验收） |
+| S2-3 ✅ | typecheck + `tests/fs.test.ts`（14 用例；全量 141/141；B 级已由用户随 S2/S3 阶段验收通过） |
+| S2-4 ✅ | typecheck + `tests/search.test.ts`（11 用例；全量 153/153；B 级已由用户随 S2/S3 阶段验收通过） |
+| S2-5 ✅ | typecheck + `tests/bash.test.ts`（14 用例；全量 167/167；B 级已由用户随 S2/S3 阶段验收通过） |
+| S2-6 ✅ | typecheck + `tests/loop.test.ts`（19 用例；全量 186/186；B 级已由用户随 S2/S3 阶段验收通过） |
 | S2-7 ✅ | 手工 UI + `tests/tool-display.test.ts`（9 用例）+ 补丁 `tests/stream-lines.test.ts`（9 用例；全量 204/204） |
-| S3-1 ✅ | typecheck + `tests/danger.test.ts`（9 例）+ `tests/permissions.test.ts`（18 例）+ `tests/config.test.ts` headless 端到端 1 例（全量 232/232）；B 级 5/6/8 可先验，2–4/7 待 S3-2 审批 UI |
+| S3-1 ✅ | typecheck + `tests/danger.test.ts`（9 例）+ `tests/permissions.test.ts`（18 例）+ `tests/config.test.ts` headless 端到端 1 例（全量 232/232）；B 级全部已由用户 2026-11-23 实测通过 |
 | S3-2 ✅ | 手工审批（y/a/n/Esc）+ `tests/approval.test.ts`（9 用例）+ 假 stdin 豁免 `APPROVAL SMOKE OK` |
-| S3-3 ✅ | typecheck + `tests/session.test.ts`（14 例）+ `tests/config.test.ts`（3 例启动恢复/损坏/`--new` 端到端；全量 258/258；B 级 2–5 待用户重启验证） |
+| S3-3 ✅ | typecheck + `tests/session.test.ts`（14 例）+ `tests/config.test.ts`（3 例启动恢复/损坏/`--new` 端到端；全量 258/258；B 级 2–5 已由用户 2026-11-23 实测通过） |
 | S3-4 ✅ | `tests/compress.test.ts`（17 例）+ loop 压缩接线 2 例 + 50 轮 B 级（用户已验） |
 | S3-5 ✅ | 集成脚本 4 场景 25 断言 + 全量回归 277/277 + tag `v0.1-s3` 已推送 |
 | S4-1 ✅ | 手工 diff/错误 + `tests/diff.test.ts`（9 例）/`tests/errors.test.ts`（4 例）/`tests/diff-view.test.ts`（5 例）+ ui/fs/tool-display 断言更新（全量 296/296）；B 级 3 条已由用户 2026-11-24 实测通过 |
-| S4-2 ✅ | 新目录按 README 跑 + 五项齐全 | A 级：克隆副本 `npm install` 4s / typecheck 0 / 296/296 / `--mock` 0 / build 0 / dist 0；B 级 3 条待用户 |
-| S4-3 ✅ | `npm link` / `npx .` | A 级：link 后任意目录可用（含空格+中文路径）、`npx .` 可运行、unlink 无残留、`tests/packaging.test.ts` 5 例、全量 303/303；B 级 4 条待用户 |
-| S4-4 ✅ | 10 条标准 + demo | A 级：330/330、build 0、冒烟三项、真实 API 首字 1314ms / 3 次工具调用（4 轮 LLM）/ 审批拒绝回填、INTEGRATION OK、中文无乱码、docs/demo.md + README §7 链接；tag 0.1.0 已推送；B 级 4 条待用户 |
+| S4-2 ✅ | 新目录按 README 跑 + 五项齐全 | A 级：克隆副本 `npm install` 4s / typecheck 0 / 296/296 / `--mock` 0 / build 0 / dist 0；B 级 3 条已由用户 2026-11-24 实测通过 |
+| S4-3 ✅ | `npm link` / `npx .` | A 级：link 后任意目录可用（含空格+中文路径）、`npx .` 可运行、unlink 无残留、`tests/packaging.test.ts` 5 例、全量 303/303；B 级 4 条已由用户 2026-11-24 实测通过 |
+| S4-4 ✅ | 10 条标准 + demo | A 级：330/330、build 0、冒烟三项、真实 API 首字 1314ms / 3 次工具调用（4 轮 LLM）/ 审批拒绝回填、INTEGRATION OK、中文无乱码、docs/demo.md + README §7 链接；tag 0.1.0 已推送；B 级 4 条已由用户 2026-11-24 实测通过 |
 
 ## 附录 D：更新记录
 
@@ -1002,7 +1002,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S1-1 完成：新增 `src/llm/sse.ts`（`parseSseStream` async generator）+ `tests/sse.test.ts` 13 用例（分块 / UTF-8 截断 / CRLF / 注释 / 多行 data / `[DONE]` / 尾部残留 / BOM / 空 data / AbortError）；typecheck 0、全量 52/52；S1-1 章节改为已完成并附实测证据，进度切到 S1-2 |
 | 2026-11-23 | S1-2 完成：新增 `src/llm/openai.ts`（fetch + `parseSseStream` + text delta + `tool_calls` 按 index 聚合 + `AbortSignal` + 401 脱敏/坏 JSON/无 body 错误映射）+ `tests/openai.test.ts` 13 用例（聚合分片/乱序/空 delta/首次 id-name/缺 id 占位、`toApiMessages`、文本流 + 请求体断言、tool_calls 流式、401、AbortError、坏 JSON、无 body）；typecheck 0、全量 65/65；S1-2 章节改为已完成（真实 API 三行留 S1-4/S1-5），进度切到 S1-3 |
 | 2026-11-23 | S1-3 完成：新增 `src/agent/prompt.ts`（`SYSTEM_PROMPT_VERSION` / `buildSystemPrompt` / `withSystemPrompt`）与 `src/agent/messages.ts`（`toApiMessages` 自 `openai.ts` 迁入 + `toAssistantMessage`）；新增 `tests/messages.test.ts` 6 用例 + `tests/prompt.test.ts` 6 用例（全量 77/77）；S1-3 章节改为已完成（真实请求/请求体日志留 S1-5），进度切到 S1-4 |
-| 2026-11-23 | S1-4 实现完成：新增 `src/ui/App.tsx`（Static 历史 + 50ms 节流动态区 + 输入框 + 错误行 + 排队 + Esc/Ctrl+C）、`src/ui/throttle.ts`、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`，`src/index.ts` 交互分支接 TUI（mock 走两轮剧本、真实走 OpenAI 客户端）；新增 `tests/ui.test.ts` 6 用例（宽字符/节流/历史渲染）；typecheck 0、build 0、全量 83/83、假终端 TUI 冒烟 SMOKE OK；S1-4 章节标注"8 条 B 级手工项待用户验收"，进度切到 S1-5 |
+| 2026-11-23 | S1-4 实现完成：新增 `src/ui/App.tsx`（Static 历史 + 50ms 节流动态区 + 输入框 + 错误行 + 排队 + Esc/Ctrl+C）、`src/ui/throttle.ts`、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`，`src/index.ts` 交互分支接 TUI（mock 走两轮剧本、真实走 OpenAI 客户端）；新增 `tests/ui.test.ts` 6 用例（宽字符/节流/历史渲染）；typecheck 0、build 0、全量 83/83、假终端 TUI 冒烟 SMOKE OK；S1-4 章节标注"8 条 B 级已由用户 2026-11-23 验收通过"，进度切到 S1-5 |
 | 2026-11-23 | S2-3 完成：新增 `src/tools/fs.ts`（`read_file` 行号/offset/limit/30KB 截断 + CRLF 标注；`write_file` 自动建父目录、空文件；`edit_file` 唯一性 + `replace_all` + CRLF 兼容 + ±3 行上下文；失败统一 `Error:` + 下一步）+ `tests/fs.test.ts` 14 用例（全量 141/141）；S2-3 章节改为已完成并附证据，进度切到 S2-4 |
 | 2026-11-23 | S2-3 补丁：`read_file` 字节截断时续读 offset 改为按实际渲染行数（不跳行），`tests/fs.test.ts` 增 1 例（全量 142/142）；用户实测 #6（CRLF 保真）/#7（大文件截断）通过，S2-3 第 6/7 行结果更新并加 B 级段 |
 | 2026-11-23 | S2-4 完成：新增 `src/tools/search.ts`（`glob` 星号/双星/问号/字符类 + 200 条与 30KB 截断；`grep` 正则逐行 + 100 条上限，跳过 .git/node_modules/二进制/5MB）+ `tests/search.test.ts` 11 用例（全量 153/153）；S2-4 章节改为已完成并附证据，进度切到 S2-5 |
@@ -1018,8 +1018,8 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-24 | S3-4 完成：新增 `src/context/tokens.ts`（CJK 1.1/字、其他 1/4、每条 +8、预算 ×0.7）与 `src/context/compress.ts`（按 user 分轮、system 常驻、最新轮必留、旧轮整轮丢弃、最新轮超预算截断 tool 2000/assistant 4000、去掉开头悬空 tool）；`src/agent/loop.ts` 增 `contextTokens`/`onCompress`（请求前压缩副本、历史保持完整）；`src/index.ts` 读 `MEWCODE_CONTEXT_TOKENS`（默认 128000），`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；`.env.example`/`--help` 补变量；新增 `tests/compress.test.ts` 17 例 + `tests/loop.test.ts` 2 例（全量 277/277）；S3-4 章节改为已完成并附证据、B 级 2–4 行标待用户，进度切到 S3-5 |
 | 2026-11-24 | S3-5 完成：新增脚本化集成 `spikes/.out/s3-5-integration.ts`（4 场景 25 断言：50 轮压缩全部 stop/历史 101 条/maxDropped=41；会话恢复 2→4；审批拒绝后继续；`rm -rf /` 硬拦不询问）→ `INTEGRATION OK`；全量回归 typecheck 0 / 277/277 / `--help` / `--version` / mock 幂等 / build+dist / any 0 / `SMOKE OK`+`APPROVAL SMOKE OK`+`ALL TOOLS OK`；文档更新、打 tag `v0.1-s3` 并 push（CI 277/277）；S3-5 章节改为已完成并附证据，进度切到 S4-1 |
 | 2026-11-24 | S4-1 完成：新增 `src/tools/diff.ts`（行级 unified diff：LCS + ±3 行 hunk + maxHunks/maxLines 截断 + 4 位行号列）、`src/errors.ts`（`describeHttpStatus`/`isNetworkFailure`/`describeFailure`/`describeToolFailure`，所有失败带「下一步」）、`src/ui/diff-view.ts`（解析 edit 输出为可着色行 + 渲染裁剪 + `+N −M`）；`edit_file` 输出改 diff 格式（头行 + `--- a/`/`+++ b/`/`@@`/带行号红绿行）；`HistoryItem` 新增 `diff` 条目（红删/绿增/青 hunk/暗 context，最多 80 行）；`App` 的 `tool_end` 成功 edit 追加 diff、失败附「下一步」，catch 统一 `describeFailure`；`formatTurnEndNote` 的 max_steps 带下一步；headless `index.ts` 复用 `errors.ts`；新增 `tests/diff.test.ts` 9 例、`tests/errors.test.ts` 4 例、`tests/diff-view.test.ts` 5 例，更新 ui/fs/tool-display 断言（全量 **296/296**，26 个测试文件）；S4-1 章节改为已完成并附证据、B 级 3 条已由用户 2026-11-24 实测通过，进度切到 S4-2 |
-| 2026-11-24 | S4-2 完成：重写 README.md（特性/环境要求/安装/配置/快速开始/命令与参数/架构图+数据流/目录结构/6 工具表/3 步加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引）；src/config.ts 的 --help banner 由「S0-3 骨架」改为「（v0.1）」、MEWCODE_SHELL 说明改「默认 Git Bash，其次 cmd.exe」；A 级：克隆到临时目录仅照 README 跑通 npm install（52 包/4s）→ typecheck 0 → tests 296/296 → --mock 0 → build 0 → dist 0，--help 显示 v0.1；B 级 3 条待用户，进度切到 S4-3 |
-| 2026-11-24 | S4-3 完成：`package.json` 增 `bin.mewagent`/`prepack`/`files`，入口加 shebang 且直跑判断改用 realpath（修 junction 下静默退出）；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例、全量 303/303；B 级 4 条待用户，进度切到 S4-4 |
+| 2026-11-24 | S4-2 完成：重写 README.md（特性/环境要求/安装/配置/快速开始/命令与参数/架构图+数据流/目录结构/6 工具表/3 步加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引）；src/config.ts 的 --help banner 由「S0-3 骨架」改为「（v0.1）」、MEWCODE_SHELL 说明改「默认 Git Bash，其次 cmd.exe」；A 级：克隆到临时目录仅照 README 跑通 npm install（52 包/4s）→ typecheck 0 → tests 296/296 → --mock 0 → build 0 → dist 0，--help 显示 v0.1；B 级 3 条已由用户 2026-11-24 实测通过，进度切到 S4-3 |
+| 2026-11-24 | S4-3 完成：`package.json` 增 `bin.mewagent`/`prepack`/`files`，入口加 shebang 且直跑判断改用 realpath（修 junction 下静默退出）；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例、全量 303/303；B 级 4 条已由用户 2026-11-24 实测通过，进度切到 S4-4 |
 | 2026-11-24 | hotfix（用户级 `.env`）：`src/config.ts` 新增 `resolveUserConfigDir`/`resolveUserEnvPath`/`resolveEnvFilePaths`（默认 `~/.mewcode/.env`，`MEWCODE_HOME` 可改目录），`src/index.ts` 启动时先加载用户级再加载项目 `.env`（优先级：shell 环境变量 > 项目 `.env` > 用户级 `.env` > 内置默认值）；缺 key/模型名错误同时提示两处路径与 `.env.example` 模板；`.env.example`、`README.md`（配置章 + 已知限制）、`docs/spec.md` §5.2/§13 同步；`tests/config.test.ts` +2 例（35/35）、全量 **305/305**、typecheck/build 0；A 级证据 `spikes/.out/cfg-a-level.txt`（cc-safety-net 规则 `secret.basename.env` 拦截 `.env` 创建/读取，无法在自动化里造用户级 `.env`，端到端待用户 B 级复核）；提交 `99aa4af` → squash main `2a2c2a7`，CI 两个 run（`45349323595`/`45349338720`）success、日志 305/305 |
-| 2026-11-24 | HF-1 完成：新增首启配置向导——`src/config.ts` 用户级 `config.json` 读写（`readUserConfig`/`saveUserConfig`/`resolveUserConfigPath`，0600）+ `--setup` + `findMissingConfig` + `resolveConfig` 第 4 参（CLI > env > 用户 config.json > 默认）；`src/setup/probe.ts` 连接测试（10s 超时、HTTP/网络/超时给下一步、不回显 key）；`src/ui/setup-state.ts` 纯逻辑校验/掩码；`src/ui/SetupWizard.tsx` 3 步向导（Enter 测试连接并保存 / `s` 跳过 / `e` 重填 / Esc 取消，key 用 `TextInput mask="•"`）；`src/ui/start-setup.tsx` 渲染桥；`src/index.ts` 交互式缺配置或 `--setup` 时弹向导，非 TTY 不弹；新增 25 例（setup 9 + user-config 6 + setup-wizard 10），全量 **330/330**（1 skip），build 0；E2E 证明无 cwd `.env` 时读取用户级 `config.json`；README 配置章加「首次启动向导」小节与优先级、命令表加 `--setup`、`.env.example` 加说明；B 级 4 条待用户，进度切到 S4-4 |
-| 2026-11-24 | S4-4 完成（v0.1.0 发布）：10 条成功标准逐项验收——全量回归 typecheck 0 / tests 330/330（329 pass + 1 skip）/ build 0 / help+version / mock 幂等 / dist 一致 / any 0 / 冒烟 SMOKE OK+APPROVAL SMOKE OK+ALL TOOLS OK；真实 API 验收（spikes/.out/s4-4-real-api.txt）：首字时延 1314ms（<2000ms）、真实模型 3 次工具调用（read_file→grep→bash，4 轮 LLM）、写审批拒绝原因回填且文件未创建；INTEGRATION OK（50 轮/恢复/拒绝/硬拦 25 断言）；中文输出无乱码；新增 docs/demo.md 3 分钟演示脚本并在 README §7 与文档索引链接；README 测试计数更新 30 文件/330 例；打 tag `v0.1.0` 并推送；B 级 4 条（演示走查/真实任务/成本/50 轮人肉）待用户 |
+| 2026-11-24 | HF-1 完成：新增首启配置向导——`src/config.ts` 用户级 `config.json` 读写（`readUserConfig`/`saveUserConfig`/`resolveUserConfigPath`，0600）+ `--setup` + `findMissingConfig` + `resolveConfig` 第 4 参（CLI > env > 用户 config.json > 默认）；`src/setup/probe.ts` 连接测试（10s 超时、HTTP/网络/超时给下一步、不回显 key）；`src/ui/setup-state.ts` 纯逻辑校验/掩码；`src/ui/SetupWizard.tsx` 3 步向导（Enter 测试连接并保存 / `s` 跳过 / `e` 重填 / Esc 取消，key 用 `TextInput mask="•"`）；`src/ui/start-setup.tsx` 渲染桥；`src/index.ts` 交互式缺配置或 `--setup` 时弹向导，非 TTY 不弹；新增 25 例（setup 9 + user-config 6 + setup-wizard 10），全量 **330/330**（1 skip），build 0；E2E 证明无 cwd `.env` 时读取用户级 `config.json`；README 配置章加「首次启动向导」小节与优先级、命令表加 `--setup`、`.env.example` 加说明；B 级 4 条已由用户 2026-11-24 实测通过，进度切到 S4-4 |
+| 2026-11-24 | S4-4 完成（v0.1.0 发布）：10 条成功标准逐项验收——全量回归 typecheck 0 / tests 330/330（329 pass + 1 skip）/ build 0 / help+version / mock 幂等 / dist 一致 / any 0 / 冒烟 SMOKE OK+APPROVAL SMOKE OK+ALL TOOLS OK；真实 API 验收（spikes/.out/s4-4-real-api.txt）：首字时延 1314ms（<2000ms）、真实模型 3 次工具调用（read_file→grep→bash，4 轮 LLM）、写审批拒绝原因回填且文件未创建；INTEGRATION OK（50 轮/恢复/拒绝/硬拦 25 断言）；中文输出无乱码；新增 docs/demo.md 3 分钟演示脚本并在 README §7 与文档索引链接；README 测试计数更新 30 文件/330 例；打 tag `v0.1.0` 并推送；B 级 4 条（演示走查/真实任务/成本/50 轮人肉）已由用户 2026-11-24 完成复核 |
