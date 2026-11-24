@@ -425,8 +425,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`tests/loop.test.ts` → **19/19（203.7ms）**；全量 `npm test` → **186/186（4108.8ms；原 167 + 19）**；手工演示 `spikes/.out/loop-demo.ts`（假 LLM 剧本 + 真实 `read_file`）事件序列 `tool_start → tool_end(ok=true) → assistant_text → turn_end: stop`、`steps=2 toolCallCount=1`、messages `system→user→assistant→tool→assistant`、`DEMO OK`。证据：`spikes/.out/s2-6-typecheck.txt`、`s2-6-loop.txt`、`s2-6-full.txt`、`s2-6-demo.txt`（均 gitignored）。
 - **B 级（待后续）**：testing.md S2-6 第 3–5 行（真实模型多工具任务、事件 UI、中途 Esc）需要 S2-7 把 loop 接进 TUI 后验；第 1/2 行已由 A 级覆盖。
 - **文档**：`docs/tasks.md` S2-6 done、焦点 S2-7；`docs/testing.md` L7/L128、S2-6 小节已完成（结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 3、line 83（十六个测试文件）、§13 新增 S2-6 ✅；`docs/checklist.md` registry+loop 项 `[x]`；`HANDOFF.md` line 5、§4「Agent Loop（S2-6）」决策行、§6。
-- **提交**：分支 `task/s2-6-loop` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
-- **CI**：`<待回填>`（task/s2-6-loop）、`<待回填>`（main）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 186 / # pass 186 / # fail 0`。
+- **提交**：分支 `task/s2-6-loop` 提交 `d5c36b0`（已 push，远端保留原始提交）→ squash 合并 main `a80c60f`；本条哈希回填提交并 push。
+- **CI**：`45305819855`（task/s2-6-loop, `d5c36b0`）、`45305826165`（main, `a80c60f`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 186 / # pass 186 / # fail 0`。
 - **坑**：①`options.signal?.aborted` 在两次检查间被 TS 收窄成 `false | undefined` 导致后续 `=== true` 报 TS2367 → 抽 `isAborted(signal)` 函数绕开；②非流式 provider 的 content 与 onText 流式文本可能重复 → 按「已流式文本是 content 前缀则只补差额」处理；③工具阶段 abort 必须给剩余每个 call 回填 tool 消息，否则下一轮 OpenAI 请求会因 tool_calls 无配对而 400；④测试里 gate 抛异常用例要断言工具未执行（计数）。
 - **下次第一步**：S2-7（UI 接线 `AgentEvent`：`tool_start`/`tool_end` 状态行与历史项、Esc 中断、`loop` 替换 `send`）；先读 `docs/testing.md` S2-7 与方案 §4/§6.9。
 

@@ -520,6 +520,7 @@ git status --short        # 确认没有把测试产物提交
 - 覆盖：纯文本流式单轮（逐段 `assistant_text` → `turn_end` stop）；工具→文本事件顺序（`tool_start` → `tool_end` → `assistant_text` → `turn_end`）与 assistant/tool 配对；一轮多工具；`maxSteps=3` 与默认 30；signal 启动前中止（0 次 `chat`）；工具执行中途中止（剩余工具回填中断 `Error:` 且配对完整、不再请求 LLM）；LLM 抛 AbortError 收敛；未知工具/坏 JSON 回填不崩且不双前缀；`ok:false` 自动补 `Error:`；gate 拒绝与 gate 抛异常；`systemPrompt` 归一；非流式 content 补发；signal 与 `registry.specs()` 透传；`createDefaultRegistry` 6 工具；`maxSteps=0` 拒绝。
 - 手工演示（`spikes/.out/loop-demo.ts`，gitignored）：假 LLM 剧本「`read_file` package.json → 总结」，用真实文件工具跑 `runAgent`；事件序列 `tool_start` → `tool_end(ok=true)` → `assistant_text` → `turn_end: stop`；`stopReason=stop steps=2 toolCallCount=1`，messages `system → user → assistant → tool → assistant`，输出 `DEMO OK`。
 - 记录：`spikes/.out/s2-6-typecheck.txt`、`s2-6-loop.txt`、`s2-6-full.txt`、`s2-6-demo.txt`（均 gitignored）。
+- CI（gh 只读）：`45305819855`（task/s2-6-loop, `d5c36b0`）、`45305826165`（main, `a80c60f`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 186 / # pass 186 / # fail 0`。
 
 **实现要点**：`runAgent` 注入 `llm/tools/workspace/emit/gate/maxSteps/signal`；事件顺序 `assistant_text* → (tool_start → tool_end)* → … → turn_end`；`tool_start.args` 解析失败为 `null`（契约）；tool 消息失败保证单个 `Error:` 前缀；Gate 预留（S3 接线）；`max_steps` / `aborted` 以事件 + 返回值收敛而非抛异常；非中断 LLM 错误向上抛。
 
