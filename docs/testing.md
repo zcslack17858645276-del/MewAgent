@@ -636,6 +636,8 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/session.test.ts` 14/14；定向 `tests/config.test.ts`+`tests/session.test.ts` 47/47；全量 `npm test` **258/258**（`spikes/.out/s3-3-full2.txt`）；`npm run build` exit 0；`src/session/store.ts` `\bany\b` 0 匹配。记录文件 `spikes/.out/s3-3-typecheck4.txt`、`s3-3-targeted2.txt`、`s3-3-full2.txt`、`s3-3-build.txt`（gitignored）。
 
+**CI 证据**：`45322608903`（task 分支, `49d6f03`）、`45322616714`（main, `da13fc2`）success；job `typecheck + test (Node 22)` 日志 `# tests 258 / # pass 258 / # fail 0`。
+
 **实现要点**：`src/session/store.ts` 导出 `resolveSessionPath` / `loadSession(workspace, {forceNew?})` / `saveSession(workspace, model, messages, {createdAt?, now?})`；路径 `<workspace>/.mewcode/session.json`；格式 `{version:1, workspace, model, createdAt, updatedAt, messages}`；只存 user/assistant/tool（system 每次启动重建、加载时静默跳过）；保存先写 `.tmp` 再 `rename` 原子替换，空历史不落盘，失败返回 `{ok:false, reason}` 不抛异常；加载 ENOENT→空会话、坏 JSON/未知版本/非法消息→`corrupt`+可读原因；`src/index.ts` 交互分支启动时加载并注入 `initialMessages`/`restoredMessageCount`/`sessionNotice`，每轮结束（含中断）调用 `persistMessages` 落盘，失败仅打 `警告：会话保存失败：…`；headless 不读写会话。
 
 **已知限制**：会话文件只存消息与元信息，不含 UI 历史项（工具 ✅/❌ 行不恢复，只恢复对话消息）；同一工作区只有一个会话文件（多开互相覆盖，v0.2 再做多会话）；`updatedAt` 用本机时间，不保证跨机一致。

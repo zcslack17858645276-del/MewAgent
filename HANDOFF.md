@@ -486,8 +486,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收**：`npm run typecheck` exit 0；`tests/session.test.ts` 14/14；定向 config+session 47/47；全量 `npm test` **258/258**（原 241 + 17）；`npm run build` exit 0；`src/session/store.ts` 无 `any`。证据 `spikes/.out/s3-3-{typecheck4,targeted2,full2,build}.txt`（gitignored）。
 - **B 级**：2–5 待用户（聊 2 轮退出重进恢复提示、`--new` 全新、手工改坏 session.json 不崩溃、`git status` 不含 `.mewcode/`）。
 - **文档**：`docs/tasks.md` S3-3 done、焦点 S3-4；`docs/testing.md` L7/L128 + S3-1 第 2/3/4/7 行用户已验 + S3-2 B 级段 + S3-3 已完成小节 + 附录 C/D；`docs/spec.md` L3/L83/§7/§13/§3 标准 #7；`docs/checklist.md` session 项与标准 #5/#7；本节。
-- **提交**：分支 `<待回填>` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`。
-- **CI**：`<待回填>`（task 分支）、`<待回填>`（main）success，日志 `# tests 258 / # pass 258 / # fail 0`。
+- **提交**：分支 `task/s3-3-session` 提交 `49d6f03`（已 push，远端保留）→ squash 合并 main `da13fc2`。
+- **CI**：`45322608903`（task 分支, `49d6f03`）、`45322616714`（main, `da13fc2`）success，日志 `# tests 258 / # pass 258 / # fail 0`。
 - **坑**：①`tests/session.test.ts` 初版用 `require("node:fs")` 包装（ESM+tsx 下无 `require`）→ 改静态 import；②`tests/config.test.ts` 新增用例里 `oldMessages` 需显式 `Message[]` 否则 role 被推断为 string（TS2322）；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
 - **下次第一步**：S3-4（`src/context/tokens.ts` + `compress.ts`：按用户轮次压缩、工具调用/结果配对不破坏、50 轮模拟不超限），依据 `docs/testing.md` S3-4 与方案 §4/§6.7。
 
