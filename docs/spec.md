@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）；S4-2 已完成（README 重写：安装/配置/命令/架构图/3 步加工具教程等齐全，`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 install → typecheck → 296/296 → `--mock` → build → dist），**下一任务 S4-3（打包与启动）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）；S4-2 已完成（README 重写：安装/配置/命令/架构图/3 步加工具教程等齐全，`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 install → typecheck → 296/296 → `--mock` → build → dist），已由用户 2026-11-24 在另一台机器实测通过；S4-3 已完成（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口 shebang + realpath 直跑判断；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303），**下一任务 S4-4（10 条成功标准 + 3 分钟 demo + tag `v0.1.0`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -24,7 +24,7 @@ MCP / Skill / Hook / SubAgent / Agent Teams / Git Worktree / 多模型路由 / �
 | 6 | 连续 50 轮不爆上下文 | 是 | ⬜ 待 S3 |
 | 7 | 重启后恢复最近会话 | 是 | 🔄 代码完成（S3-3：`.mewcode/session.json` 每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258），待用户重启实测 B 级 2–5 |
 | 8 | Windows Terminal 中文输入输出不乱码 | 是 | ✅ 输入已验证（S0-1 判定 A）；输出随 TUI 在 S1 复验 |
-| 9 | 一条命令启动 | 是 | ✅ `npm run dev` |
+| 9 | 一条命令启动 | 是 | ✅ `npm run dev`；S4-3 起全局 `mewagent`（npm link）与 `npx .` 也可一条命令启动 |
 | 10 | README 快速开始 + 测试 + 3 分钟演示 | 是 | 🚧 S0-5 起草文档，S4 完成演示 |
 
 ## 4. 架构
@@ -225,7 +225,8 @@ finish: stop
 - 自动化：`npm run typecheck` + `npm test`（node:test），CI 在 ubuntu-latest / Node 22 跑同样三条命令。
 - 手工：`docs/testing.md` 按 task 分 A/B/C 级；P0 未过不得标 done。
 - 发布前逐条勾选 `docs/checklist.md`。
-- 新用户可照 `README.md` 从 clone 到跑通（S4-2 A 级已在克隆副本验证；README 含安装、配置、命令、架构图、加工具教程）。
+- 新用户可照 `README.md` 从 clone 到跑通（S4-2 A 级已在克隆副本验证，B 级已由用户在另一台机器通过；README 含安装、配置、命令、架构图、加工具教程）。
+- 打包与启动（S4-3）：`package.json` 配 `bin` / `prepack` / `files`，入口带 shebang；`npm link`、`npx .`、含空格/中文路径启动、`npm unlink -g` 清理均在 Windows 实测（A 级；`tests/packaging.test.ts` 5 例回归）。
 
 ## 13. 阶段状态（2026-11-24）
 
@@ -259,8 +260,9 @@ finish: stop
 | S3-5 | S3 集成验收：全量回归 + 脚本化集成（50 轮压缩 / 会话重启恢复 / 审批拒绝后继续 / 危险命令硬拦）+ tag `v0.1-s3` | ✅（typecheck 0 / tests 277/277 / help+version / mock 幂等 / build+dist 一致 / any 0；TUI 冒烟 `SMOKE OK` / 审批冒烟 `APPROVAL SMOKE OK` / 6 工具 `ALL TOOLS OK`；脚本化集成 25 项断言 `INTEGRATION OK`；tag 已 push） |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ✅（tag `v0.1-s3` 已 push） |
 | S4-1 | `src/tools/diff.ts` 行级 unified diff + `edit_file` 输出 diff + `src/ui/diff-view.ts`/`HistoryItem` 红绿 diff 条目（带行号、最多 80 行）+ `src/errors.ts` 统一错误描述（HTTP/网络/中断/工具失败/超步数，均带「下一步」）+ headless 复用 | ✅（`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例；ui/fs/tool-display 断言更新；全量 296/296；TUI 冒烟 `SMOKE OK`；B 级 3 条待用户） |
-| S4-2 | `README.md` 重写（定位/特性/环境要求/安装/配置/快速开始/命令与参数/架构图+数据流/目录结构/6 工具表/3 步加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引）；`src/config.ts` 的 `--help` banner 改「（v0.1）」、`MEWCODE_SHELL` 说明更新 | ✅（A 级：仓库克隆到临时目录后仅照 README 跑通 `npm install`（52 包/4s）→ typecheck 0 → 296/296 → `--mock` 0 → build 0 → dist 0；B 级 3 条待用户） |
-| S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1/S4-2 完成，下一 S4-3） |
+| S4-2 | `README.md` 重写（定位/特性/环境要求/安装/配置/快速开始/命令与参数/架构图+数据流/目录结构/6 工具表/3 步加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引）；`src/config.ts` 的 `--help` banner 改「（v0.1）」、`MEWCODE_SHELL` 说明更新 | ✅（A 级：仓库克隆到临时目录后仅照 README 跑通 `npm install`（52 包/4s）→ typecheck 0 → 296/296 → `--mock` 0 → build 0 → dist 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过） |
+| S4-3 | 打包与启动：`package.json` 增 `bin.mewagent=./dist/index.js` / `prepack` 构建 / `files` 白名单；`src/index.ts` 加 shebang，直跑判断改用 realpath（修 junction 下静默退出） | ✅（`npm link` 后任意目录 `--version`/`--help`/`--mock --print` 0（含空格+中文路径）、`npx . --mock --print hello` 0、`npm unlink -g mewagent` 无残留、`npm pack` 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303；B 级 4 条待用户） |
+| S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1/S4-2/S4-3 完成，下一 S4-4） |
 
 已知边界（v0.1）：
 

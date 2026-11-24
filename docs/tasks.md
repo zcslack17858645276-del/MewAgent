@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S4-3（打包与启动）**
+**当前焦点：S4-4（10 条成功标准逐项验收 + 3 分钟 demo + tag `v0.1.0`）**
 **最后更新：2026-11-24**
 
 ---
@@ -60,8 +60,8 @@
 | ID | 任务 | 估时 | 状态 | 验收 |
 |---|---|---|---|---|
 | S4-1 | edit diff 展示 + 统一错误展示（网络/工具/权限/超步数） | 4h | done | 错误信息带"下一步怎么做"（证据：`src/tools/diff.ts` + `src/ui/diff-view.ts` 红绿 diff 条目，`src/errors.ts` 统一 HTTP/网络/中断/工具/超步数描述；`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例 + ui/fs/tool-display 断言更新；全量 296/296、build 0、TUI 冒烟 `SMOKE OK`；B 级 3 条已由用户 2026-11-24 实测通过，见 `docs/testing.md` S4-1 与 HANDOFF §7 会话 28） |
-| S4-2 | README（安装/配置/用法/架构/加工具教程）+ docs 收尾 | 3h | done | README 重写（安装/配置/命令/架构图/3 步加工具教程/权限/压缩/错误/测试/Windows/限制），`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 `npm install`（52 包/4s）→ typecheck 0 → **296/296** → `--mock` 0 → build 0 → dist 0；B 级 3 条待用户，见 `docs/testing.md` S4-2 |
-| S4-3 | 打包与启动验证（`npm link` 或 `npx .`，Windows 实测） | 2h | todo | 一条命令启动 |
+| S4-2 | README（安装/配置/用法/架构/加工具教程）+ docs 收尾 | 3h | done | README 重写（安装/配置/命令/架构图/3 步加工具教程/权限/压缩/错误/测试/Windows/限制），`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 `npm install`（52 包/4s）→ typecheck 0 → **296/296** → `--mock` 0 → build 0 → dist 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过（clone → 按 README 跑通），见 `docs/testing.md` S4-2 |
+| S4-3 | 打包与启动验证（`npm link` 或 `npx .`，Windows 实测） | 2h | done | 一条命令启动：`package.json` 增 `bin.mewagent=./dist/index.js` + `prepack` 构建 + `files` 白名单，入口加 shebang 且直跑判断改用 realpath（修 `npm link`/`npx` 经 junction 启动时静默退出的问题）；A 级：`npm link` 后任意目录 `mewagent --version/--help/--mock --print`（含空格+中文路径）均 exit 0、`npx . --mock --print hello` exit 0、`npm unlink -g mewagent` 后无残留、`npm pack --dry-run` 77 项/230KB 仅含 dist+README+docs；`tests/packaging.test.ts` 5 例，全量 303/303；B 级 4 条待用户；证据见 `docs/testing.md` S4-3 |
 | S4-4 | 10 条成功标准逐项验收 + 3 分钟 demo + tag `v0.1.0` | 3h | todo | HANDOFF §1 成功标准全勾 |
 
 ---

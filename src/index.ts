@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // MewAgent CLI 入口：参数解析 → 配置校验 → 交互 / headless 分发。
 //
 // 边界（方案 §3.1）：本文件只做参数与 IO 编排，不直接调 LLM、不读输入循环；
@@ -5,10 +6,10 @@
 // 本文件保证：`--help` / `--version` 可用、缺 key / 未知参数 / 无 TTY 的报错可操作、
 // `--print` 走 headless（S1-5：mock 两轮 / 真实 API 流式）、TUI 走交互渲染。
 
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { runAgent } from "./agent/loop.js";
 import { buildSystemPrompt } from "./agent/prompt.js";
@@ -434,10 +435,23 @@ export async function main(
   }
 }
 
-const entryPath = process.argv[1];
-const isDirectRun =
-  entryPath !== undefined && pathToFileURL(entryPath).href === import.meta.url;
+// 直接运行时才启动 CLI。比较真实路径而不是字面 URL：
+// `npm link` / `npx` 会把 dist/index.js 通过 junction/symlink 暴露出去，
+// 此时 process.argv[1] 是链接路径，而 import.meta.url 已被 Node 解析为真实路径。
+function isDirectRun(): boolean {
+  const entryPath = process.argv[1];
+  if (entryPath === undefined) {
+    return false;
+  }
+  try {
+    const entryReal = realpathSync(path.resolve(entryPath));
+    const moduleReal = realpathSync(fileURLToPath(import.meta.url));
+    return path.resolve(entryReal) === path.resolve(moduleReal);
+  } catch {
+    return pathToFileURL(entryPath).href === import.meta.url;
+  }
+}
 
-if (isDirectRun) {
+if (isDirectRun()) {
   process.exitCode = await main(process.argv.slice(2));
 }
