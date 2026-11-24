@@ -313,7 +313,7 @@ export function readPackageVersion(): string {
 /** `--help` 的完整用法文本。 */
 export function usage(version: string): string {
   return [
-    `mewagent ${version} — 终端里的 AI 编程助手（S0-3 骨架）`,
+    `mewagent ${version} — 终端里的 AI 编程助手（v0.1）`,
     "",
     "用法：",
     "  mewagent [选项] [prompt...]",
@@ -337,7 +337,7 @@ export function usage(version: string): string {
     "  MEWCODE_DEBUG          设为 1 时把请求体打到 stderr（不含 key，可安全粘贴）",
     "  MEWCODE_MOCK_DELAY_MS  mock 离线模式的慢速流式块间延迟（毫秒，默认 0）",
     "  MEWCODE_CONTEXT_TOKENS 上下文预算（token，默认 128000；调小可观察压缩行为）",
-    "  MEWCODE_SHELL          覆盖 Windows 下的 shell 选择（S2 使用）",
+    "  MEWCODE_SHELL          覆盖 Windows 下的 shell 选择（默认 Git Bash，其次 cmd.exe）",
     "",
     "示例：",
     "  npm run dev -- --help",
