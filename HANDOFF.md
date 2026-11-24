@@ -474,8 +474,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收**：`npm run typecheck` exit 0；`tests/approval.test.ts` 9/9；全量 `npm test` **241/241**（4130.6ms；原 232 + 9）；假 stdin 冒烟 `APPROVAL SMOKE OK`（y 放行 / a 后同类不问 / Esc 拒绝且文件未改 / 非 y·a·n 键被忽略 / Ctrl+C 退出）。证据 `spikes/.out/s3-2-{typecheck3,full,smoke3}.txt`（gitignored）。
 - **B 级**：4 条待用户（审批时输入框失焦、Esc=拒绝、其它键被忽略、长参数摘要可读）；S3-1 第 2/3/4/7 行可随本轮审批 UI 复验。
 - **文档**：`docs/tasks.md` S3-2 done、焦点 S3-3；`docs/testing.md` S3-1 第 5/6/8 行标用户已验 + B 级段 + S3-2 已完成小节 + 附录 C/D；`docs/spec.md` L3/L83/§7/§9/§13；`docs/checklist.md` permissions 证据补审批 UI、标准 #5 更新；本节。
-- **提交**：分支 `task/s3-2-approval` 提交 `<待回填>`（已 push，远端保留）→ squash main `<待回填>`；docs 哈希回填提交 `<待回填>`。
-- **CI**：`<待回填>`（task 分支 / main / docs）success，日志 `# tests 241 / # pass 241 / # fail 0`。
+- **提交**：分支 `task/s3-2-approval` 提交 `19f3dd9` "feat(ui): 交互审批弹窗与审批桥"（11 files，+447/−36；已 push，远端保留）→ squash 合并 main `f90763b`。
+- **CI**：`45320602743`（task 分支, `19f3dd9`）、`45320608950`（main, `f90763b`）success，日志 `# tests 241 / # pass 241 / # fail 0`。
 - **坑**：①审批冒烟先用 write_file 测拒绝，但 write_file 已被 `a` 加入白名单 → 改用 edit_file；②「用户拒绝了 edit_file」断言被 Ink 折行拆断 → 拆成「用户拒绝了」+「权限被拒绝」两个断言；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
 - **下次第一步**：S3-3（`src/session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`、损坏文件降级），依据 `docs/testing.md` S3-3 与方案 §4/§6.8。
 

@@ -614,7 +614,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 | 3 | B | 按其它键 | 被忽略或提示可用键，不误操作 | ⏳ 待用户（冒烟覆盖 `x` 被忽略；statusLine 常驻提示可用键） | P1 |
 | 4 | B | 参数很长时 | 摘要可读，不刷屏 | ⏳ 待用户（`summarizeToolCall` 摘要 ≤161 字符，含截断；单测覆盖） | P1 |
 
-**A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/approval.test.ts` 9/9（controller `ask`/`respond`/订阅、重叠请求拒绝、a 白名单、n 拒绝原因、Esc→拒绝、ApprovalPrompt 渲染含工具名/摘要/选项）；全量 `npm test` **241/241**（4130.6ms，`spikes/.out/s3-2-full.txt`）；假 stdin 审批冒烟 `APPROVAL SMOKE OK`（`spikes/.out/approval-smoke.tsx`，证据 `spikes/.out/s3-2-smoke3.txt`）：y 允许 → 文件创建；a → 同类第二次不再问；Esc → 拒绝且文件未改、模型收到拒绝并回复；非 y/a/n 键被忽略；空闲 Ctrl+C 退出。
+**A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/approval.test.ts` 9/9（controller `ask`/`respond`/订阅、重叠请求拒绝、a 白名单、n 拒绝原因、Esc→拒绝、ApprovalPrompt 渲染含工具名/摘要/选项）；全量 `npm test` **241/241**（4130.6ms，`spikes/.out/s3-2-full.txt`）；假 stdin 审批冒烟 `APPROVAL SMOKE OK`（`spikes/.out/approval-smoke.tsx`，证据 `spikes/.out/s3-2-smoke3.txt`）：y 允许 → 文件创建；a → 同类第二次不再问；Esc → 拒绝且文件未改、模型收到拒绝并回复；非 y/a/n 键被忽略；空闲 Ctrl+C 退出。CI（GitHub Actions, ubuntu Node 22）：`45320602743`（task 分支, `19f3dd9`）/`45320608950`（main, `f90763b`）success，日志 `# tests 241 / # pass 241 / # fail 0`。
 
 **实现要点**：`src/ui/approval.ts` 审批桥（`ask` 返回挂起 Promise，`subscribe`/`current`/`respond`；重叠审批抛错）；`src/ui/ApprovalPrompt.tsx` 只接受单字符 y/a/n，Esc→n；App 用 `awaiting_approval` 展示态（`pendingApproval` 非空时隐藏光标、输入框失焦、状态行常驻提示）；`start-tui`/`index.ts` 透传 controller 给 gate 的 `ask`；headless 不变（无 ask，写操作直接拒绝）。
 
