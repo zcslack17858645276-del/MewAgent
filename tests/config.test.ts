@@ -35,6 +35,10 @@ import {
 import { main } from "../src/index.js";
 import type { FetchLike } from "../src/llm/openai.js";
 import type { AgentEvent, Message } from "../src/types.js";
+import type {
+  SetupOutcome,
+  SetupWizardRequest,
+} from "../src/ui/start-setup.js";
 import type { StartTuiOptions } from "../src/ui/start-tui.js";
 
 function makeTempDir(): string {
@@ -100,6 +104,8 @@ interface RunOptions {
   fetchImpl?: FetchLike;
   /** 覆盖 `.env` 加载钩子（默认空实现，测试不读真实 .env）。 */
   loadDotEnv?: (envPath: string) => void;
+  /** 注入首次配置向导：默认返回取消，避免测试真的进入 Ink 渲染。 */
+  runSetupWizard?: (request: SetupWizardRequest) => Promise<SetupOutcome>;
 }
 
 interface RunResult {
@@ -130,6 +136,9 @@ async function runCli(argv: string[], options: RunOptions = {}): Promise<RunResu
       err += text;
     },
     startTui: options.startTui ?? (async () => {}),
+    runSetupWizard:
+      options.runSetupWizard ??
+      (async () => ({ kind: "cancelled" }) as SetupOutcome),
     fetchImpl: options.fetchImpl,
   });
   return { code, out, err };

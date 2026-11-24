@@ -79,6 +79,8 @@
 - [x] diff 与错误展示（S4-1，2026-11-24）。
   - 证据：`edit_file` 输出行级 unified diff（`src/tools/diff.ts`，`--- a/`/`+++ b/`/`@@`/4 位行号）→ TUI 解析为红删/绿增/青 hunk 历史条目（`src/ui/diff-view.ts` + `HistoryItem`，最多 80 行）；HTTP（401/403/404/429/5xx）、网络（含代理提示）、中断、工具失败、权限拒绝、超步数统一由 `src/errors.ts` 产出「发生了什么 + 下一步」，TUI 与 headless 共用；`formatTurnEndNote` 的 max_steps 也带下一步。
   - 测试：`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例，ui/fs/tool-display 断言同步更新，全量 **296/296**（26 个测试文件）；`npm run typecheck` 0、`build` 0、TUI 冒烟 `SMOKE OK`、`src/` 无 `any`；B 级 3 条已由用户 2026-11-24 实测通过（`docs/testing.md` S4-1 小节）。
+- [x] 首次启动配置向导（HF-1，2026-11-24）。交互式缺配置时弹 3 步向导（base-url / 模型 / API key），可测试连接后保存到用户级 `config.json`（0600），`--setup` 重跑、非 TTY 不弹；`resolveConfig` 优先级 CLI > env > 用户 `config.json` > 默认。
+  - 证据：`src/config.ts`（`UserConfig`/`readUserConfig`/`saveUserConfig`/`findMissingConfig`）、`src/setup/probe.ts`（10s 超时连接测试、错误带下一步、不回显 key）、`src/ui/SetupWizard.tsx` + `src/ui/start-setup.tsx`、`src/index.ts` 接入；`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 **330/330**（1 skip），build 0；E2E 证明无 cwd `.env` 时从用户级 `config.json` 读取 model/key/base-url；B 级 4 条待用户（`docs/testing.md` HF-1 小节）。
 - [ ] 全量回归 + 十条成功标准逐条证据。
 - [ ] 发布清单通过，打 tag `v0.1.0` 并 push。
 

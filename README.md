@@ -149,7 +149,21 @@ npm unlink -g mewagent
 
 ## 配置
 
-配置优先级：**命令行参数 > 环境变量 > 项目 `.env` > 用户级 `.env` > 内置默认值**。两处 `.env` 都会被加载（加载时不会覆盖已存在的环境变量），`.env` 已在 `.gitignore` 中，别提交真实 key。
+配置优先级：**命令行参数 > 环境变量 > 项目 `.env` > 用户级 `.env` > 用户级 `config.json` > 内置默认值**。两处 `.env` 都会被加载（加载时不会覆盖已存在的环境变量），`.env` 已在 `.gitignore` 中，别提交真实 key。
+
+**首次启动向导**（推荐，尤其是 `npm link`/`npx` 全局安装后）：在交互式终端里第一次运行 `mewagent`（且当前没有可用配置）会自动弹出 3 步向导：
+
+1. API 地址（默认 `https://api.deepseek.com`）
+2. 模型名（例如 `deepseek-chat`）
+3. API key（输入时不显示；已有 key 时可留空保留）
+
+确认页可以按 Enter **先测试连接再保存**，或按 `s` 跳过测试直接保存。结果写入用户级 `config.json`（Windows `%USERPROFILE%\.mewcode\config.json`，`MEWCODE_HOME` 可改目录），之后在任何目录启动都会自动使用，不必手写 `.env`。想重新配置运行：
+
+```bash
+mewagent --setup
+```
+
+非交互终端（`--print`、CI）不会弹向导，仍可用环境变量 / `.env` 配置。
 
 **项目级**（适合单个项目内使用）：
 
@@ -217,6 +231,7 @@ npm run dev -- [选项] [prompt...]
 | `--new` | 开始新会话（忽略历史会话文件） |
 | `--mock` | 离线 mock 模型：不联网、不需要 API key |
 | `--print` | headless 模式：不启动 TUI，跑一轮后输出（prompt 取自位置参数或 stdin） |
+| `--setup` | 运行首次配置向导（base-url / 模型 / API key，保存到用户级 `config.json`）；需要交互式终端 |
 | `--` | 其后的内容都当作 prompt 文本 |
 
 示例：
@@ -227,6 +242,7 @@ npm run dev -- --mock --print "你好"
 npm run dev -- --print "总结这个仓库"            # 真实 API，无 TTY 也能跑
 npm run dev -- --workspace D:\work\my-project
 npm run dev -- --print -- --help                # prompt 就是 "--help" 这两个字符
+mewagent --setup                                 # 重新配置 API 地址/模型/key
 ```
 
 > `--` 是 POSIX 的“选项结束”标记，由**紧挨着它的程序**消费。经 `npm run dev` 时 shell 先把参数传给 npm，npm 用第一个 `--` 传给脚本；如果 prompt 本身要以 `-` 开头，需要再写一个 `--`（`-- -- -rf`）。原则：包装几层，就写几个 `--`。
@@ -494,6 +510,7 @@ npm run build         # 输出 dist/
 - 主要在 Windows 上开发与验收，macOS/Linux 仅保证 CI 单测通过；
 - Node < 20.12 时没有 `process.loadEnvFile`，程序会自动改用内置 `.env` 解析（已模拟验证）；其他 Node 22 相关差异未逐一适配。
 - `.env` 只在两处查找：**当前工作目录**与用户级配置目录（`~/.mewcode/.env`，可用 `MEWCODE_HOME` 改）；从项目子目录启动时不会自动向上查找仓库根目录的 `.env`（可改用 `--workspace` 或用户级配置）。
+- 首次配置向导只在**交互式终端**弹出；`--print`、管道、CI 等非交互场景不会弹（仍可用环境变量 / `.env` 配置）。
 
 v0.2 候选（尚未排期）：
 

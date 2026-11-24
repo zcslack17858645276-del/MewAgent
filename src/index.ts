@@ -14,15 +14,20 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { runAgent } from "./agent/loop.js";
 import { buildSystemPrompt } from "./agent/prompt.js";
 import {
+  DEFAULT_BASE_URL,
+  DEFAULT_SUGGESTED_MODEL,
   CliError,
+  findMissingConfig,
   loadDotEnv,
   parseArgs,
   readPackageVersion,
+  readUserConfig,
   resolveConfig,
   resolveEnvFilePaths,
+  saveUserConfig,
   usage,
 } from "./config.js";
-import type { AppConfig } from "./config.js";
+import type { AppConfig, UserConfig } from "./config.js";
 import type { CompressResult } from "./context/compress.js";
 import { DEFAULT_CONTEXT_TOKENS } from "./context/tokens.js";
 import { describeFailure, describeHttpStatus, describeToolFailure, isNetworkFailure } from "./errors.js";
@@ -35,8 +40,11 @@ import type { LlmClient, Message, ToolResult } from "./types.js";
 import { createDefaultRegistry } from "./tools/index.js";
 import type { RunAgentTurn } from "./ui/App.js";
 import { createApprovalController } from "./ui/approval.js";
+import { runSetupWizard } from "./ui/start-setup.js";
+import type { SetupOutcome, SetupWizardRequest } from "./ui/start-setup.js";
 import { startTui } from "./ui/start-tui.js";
 import type { StartTuiOptions } from "./ui/start-tui.js";
+import { probeConnection } from "./setup/probe.js";
 
 /** 入口依赖（测试注入用）：默认全部走真实 `process` / 文件系统。 */
 export interface MainDeps {
@@ -52,6 +60,8 @@ export interface MainDeps {
   loadDotEnv?: (envPath: string) => void;
   /** 交互 TUI 启动钩子；测试注入假实现，避免真的进入 Ink 渲染。 */
   startTui?: (options: StartTuiOptions) => Promise<void>;
+  /** 首启配置向导钩子；测试注入假实现，避免真的进入 Ink 渲染。 */
+  runSetupWizard?: (request: SetupWizardRequest) => Promise<SetupOutcome>;
   /** 真实 API 的 fetch 注入；测试用假 SSE 流，避免联网。 */
   fetchImpl?: FetchLike;
 }
@@ -324,8 +334,82 @@ export async function main(
       loadEnv(envPath);
     }
 
-    const config = resolveConfig(options, env, cwd);
+    // 用户级结构化配置（首次配置向导写入的 config.json）；损坏只警告，不阻断启动。
+    let stored: UserConfig = {};
+    const storedRead = readUserConfig(env);
+    if (storedRead.kind === "loaded") {
+      stored = storedRead.config;
+    } else if (storedRead.kind === "corrupt") {
+      writeError(
+        `警告：用户配置文件损坏，已忽略（${storedRead.path}）。\n原因：${storedRead.reason}\n下一步：运行 mewagent --setup 重新生成，或删除该文件后重试。\n`,
+      );
+    }
+
     const version = readPackageVersion();
+    const interactive = !options.print && stdinIsTTY && stdoutIsTTY;
+    if (options.setup && !interactive) {
+      throw new CliError(
+        "--setup 需要交互式终端（TTY）。\n下一步：在 Windows Terminal 等终端里运行 mewagent --setup；非交互场景请改用环境变量或 .env 配置。",
+      );
+    }
+
+    const missing = findMissingConfig(options, env, stored);
+    if (options.setup || (interactive && (missing.model || missing.apiKey))) {
+      const existingKey =
+        (env.MEWCODE_API_KEY ?? "").trim() !== ""
+          ? env.MEWCODE_API_KEY?.trim()
+          : stored.apiKey;
+      const initialBaseUrl =
+        (
+          options.baseUrl ??
+          env.MEWCODE_BASE_URL ??
+          stored.baseUrl ??
+          DEFAULT_BASE_URL
+        )
+          .trim()
+          .replace(/\/+$/, "") || DEFAULT_BASE_URL;
+      const initialModel =
+        (options.model ?? env.MEWCODE_MODEL ?? stored.model)?.trim() ||
+        DEFAULT_SUGGESTED_MODEL;
+      const wizard = deps.runSetupWizard ?? runSetupWizard;
+      const outcome = await wizard({
+        version,
+        initial: {
+          baseUrl: initialBaseUrl,
+          model: initialModel,
+          hasApiKey: existingKey !== undefined,
+        },
+        probe: (draft) =>
+          probeConnection({
+            baseUrl: draft.baseUrl,
+            model: draft.model,
+            apiKey: draft.apiKey !== "" ? draft.apiKey : (existingKey ?? ""),
+            fetchImpl: deps.fetchImpl,
+          }),
+        onSubmit: (draft) => {
+          const toSave: UserConfig = {
+            baseUrl: draft.baseUrl,
+            model: draft.model,
+            ...(draft.apiKey === "" ? {} : { apiKey: draft.apiKey }),
+          };
+          return saveUserConfig(env, toSave);
+        },
+      });
+      if (outcome.kind === "cancelled") {
+        throw new CliError(
+          "已取消首次配置向导。\n下一步：重新运行 mewagent 再试；或运行 mewagent --setup；也可以改用环境变量或 .env 配置（见 README）。",
+        );
+      }
+      stored = { ...stored, ...outcome.config };
+      if (options.setup) {
+        write(
+          `配置已保存：${outcome.path}\n下一步：运行 mewagent 开始对话（在任何目录都可以）；想重新配置再运行 mewagent --setup。\n`,
+        );
+        return 0;
+      }
+    }
+
+    const config = resolveConfig(options, env, cwd, stored);
 
     if (!config.print && !(stdinIsTTY && stdoutIsTTY)) {
       throw new CliError(
