@@ -29,7 +29,7 @@ import {
 } from "../src/config.js";
 import { main } from "../src/index.js";
 import type { FetchLike } from "../src/llm/openai.js";
-import type { AgentEvent } from "../src/types.js";
+import type { AgentEvent, Message } from "../src/types.js";
 import type { StartTuiOptions } from "../src/ui/start-tui.js";
 
 function makeTempDir(): string {
@@ -489,6 +489,129 @@ test("main：TTY 下启动交互 TUI（注入 startTui，退出 0）", async () 
     if (finalMessage?.role === "assistant") {
       assert.match(finalMessage.content, /离线 mock|两轮/);
     }
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+test("main：TUI 启动时恢复上次会话（S3-3）", async () => {
+  const cwd = makeTempDir();
+  try {
+    const sessionDir = path.join(cwd, ".mewcode");
+    mkdirSync(sessionDir, { recursive: true });
+    const oldMessages: Message[] = [
+      { role: "user", content: "上一轮问题" },
+      { role: "assistant", content: "上一轮回答", toolCalls: [] },
+    ];
+    const stored = {
+      version: 1,
+      workspace: path.resolve(cwd),
+      model: "deepseek-chat",
+      createdAt: "2026-11-20T00:00:00.000Z",
+      updatedAt: "2026-11-20T00:00:00.000Z",
+      messages: oldMessages,
+    };
+    writeFileSync(path.join(sessionDir, "session.json"), JSON.stringify(stored), "utf8");
+
+    const captured: StartTuiOptions[] = [];
+    const result = await runCli(["--mock"], {
+      cwd,
+      env: {},
+      stdinIsTTY: true,
+      stdoutIsTTY: true,
+      startTui: async (options) => {
+        captured.push(options);
+      },
+    });
+    assert.equal(result.code, 0);
+    const tui = captured[0];
+    assert.ok(tui !== undefined);
+    assert.equal(tui.restoredMessageCount, 2, "恢复条数应等于文件里的消息数");
+    assert.deepEqual(tui.initialMessages, oldMessages);
+    assert.equal(tui.sessionNotice, undefined);
+
+    // 每轮结束的 persistMessages 应写回文件，并保留原有 createdAt。
+    assert.ok(tui.persistMessages !== undefined);
+    tui.persistMessages([
+      ...oldMessages,
+      { role: "user", content: "新问题" },
+      { role: "assistant", content: "新回答", toolCalls: [] },
+    ]);
+    const saved = JSON.parse(
+      readFileSync(path.join(sessionDir, "session.json"), "utf8"),
+    ) as Record<string, unknown>;
+    assert.equal(saved["createdAt"], stored.createdAt);
+    assert.equal((saved["messages"] as readonly unknown[]).length, 4);
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+test("main：会话文件损坏时提示并按新会话启动（S3-3）", async () => {
+  const cwd = makeTempDir();
+  try {
+    const sessionDir = path.join(cwd, ".mewcode");
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(path.join(sessionDir, "session.json"), "{ 坏 json", "utf8");
+
+    const captured: StartTuiOptions[] = [];
+    const result = await runCli(["--mock"], {
+      cwd,
+      env: {},
+      stdinIsTTY: true,
+      stdoutIsTTY: true,
+      startTui: async (options) => {
+        captured.push(options);
+      },
+    });
+    assert.equal(result.code, 0);
+    const tui = captured[0];
+    assert.ok(tui !== undefined);
+    assert.equal(tui.restoredMessageCount, 0);
+    assert.deepEqual(tui.initialMessages, []);
+    assert.match(tui.sessionNotice ?? "", /会话文件损坏/);
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+test("main：--new 忽略已有会话（S3-3）", async () => {
+  const cwd = makeTempDir();
+  try {
+    const sessionDir = path.join(cwd, ".mewcode");
+    mkdirSync(sessionDir, { recursive: true });
+    writeFileSync(
+      path.join(sessionDir, "session.json"),
+      JSON.stringify({
+        version: 1,
+        workspace: path.resolve(cwd),
+        model: "deepseek-chat",
+        createdAt: "2026-11-20T00:00:00.000Z",
+        updatedAt: "2026-11-20T00:00:00.000Z",
+        messages: [
+          { role: "user", content: "旧问题" },
+          { role: "assistant", content: "旧回答", toolCalls: [] },
+        ],
+      }),
+      "utf8",
+    );
+
+    const captured: StartTuiOptions[] = [];
+    const result = await runCli(["--mock", "--new"], {
+      cwd,
+      env: {},
+      stdinIsTTY: true,
+      stdoutIsTTY: true,
+      startTui: async (options) => {
+        captured.push(options);
+      },
+    });
+    assert.equal(result.code, 0);
+    const tui = captured[0];
+    assert.ok(tui !== undefined);
+    assert.equal(tui.restoredMessageCount, 0, "--new 不应恢复历史");
+    assert.deepEqual(tui.initialMessages, []);
+    assert.equal(tui.sessionNotice, undefined);
   } finally {
     removeTempDir(cwd);
   }

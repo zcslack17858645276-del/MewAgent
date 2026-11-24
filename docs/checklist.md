@@ -65,7 +65,8 @@
 - [x] `safety/permissions.ts` Gate：写/命令必确认，拒绝原因回填模型并可继续。
   - 证据（S3-1，2026-11-24）：`tests/permissions.test.ts` **18 例**通过（只读放行、写需审批、y/a/n、白名单、路径越界先于审批、危险命令硬拦、headless 只读规则、审批异常按拒绝、`summarizeToolCall` 摘要）；`tests/config.test.ts` headless 拒绝写工具端到端（模型收到 `权限被拒绝` 后改用文本回答、文件未创建）；交互审批 UI 随 S3-2。
   - 证据（S3-2，2026-11-24）：`src/ui/approval.ts` 审批桥 + `src/ui/ApprovalPrompt.tsx`（y/a/n/Esc、Esc=拒绝、a 本会话白名单）、`awaiting_approval` 展示态（审批时输入框失焦、仅 Ctrl+C 可中断）；`tests/approval.test.ts` **9 例**通过（controller/白名单/拒绝原因/弹窗渲染）；假 stdin 审批冒烟 `APPROVAL SMOKE OK`（y 放行 / a 后同类不问 / Esc 拒绝且文件未改 / 非 y·a·n 键被忽略 / Ctrl+C 退出）；全量 `npm test` 241/241。B 级 4 条待用户。
-- [ ] `session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`；损坏文件降级处理。
+- [x] `session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`；损坏文件降级处理。
+  - 证据（S3-3，2026-11-24）：`tests/session.test.ts` **14 例**通过（路径、保存→加载往返与 `{version:1,workspace,model,createdAt,updatedAt,messages}` 字段、system 剥离、toolCalls 保留、空历史不落盘、无文件→empty、`--new` 跳过、坏 JSON/未知版本/messages 非数组/单条消息非法→corrupt + 原因、临时文件无残留、保存失败返回 `{ok:false}` 不抛）；`tests/config.test.ts` 新增 3 例端到端（TUI 启动恢复 `restoredMessageCount`/`initialMessages`/`persistMessages` 保留 createdAt、损坏文件提示并按新会话、`--new` 忽略已有会话）；全量 `npm test` **258/258**。B 级 2–5（重启恢复/`--new`/损坏降级/`git status` 不跟踪）待用户重启实测。
 - [ ] `context/*`：按用户轮次压缩，50 轮模拟不超限、工具调用/结果配对不破坏。
 - [ ] 更新文档、打 tag。
 
@@ -83,9 +84,9 @@
 | 2 | 6 工具可用 | `docs/testing.md` S2 工具小节 | 测试输出 | ✅（6 工具单测 + 真实模型 TUI 调用均通过，2026-11-24） |
 | 3 | 多工具自主连续调用（≥3 步） | 让模型完成"读 README → 改一行 → 跑测试" | 会话记录 | ⬜ |
 | 4 | 写/命令前确认，拒绝原因回填 | 拒绝一次 write，观察模型调整 | 会话截图 | ⬜ |
-| 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | 🔄（单测 ✅ 2026-11-24：`tests/paths.test.ts` 10 例 / `tests/danger.test.ts` 9 例 / `tests/permissions.test.ts` 18 例；危险命令 `rm -rf`·`del /f /s /q`·`format`·`shutdown` 与 `--print` 写拒绝已由用户实测通过；交互审批实现 ✅ S3-2，B 级 4 条待用户） |
+| 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | 🔄（单测 ✅ 2026-11-24：`tests/paths.test.ts` 10 例 / `tests/danger.test.ts` 9 例 / `tests/permissions.test.ts` 18 例；危险命令 `rm -rf`·`del /f /s /q`·`format`·`shutdown` 与 `--print` 写拒绝已由用户实测通过；交互审批 ✅ S3-2，B 级 4 条已由用户 2026-11-24 实测通过） |
 | 6 | 连续 50 轮不爆上下文 | 脚本灌 50 轮后继续提问 | token 统计 | ⬜ |
-| 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | ⬜ |
+| 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | 🔄（代码完成 ✅ S3-3：`session/store.ts` 每轮保存/启动恢复/`--new`/损坏降级 + `tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端，全量 258/258；B 级 2–5 待用户重启实测） |
 | 8 | WT 中文输入输出不乱码 | Windows Terminal 输入中文提问 | S0-1 已验输入；S1 验输出 | 🚧 |
 | 9 | 一条命令启动 | 新目录 `npm install && npm run dev` | 截图 | ✅ `npm run dev` |
 | 10 | README + 测试 + 3 分钟演示 | 照 README 从零复现 | README 链接、演示文件 | ⬜ |

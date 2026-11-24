@@ -25,6 +25,7 @@ import { createMockLlmClient } from "./llm/mock.js";
 import { createOpenAiLlmClient, LlmHttpError } from "./llm/openai.js";
 import type { FetchLike } from "./llm/openai.js";
 import { createPermissionGate } from "./safety/permissions.js";
+import { loadSession, saveSession } from "./session/store.js";
 import type { LlmClient, Message, ToolResult } from "./types.js";
 import { createDefaultRegistry } from "./tools/index.js";
 import type { RunAgentTurn } from "./ui/App.js";
@@ -356,6 +357,24 @@ export async function main(
         emit,
         gate: permissions.gate,
       });
+    // S3-3：启动时恢复上次会话（`--new` 跳过）；损坏时按新会话启动并提示原因。
+    const session = loadSession(config.workspace, { forceNew: config.newSession });
+    const initialMessages = session.kind === "loaded" ? session.messages : [];
+    const restoredMessageCount = session.kind === "loaded" ? session.messages.length : 0;
+    const sessionNotice =
+      session.kind === "corrupt"
+        ? `会话文件损坏，已按新会话启动（${session.reason}）`
+        : undefined;
+    const sessionCreatedAt =
+      session.kind === "loaded" ? session.createdAt : new Date().toISOString();
+    const persistMessages = (messages: readonly Message[]): void => {
+      const saved = saveSession(config.workspace, config.model, messages, {
+        createdAt: sessionCreatedAt,
+      });
+      if (!saved.ok) {
+        writeError(`警告：会话保存失败：${saved.reason}\n`);
+      }
+    };
     const launchTui = deps.startTui ?? startTui;
     await launchTui({
       version,
@@ -363,6 +382,10 @@ export async function main(
       runTurn,
       toolNames: tools.names(),
       approvals,
+      initialMessages,
+      restoredMessageCount,
+      sessionNotice,
+      persistMessages,
     });
     return 0;
   } catch (error) {
