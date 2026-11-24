@@ -727,6 +727,8 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **A 级验收（2026-11-24）**：把仓库克隆到临时目录 `%TEMP%\mewagent-readme-check-142449`，仅照 README「快速开始」执行：`npm install` exit 0（52 包 / 4.0s；npm 对 esbuild postinstall 的 allowScripts 提示不影响运行）；`npm run typecheck` exit 0；`npm test` → `tests 296 / pass 296 / fail 0`（4.4s）；`npm run dev -- --mock --print "你好"` exit 0（无 `.env` 时 mock 模型显示 `model: mock`）；`npm run build` exit 0；`node dist/index.js --mock --print "你好"` exit 0；`--help` 首行 `mewagent 0.1.0 — 终端里的 AI 编程助手（v0.1）`。README 覆盖：定位/特性、环境要求、安装、配置（`.env.example` + 环境变量表 + 代理）、快速开始（mock / TUI / 真实 API / workspace / build）、命令参数表、架构图（ASCII）+ 数据流、目录结构、6 工具表、3 步加工具教程（`ToolDefinition` 代码片段 + 注册 + 测试）、权限与安全、会话与上下文压缩、错误展示表、测试与 CI、Windows 注意、已知限制与 Roadmap、文档索引。
 
+**CI（2026-11-24）**：task 分支 run `45340842266`（`67a7013`）与 main run `45340852106`（`7518d8f`）均 success，日志均 `# tests 296 / # pass 296 / # fail 0`。
+
 **B 级复核（待用户）**：①按 README 从新目录 clone 走一遍（重点看 Windows PowerShell 下 `npm install` 与 `--mock` 是否顺畅）；②核对五项：安装、配置、命令、架构图、加工具教程；③对照 `docs/checklist.md` 的 10 条成功标准逐项打勾。
 #### S4-3 打包与启动
 
