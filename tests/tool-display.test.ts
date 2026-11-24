@@ -101,9 +101,15 @@ test("formatToolEnd：空错误输出只显示头部", () => {
   );
 });
 
-test("formatTurnEndNote：正常结束不提示，中断/步数上限给中文说明", () => {
+test("formatTurnEndNote：正常结束不提示，中断/步数上限给中文说明与下一步", () => {
   assert.equal(formatTurnEndNote("stop"), null);
-  assert.equal(formatTurnEndNote("aborted"), "（已中断）");
-  assert.equal(formatTurnEndNote("max_steps"), "（已达到最大步数 30，已停止）");
-  assert.equal(formatTurnEndNote("max_steps", 3), "（已达到最大步数 3，已停止）");
+  assert.equal(formatTurnEndNote("aborted"), "（已中断）如果您还要继续，重新输入问题即可。");
+
+  const maxSteps = formatTurnEndNote("max_steps");
+  assert.ok(maxSteps !== null, "max_steps 必须有提示");
+  assert.ok(maxSteps.includes("（已达到最大步数 30，已停止）"), maxSteps);
+  assert.ok(maxSteps.includes("下一步："), maxSteps);
+
+  const custom = formatTurnEndNote("max_steps", 3);
+  assert.ok(custom !== null && custom.includes("（已达到最大步数 3，已停止）"), String(custom));
 });

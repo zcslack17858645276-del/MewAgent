@@ -23,6 +23,7 @@ import {
 import type { AppConfig } from "./config.js";
 import type { CompressResult } from "./context/compress.js";
 import { DEFAULT_CONTEXT_TOKENS } from "./context/tokens.js";
+import { describeFailure, describeHttpStatus, describeToolFailure, isNetworkFailure } from "./errors.js";
 import { createMockLlmClient } from "./llm/mock.js";
 import { createOpenAiLlmClient, LlmHttpError } from "./llm/openai.js";
 import type { FetchLike } from "./llm/openai.js";
@@ -185,32 +186,7 @@ function createCompressionReporter(
   };
 }
 
-/** 把 HTTP 状态码翻译成"下一步怎么做"，避免用户只看到一串英文。 */
-function describeHttpFailure(status: number): string {
-  if (status === 401 || status === 403) {
-    return "检查 .env 里的 MEWCODE_API_KEY 是否有效、是否还有余额。";
-  }
-  if (status === 404) {
-    return "检查 MEWCODE_BASE_URL 是否正确（DeepSeek 为 https://api.deepseek.com，OpenAI 兼容服务通常以 /v1 结尾）。";
-  }
-  if (status === 429) {
-    return "供应商限流或额度不足：稍后重试，或检查账户额度。";
-  }
-  if (status >= 500) {
-    return "供应商服务暂时不可用：稍后重试。";
-  }
-  return "检查 API key、base-url 与模型名后重试。";
-}
-
-/** 区分"网络层失败"（代理/断网）与程序错误，给出可操作提示。 */
-function isNetworkFailure(error: unknown): error is TypeError {
-  return (
-    error instanceof TypeError &&
-    /fetch failed|network|ECONN|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up/i.test(
-      error.message,
-    )
-  );
-}
+/** 把 HTTP 状态码翻译成"下一步怎么做"的映射在 `errors.ts` 里（S4-1 起 UI 与 headless 共用）。 */
 
 /**
  * S1-5 / S3-1 的 headless 真实链路：Agent Loop + 只读工具 + headless 权限闸。
@@ -282,8 +258,12 @@ async function runRealHeadless(
         const status = event.result.ok ? "成功" : "失败";
         writeError(`[工具结果] ${event.call.name} ${status}（${event.durationMs}ms）\n`);
         if (!event.result.ok) {
-          const firstLine = event.result.output.split("\n")[0] ?? "";
-          writeError(`  ${firstLine}\n`);
+          // S4-1：失败时连"下一步"一起打出来，headless 用户也能自己修。
+          const failure = describeToolFailure(event.result.output);
+          writeError(`  ${failure.what}\n`);
+          if (failure.next !== null) {
+            writeError(`  下一步：${failure.next}\n`);
+          }
         }
       }
     },
@@ -296,7 +276,10 @@ async function runRealHeadless(
     writeError("（模型没有返回任何文本）\n");
   }
   if (result.stopReason === "max_steps") {
-    writeError(`（已达到最大步数 ${result.steps}，已停止）\n`);
+    writeError(
+      `（已达到最大步数 ${result.steps}，已停止）\n` +
+        '下一步：回复"继续"让我接着做，或把任务拆小后重发。\n',
+    );
   } else if (result.stopReason === "aborted") {
     writeError("（已中断）\n");
   }
@@ -437,17 +420,16 @@ export async function main(
       return error.exitCode;
     }
     if (error instanceof LlmHttpError) {
-      writeError(`${error.message}\n下一步：${describeHttpFailure(error.status)}\n`);
+      writeError(`${error.message}\n下一步：${describeHttpStatus(error.status)}\n`);
       return 1;
     }
     if (isNetworkFailure(error)) {
-      writeError(
-        `网络请求失败：${error.message}\n下一步：检查网络连接与代理（本机可用 HTTP_PROXY/HTTPS_PROXY=http://127.0.0.1:7890）后重试。\n`,
-      );
+      const failure = describeFailure(error);
+      writeError(`${failure.what}\n下一步：${failure.next}\n`);
       return 1;
     }
     const message = error instanceof Error ? error.message : String(error);
-    writeError(`内部错误：${message}\n`);
+    writeError(`内部错误：${message}\n下一步：可先重试一次；仍失败请把上面的错误信息与操作步骤反馈给维护者。\n`);
     return 1;
   }
 }

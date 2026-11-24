@@ -131,7 +131,7 @@ test("fs：read_file 对不存在/目录/offset 越界返回可操作错误", as
   expectFail(await runTool(readFileTool, { path: "ten.txt", offset: 99 }), "超出文件总行数 10", "下一步");
 });
 
-test("fs：edit_file 唯一匹配替换并返回上下文", async () => {
+test("fs：edit_file 唯一匹配替换并返回红绿 diff", async () => {
   const content = ["line one", "line two", "line three", "line four", "line five", "line six", "line seven"]
     .map((line) => line + "\n")
     .join("");
@@ -140,10 +140,15 @@ test("fs：edit_file 唯一匹配替换并返回上下文", async () => {
   const output = expectOk(
     await runTool(editFileTool, { path: "edit.txt", old_string: "line four", new_string: "LINE FOUR" }),
   );
-  assert.ok(output.includes("已替换 1 处（edit.txt，第 4 行附近）"), output);
-  assert.ok(output.includes("    3│line three"), output);
-  assert.ok(output.includes("    4│LINE FOUR"), output);
-  assert.ok(output.includes("    5│line five"), output);
+  // S4-1：输出统一为"头行 + unified diff"（带行号，格式见 src/tools/diff.ts）。
+  assert.ok(output.includes("已替换 1 处（edit.txt）："), output);
+  assert.ok(output.includes("--- a/edit.txt"), output);
+  assert.ok(output.includes("+++ b/edit.txt"), output);
+  assert.ok(output.includes("@@ -1,7 +1,7 @@"), output);
+  assert.ok(output.includes("    3│ line three"), output);
+  assert.ok(output.includes("-   4│ line four"), output);
+  assert.ok(output.includes("+   4│ LINE FOUR"), output);
+  assert.ok(output.includes("    5│ line five"), output);
   assert.equal(
     readFileSync(path.join(workspace, "edit.txt"), "utf8"),
     content.replace("line four", "LINE FOUR"),

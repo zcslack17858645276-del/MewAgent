@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push），下一任务 S4-1（diff 与错误展示）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条待用户），**下一任务 S4-2（README 与文档）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions/approval/session/compress 二十三个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions/approval/session/compress/diff/errors/diff-view 二十六个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -202,6 +202,8 @@ finish: stop
 - 流式渲染（2026-11-24 修复）：完整行立即提交 `<Static>`（渲染一次、永不重绘），动态区只渲染未完成尾行（≤800 码点，超出显示 `…` 前缀；CRLF 的 `\r` 不显示）；实现见 `src/ui/stream-lines.ts`。原因：长输出整段留在动态区时，动态区高度超过终端后旧帧无法擦除、残留 scrollback，用户滚动时表现为同一段输出反复叠加。
 - mock 慢速流式（S1-4 补丁）：`MEWCODE_MOCK_DELAY_MS` 控制块间延迟，便于手工观察流式/Esc/中断；默认 0 与真实行为一致。
 - 终端要求 Windows Terminal；conhost 不做保证。
+- diff 展示（S4-1）：`edit_file` 输出「头行 + 行级 unified diff」（`--- a/`、`+++ b/`、`@@ -o,n +o,n @@`、`<标记><4 位行号>│ 内容`，生成器 `src/tools/diff.ts`，hunk ±3 行、最多 8 块 / 240 行）；UI 侧 `src/ui/diff-view.ts` 解析为历史条目，按行着色（删除红 / 新增绿 / hunk 青 / 文件头暗 / 上下文默认），最多渲染 80 行，超出提示还有多少行。
+- 错误展示（S4-1）：统一由 `src/errors.ts` 产出「发生了什么 + 下一步」——HTTP 401/403/404/429/5xx、网络失败（含代理提示）、中断、工具失败、权限拒绝、超步数；TUI 历史项与输入框下方提示行都带「下一步」，headless `--print` 同源复用；`max_steps` 追加"回复'继续'让我接着做，或把任务拆小后重发"。错误不崩溃，可继续对话。
 
 ## 10. Windows 专项（§6.10）
 
@@ -216,6 +218,7 @@ finish: stop
 - SSE 断流：`turn_end{reason:"error"}`，UI 显示可读错误。
 - 工具输出超过 30KB 截断并注明「已截断」。
 - 单轮工具调用上限 30 步；超限停止并提示。
+- 错误提示统一带「下一步」：HTTP 状态、网络失败、中断、工具失败、权限拒绝、超步数均有可执行建议（`src/errors.ts`，S4-1）；错误不崩溃、会话可继续。
 
 ## 12. 测试与验收
 
@@ -254,7 +257,8 @@ finish: stop
 | S3-4 | `src/context/tokens.ts` + `src/context/compress.ts`：token 估算（CJK 1.1/字、其他 1/4、每条 +8、预算 ×0.7）+ 按轮压缩（system 常驻 / 最新轮必留 / 旧轮整轮丢弃 / 最新轮超预算截断 tool 2000·assistant 4000 / 去掉开头悬空 tool）；loop 增 `contextTokens`/`onCompress`，`MEWCODE_CONTEXT_TOKENS` 调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` | ✅（`tests/compress.test.ts` 17 例 + `tests/loop.test.ts` 压缩接线 2 例，全量 277/277；B 级 2–4 已由用户 2026-11-24 实测通过） |
 | S3-5 | S3 集成验收：全量回归 + 脚本化集成（50 轮压缩 / 会话重启恢复 / 审批拒绝后继续 / 危险命令硬拦）+ tag `v0.1-s3` | ✅（typecheck 0 / tests 277/277 / help+version / mock 幂等 / build+dist 一致 / any 0；TUI 冒烟 `SMOKE OK` / 审批冒烟 `APPROVAL SMOKE OK` / 6 工具 `ALL TOOLS OK`；脚本化集成 25 项断言 `INTEGRATION OK`；tag 已 push） |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ✅（tag `v0.1-s3` 已 push） |
-| S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
+| S4-1 | `src/tools/diff.ts` 行级 unified diff + `edit_file` 输出 diff + `src/ui/diff-view.ts`/`HistoryItem` 红绿 diff 条目（带行号、最多 80 行）+ `src/errors.ts` 统一错误描述（HTTP/网络/中断/工具失败/超步数，均带「下一步」）+ headless 复用 | ✅（`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例；ui/fs/tool-display 断言更新；全量 296/296；TUI 冒烟 `SMOKE OK`；B 级 3 条待用户） |
+| S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1 完成，下一 S4-2） |
 
 已知边界（v0.1）：
 

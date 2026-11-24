@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import path from "node:path";
 
 import type { ToolDefinition, ToolResult, ToolRunContext } from "../types.js";
+import { createUnifiedDiff } from "./diff.js";
 import { UnsafePathError, resolveInside, toWorkspaceRelative } from "./paths.js";
 
 /**
@@ -32,6 +33,22 @@ function inputError(message: string): ToolInputError {
 
 function byteLength(text: string): number {
   return Buffer.byteLength(text, "utf8");
+}
+
+/** 按行把文本裁到字节上限内（`edit_file` 的 diff 也遵守 30KB 工具输出上限）。 */
+function clampBytes(text: string, limit: number, note: string): string {
+  if (byteLength(text) <= limit) return text;
+  const lines = text.split("\n");
+  const kept: string[] = [];
+  let bytes = 0;
+  for (const line of lines) {
+    const lineBytes = byteLength(line) + 1;
+    if (bytes + lineBytes > limit) break;
+    kept.push(line);
+    bytes += lineBytes;
+  }
+  kept.push(note);
+  return kept.join("\n");
 }
 
 /** 统一收敛所有异常，保证工具永远返回 ToolResult。 */
@@ -101,16 +118,6 @@ function displayPath(workspace: string, absolutePosix: string): string {
 
 function normalizeToLf(text: string): string {
   return text.replace(/\r\n/g, "\n");
-}
-
-function countNewlines(text: string): number {
-  let count = 0;
-  for (const char of text) {
-    if (char === "\n") {
-      count += 1;
-    }
-  }
-  return count;
 }
 
 /** 统计 needle 在 haystack 中的非重叠出现次数与首次下标。 */
@@ -395,18 +402,16 @@ export const editFileTool: ToolDefinition = {
 
       writeFileSync(absolute, finalContent, "utf8");
 
-      const firstMatchLine = countNewlines(searchText.slice(0, found.firstIndex)) + 1;
-      const finalLines = finalContent.split(/\r\n|\n/);
-      if (finalContent.endsWith("\n")) {
-        finalLines.pop();
-      }
-      const contextStart = Math.max(1, firstMatchLine - 3);
-      const contextEnd = Math.min(finalLines.length, firstMatchLine + 3);
-      const context = buildNumberedLines(finalLines.slice(contextStart - 1, contextEnd), contextStart);
-
       const header =
-        `已替换 ${found.count} 处（${rel}，第 ${firstMatchLine} 行附近${isCrlf ? "；保留 CRLF 换行" : ""}）：`;
-      return { ok: true, output: `${header}\n${context.text}` };
+        `已替换 ${found.count} 处（${rel}${isCrlf ? "；保留 CRLF 换行" : ""}）：`;
+      // S4-1：返回带行号的红绿 diff（UI 会解析并着色，模型也据此确认改动位置）。
+      const diff = createUnifiedDiff(rel, normalizeToLf(searchText), normalizeToLf(replaced));
+      const output = clampBytes(
+        `${header}\n${diff.text}`,
+        MAX_TOOL_OUTPUT_BYTES,
+        `…（diff 输出已截断：单次最多 ${MAX_TOOL_OUTPUT_BYTES} 字节）`,
+      );
+      return { ok: true, output };
     }),
 };
 

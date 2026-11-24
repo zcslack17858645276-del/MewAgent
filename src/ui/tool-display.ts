@@ -73,10 +73,13 @@ export function formatToolEnd(
 /** 回合结束原因 → 历史区提示行（正常结束返回 null，不额外占一行）。 */
 export function formatTurnEndNote(reason: string, maxSteps = 30): string | null {
   if (reason === "aborted") {
-    return "（已中断）";
+    return "（已中断）如果您还要继续，重新输入问题即可。";
   }
   if (reason === "max_steps") {
-    return `（已达到最大步数 ${maxSteps}，已停止）`;
+    return (
+      `（已达到最大步数 ${maxSteps}，已停止）\n` +
+      '下一步：回复"继续"让我接着做，或把任务拆小后重发。'
+    );
   }
   return null;
 }
