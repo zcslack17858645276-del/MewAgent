@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）；S4-2 已完成（README 重写：安装/配置/命令/架构图/3 步加工具教程等齐全，`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 install → typecheck → 296/296 → `--mock` → build → dist），已由用户 2026-11-24 在另一台机器实测通过；S4-3 已完成（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口 shebang + realpath 直跑判断；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303），**下一任务 S4-4（10 条成功标准 + 3 分钟 demo + tag `v0.1.0`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）；S4-2 已完成（README 重写：安装/配置/命令/架构图/3 步加工具教程等齐全，`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 install → typecheck → 296/296 → `--mock` → build → dist），已由用户 2026-11-24 在另一台机器实测通过；S4-3 已完成（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口 shebang + realpath 直跑判断；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303）；HF-1 已完成（首次启动配置向导：交互式缺配置时弹 3 步向导 base-url/模型/API key，可测试连接后保存到用户级 `config.json`（0600）；`--setup` 重跑、非 TTY 不弹；`resolveConfig` 优先级 CLI > env > 用户 `config.json` > 默认；`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），E2E 证明用户级 `config.json` 生效），**下一任务 S4-4（10 条成功标准 + 3 分钟 demo + tag `v0.1.0`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -145,7 +145,16 @@ MEWCODE_HOME=             # 可选，用户级配置目录（默认 ~/.mewcode�
 1. **用户级**：`~/.mewcode/.env`（Windows `%USERPROFILE%\.mewcode\.env`），目录可用 `MEWCODE_HOME` 覆盖；全局安装后跨目录共用一份 key/模型（2026-11-24 hotfix）。
 2. **项目级**：当前工作目录下的 `.env`（`--workspace` 不改变 cwd 的 `.env` 查找；不向上查找）。
 
-优先级：**CLI 参数 > shell 环境变量 > 项目 `.env` > 用户级 `.env` > 内置默认值**。`.env` 优先用 Node 内置 `process.loadEnvFile` 加载，Node < 20.12 时自动回退内置解析器；空字符串视为未设置。
+优先级：**CLI 参数 > shell 环境变量 > 项目 `.env` > 用户级 `.env` > 用户级 `config.json` > 内置默认值**。`.env` 优先用 Node 内置 `process.loadEnvFile` 加载，Node < 20.12 时自动回退内置解析器；空字符串视为未设置。
+
+**用户级 `config.json` 与首启向导（HF-1，2026-11-24）**：
+
+- 位置：`resolveUserConfigPath(env)` = `~/.mewcode/config.json`（Windows `%USERPROFILE%\.mewcode\config.json`），`MEWCODE_HOME` 可改目录；权限 0600（POSIX），Windows 继承用户 profile ACL。
+- 格式：`{ "baseUrl"?: string, "model"?: string, "apiKey"?: string }`；`readUserConfig` 区分 missing / loaded / corrupt（损坏只警告并忽略，不阻断启动）；`saveUserConfig` 与已有内容合并、空串视为保留旧值、原子性由 `mkdirSync` + `writeFileSync` 保证。
+- 触发：交互式终端（非 `--print` 且 stdin/stdout 均为 TTY）且 `findMissingConfig` 判定缺 model 或 apiKey 时自动弹向导；`--setup` 强制重跑；非 TTY 下 `--setup` 报错（exit 2），普通非交互运行不弹窗、仍走 env/.env 配置。
+- 向导：3 步（base-url → 模型名 → API key），确认页 Enter = 先用 `probeConnection` 测试 `/chat/completions` 再保存（10s 超时；HTTP/网络/超时错误给「下一步」，不回显 key），`s` = 跳过测试直接保存，`e` = 重填，Esc = 取消；保存成功后打印路径并退出（`--setup` 场景）或继续启动 TUI。
+- 相关导出：`UserConfig`、`findMissingConfig(options, env, stored)`、`resolveConfig(options, env, cwd, stored)`（第 4 参为用户配置）；`src/setup/probe.ts` 的 `probeConnection`。
+
 
 ### 5.3 退出码与错误
 
@@ -272,7 +281,8 @@ finish: stop
 | S4-2 | `README.md` 重写（定位/特性/环境要求/安装/配置/快速开始/命令与参数/架构图+数据流/目录结构/6 工具表/3 步加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引）；`src/config.ts` 的 `--help` banner 改「（v0.1）」、`MEWCODE_SHELL` 说明更新 | ✅（A 级：仓库克隆到临时目录后仅照 README 跑通 `npm install`（52 包/4s）→ typecheck 0 → 296/296 → `--mock` 0 → build 0 → dist 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过） |
 | S4-3 | 打包与启动：`package.json` 增 `bin.mewagent=./dist/index.js` / `prepack` 构建 / `files` 白名单；`src/index.ts` 加 shebang，直跑判断改用 realpath（修 junction 下静默退出） | ✅（`npm link` 后任意目录 `--version`/`--help`/`--mock --print` 0（含空格+中文路径）、`npx . --mock --print hello` 0、`npm unlink -g mewagent` 无残留、`npm pack` 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303；B 级 4 条待用户） |
 | hotfix | 用户级 `.env`（2026-11-24）：启动时先加载 `~/.mewcode/.env`（`MEWCODE_HOME` 可改目录）再加载项目 `.env`；缺 key/模型提示两处路径；优先级 shell 环境变量 > 项目 `.env` > 用户级 `.env` > 默认值 | ✅（`tests/config.test.ts` 35/35、全量 305/305、build 0；cc-safety-net 拦 `.env` 创建/读取，端到端待用户在 `%USERPROFILE%\.mewcode\.env` 上做 B 级复核） |
-| S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1/S4-2/S4-3 完成，下一 S4-4） |
+| HF-1 | 首启配置向导（2026-11-24，用户追加）：交互式缺配置时弹 3 步向导（base-url / 模型 / API key），可测试连接后保存到用户级 `config.json`（0600）；`--setup` 重跑、非 TTY 不弹；`src/setup/probe.ts` 连接测试；`resolveConfig` 第 4 参与新优先级 CLI > env > 用户 config.json > 默认 | ✅（`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），build 0；E2E：无 cwd `.env` 时从用户级 `config.json` 读取 model/key/base-url；B 级 4 条待用户） |
+| S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1/S4-2/S4-3 + HF-1 完成，下一 S4-4） |
 
 已知边界（v0.1）：
 

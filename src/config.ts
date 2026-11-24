@@ -2,12 +2,18 @@
 //
 // 边界（方案 §3.1）：
 // - 本文件不打印任何内容、不读 stdin、不 import Ink；发现的用户错误统一抛 `CliError`。
-// - 优先级：CLI 参数 > 环境变量（`.env` 或 shell）> 默认值。
+// - 优先级：CLI 参数 > 环境变量（`.env` 或 shell）> 用户级 config.json > 默认值。
 // - 不新增依赖：`.env` 优先用 Node 内置 `process.loadEnvFile`（Node >= 22），
 //   老版本 Node（< 20.12）缺少该 API 时退回本文件内的最小解析器（行为对齐，仍不新增依赖）。
 // - key 只从环境变量/`.env` 读取，绝不通过 CLI 参数传入，也不出现在任何输出里。
 
-import { readFileSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -41,6 +47,8 @@ export interface CliOptions {
   mock: boolean;
   /** 开始新会话（S3 会话层使用，S0-3 只解析和透传）。 */
   newSession: boolean;
+  /** 强制运行首次配置向导（TUI 之外的独立小向导；非交互终端会报错）。 */
+  setup: boolean;
   workspace?: string;
   model?: string;
   baseUrl?: string;
@@ -90,6 +98,7 @@ export function parseArgs(argv: readonly string[]): CliOptions {
     print: false,
     mock: false,
     newSession: false,
+    setup: false,
     prompt: "",
   };
   const positionals: string[] = [];
@@ -129,6 +138,10 @@ export function parseArgs(argv: readonly string[]): CliOptions {
     }
     if (token === "--print") {
       options.print = true;
+      continue;
+    }
+    if (token === "--setup") {
+      options.setup = true;
       continue;
     }
 
@@ -299,6 +312,142 @@ export function resolveEnvFilePaths(
   return [userEnv, localEnv];
 }
 
+/** 用户级结构化配置（首次启动向导写入 `<用户配置目录>/config.json`）。 */
+export interface UserConfig {
+  baseUrl?: string;
+  model?: string;
+  apiKey?: string;
+}
+
+/** 用户级结构化配置文件名（与 `.env` 同目录，默认 `~/.mewcode/config.json`）。 */
+export const USER_CONFIG_FILE_NAME = "config.json";
+
+/** 首次启动向导建议预填的模型名（仅作输入框默认值，不参与校验）。 */
+export const DEFAULT_SUGGESTED_MODEL = "deepseek-chat";
+
+/** 用户级 `config.json` 的路径。 */
+export function resolveUserConfigPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return path.join(resolveUserConfigDir(env), USER_CONFIG_FILE_NAME);
+}
+
+/** `readUserConfig` 的三态结果：缺失 / 已加载 / 损坏（损坏不阻断启动，由调用方决定提示）。 */
+export type UserConfigReadResult =
+  | { kind: "missing"; path: string }
+  | { kind: "loaded"; path: string; config: UserConfig }
+  | { kind: "corrupt"; path: string; reason: string };
+
+/** 读取用户级 `config.json`；缺失返回 missing，JSON/结构非法返回 corrupt。 */
+export function readUserConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): UserConfigReadResult {
+  const filePath = resolveUserConfigPath(env);
+  let raw: string;
+  try {
+    raw = readFileSync(filePath, "utf8");
+  } catch (error) {
+    const code =
+      error instanceof Error && "code" in error
+        ? (error as { code?: unknown }).code
+        : undefined;
+    if (code === "ENOENT") {
+      return { kind: "missing", path: filePath };
+    }
+    const reason = error instanceof Error ? error.message : String(error);
+    return { kind: "corrupt", path: filePath, reason: `读不了文件：${reason}` };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return {
+      kind: "corrupt",
+      path: filePath,
+      reason: `不是合法 JSON（${reason}）`,
+    };
+  }
+  if (!isRecord(parsed)) {
+    return {
+      kind: "corrupt",
+      path: filePath,
+      reason: "顶层必须是 JSON 对象",
+    };
+  }
+
+  const config: UserConfig = {};
+  for (const key of ["baseUrl", "model", "apiKey"] as const) {
+    const value = parsed[key];
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed !== "") {
+        config[key] = trimmed;
+      }
+    }
+  }
+  return { kind: "loaded", path: filePath, config };
+}
+
+/**
+ * 合并写入用户级 `config.json`：已有字段会保留，`undefined`/空串视为“保留旧值”。
+ * 目录不存在会自动创建；文件权限尽量收紧到 0600（Windows 上权限位语义有限）。
+ */
+export function saveUserConfig(
+  env: NodeJS.ProcessEnv,
+  config: UserConfig,
+): { ok: true; path: string } | { ok: false; reason: string } {
+  const filePath = resolveUserConfigPath(env);
+  const existing = readUserConfig(env);
+  const merged: UserConfig = {
+    ...(existing.kind === "loaded" ? existing.config : {}),
+  };
+  for (const key of ["baseUrl", "model", "apiKey"] as const) {
+    const value = config[key];
+    if (value !== undefined && value.trim() !== "") {
+      merged[key] = value.trim();
+    }
+  }
+
+  try {
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(filePath, `${JSON.stringify(merged, null, 2)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    try {
+      chmodSync(filePath, 0o600);
+    } catch {
+      // Windows 上 chmod 语义有限，失败不影响可用性。
+    }
+    return { ok: true, path: filePath };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { ok: false, reason };
+  }
+}
+
+/** 启动时缺哪些配置（用于决定是否弹首次配置向导）。 */
+export interface MissingConfig {
+  model: boolean;
+  apiKey: boolean;
+}
+
+/** 计算还缺哪些配置：`--mock` 模式什么都不缺。 */
+export function findMissingConfig(
+  options: CliOptions,
+  env: NodeJS.ProcessEnv,
+  stored: UserConfig = {},
+): MissingConfig {
+  if (options.mock) {
+    return { model: false, apiKey: false };
+  }
+  const model = firstNonEmpty(options.model, env.MEWCODE_MODEL, stored.model);
+  const apiKey = firstNonEmpty(env.MEWCODE_API_KEY, stored.apiKey);
+  return { model: model === undefined, apiKey: apiKey === undefined };
+}
+
 function stripQuotes(value: string): string {
   if (value.length >= 2) {
     const first = value[0];
@@ -350,31 +499,33 @@ function assertWorkspace(workspace: string): void {
 }
 
 /**
- * 合并 CLI 参数与环境变量，得到后续层可直接使用的配置。
+ * 合并 CLI 参数、环境变量与用户级 `config.json`，得到后续层可直接使用的配置。
+ * 优先级：CLI 参数 > 环境变量（shell / `.env`）> 用户级 `config.json` > 默认值。
  * 缺 API key / 缺模型名时抛 `CliError`，message 含下一步操作且不含密钥原文。
  */
 export function resolveConfig(
   options: CliOptions,
   env: NodeJS.ProcessEnv,
   cwd: string,
+  stored: UserConfig = {},
 ): AppConfig {
   const workspace = path.resolve(cwd, options.workspace ?? ".");
   assertWorkspace(workspace);
 
-  const model = firstNonEmpty(options.model, env.MEWCODE_MODEL);
+  const model = firstNonEmpty(options.model, env.MEWCODE_MODEL, stored.model);
   const baseUrl = normalizeBaseUrl(
-    firstNonEmpty(options.baseUrl, env.MEWCODE_BASE_URL),
+    firstNonEmpty(options.baseUrl, env.MEWCODE_BASE_URL, stored.baseUrl),
   );
-  const apiKey = firstNonEmpty(env.MEWCODE_API_KEY);
+  const apiKey = firstNonEmpty(env.MEWCODE_API_KEY, stored.apiKey);
 
   if (!options.mock && model === undefined) {
     throw new CliError(
-      "缺少模型名。\n下一步：在项目根目录 .env（模板见 .env.example）或用户级配置 %USERPROFILE%\\.mewcode\\.env（~/.mewcode/.env）里设置 MEWCODE_MODEL（例如 deepseek-chat），或加 --model <名字>；只想离线体验可以加 --mock。",
+      "缺少模型名。\n下一步：运行 mewagent --setup 用向导配置（推荐），或在项目根目录 .env（模板见 .env.example）/ 用户级配置 %USERPROFILE%\\.mewcode\\.env（~/.mewcode/.env）里设置 MEWCODE_MODEL（例如 deepseek-chat），或加 --model <名字>；只想离线体验可以加 --mock。",
     );
   }
   if (!options.mock && apiKey === undefined) {
     throw new CliError(
-      "缺少 API key。\n下一步：在项目根目录 .env（模板见 .env.example）或用户级配置 %USERPROFILE%\\.mewcode\\.env（~/.mewcode/.env）里设置 MEWCODE_API_KEY（或设置同名环境变量）；只想离线体验可以加 --mock。",
+      "缺少 API key。\n下一步：运行 mewagent --setup 用向导配置（推荐），或在项目根目录 .env（模板见 .env.example）/ 用户级配置 %USERPROFILE%\\.mewcode\\.env（~/.mewcode/.env）里设置 MEWCODE_API_KEY（或设置同名环境变量）；只想离线体验可以加 --mock。",
     );
   }
 
@@ -443,14 +594,16 @@ export function usage(version: string): string {
     "      --base-url <url>   OpenAI 兼容 API 根地址（覆盖 MEWCODE_BASE_URL）",
     "      --workspace <dir>  工作区目录（默认当前目录，相对路径按当前目录解析）",
     "      --new              开始新会话（忽略历史会话）",
+    "      --setup            运行首次配置向导（base-url / 模型 / API key，保存到用户级 config.json）",
     "      --mock             使用离线 mock 模型：不联网、不需要 API key",
     '      --print            headless 模式：不启动 TUI，跑一轮后输出（prompt 取自位置参数或 stdin）',
     "  --                     其后的内容都当作 prompt 文本",
     "",
     "环境变量（也可写在项目根目录 .env 或用户级 .env 里；两处都会加载）：",
-    "  优先级：shell 环境变量 > 项目根目录 .env > 用户级 .env > 内置默认值。",
+    "  优先级：shell 环境变量 > 项目根目录 .env > 用户级 .env > 用户级 config.json > 内置默认值。",
     "  用户级 .env 默认是 ~/.mewcode/.env（Windows：%USERPROFILE%\\.mewcode\\.env），",
     "  全局安装后在任何目录都能用同一份 key/模型；目录可用 MEWCODE_HOME 覆盖。",
+    "  交互式首次启动（或运行 --setup）会弹出配置向导，并把结果写入同一目录的 config.json。",
     "  MEWCODE_API_KEY        API key（必需，--mock 时不需要）",
     `  MEWCODE_BASE_URL       API 根地址（默认 ${DEFAULT_BASE_URL}）`,
     "  MEWCODE_MODEL          模型名（必需，--mock 时不需要）",
@@ -465,6 +618,7 @@ export function usage(version: string): string {
     '  npm run dev -- --mock --print "你好"',
     '  npm run dev -- --print "你好"          # 真实 API：无 TTY 也能跑一轮',
     "  npm run dev -- --workspace D:\\work\\my-project",
+    '  mewagent --setup                        # 重新运行首次配置向导',
     '  mewagent --print "你好"                 # npm link 全局安装后任意目录可用',
     "",
   ].join("\n");
