@@ -81,27 +81,28 @@
   - 测试：`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例，ui/fs/tool-display 断言同步更新，全量 **296/296**（26 个测试文件）；`npm run typecheck` 0、`build` 0、TUI 冒烟 `SMOKE OK`、`src/` 无 `any`；B 级 3 条已由用户 2026-11-24 实测通过（`docs/testing.md` S4-1 小节）。
 - [x] 首次启动配置向导（HF-1，2026-11-24）。交互式缺配置时弹 3 步向导（base-url / 模型 / API key），可测试连接后保存到用户级 `config.json`（0600），`--setup` 重跑、非 TTY 不弹；`resolveConfig` 优先级 CLI > env > 用户 `config.json` > 默认。
   - 证据：`src/config.ts`（`UserConfig`/`readUserConfig`/`saveUserConfig`/`findMissingConfig`）、`src/setup/probe.ts`（10s 超时连接测试、错误带下一步、不回显 key）、`src/ui/SetupWizard.tsx` + `src/ui/start-setup.tsx`、`src/index.ts` 接入；`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 **330/330**（1 skip），build 0；E2E 证明无 cwd `.env` 时从用户级 `config.json` 读取 model/key/base-url；B 级 4 条待用户（`docs/testing.md` HF-1 小节）。
-- [ ] 全量回归 + 十条成功标准逐条证据。
-- [ ] 发布清单通过，打 tag `v0.1.0` 并 push。
+- [x] 10 条成功标准逐项验收 + 3 分钟 demo + tag `v0.1.0`（S4-4，2026-11-24）。十条标准见 §3 全部 ✅；`docs/demo.md` 演示脚本 + README §7/文档索引链接；全量 330/330、冒烟三项、真实 API 首字 1314ms/多工具 3 步/审批拒绝回填、`INTEGRATION OK`；tag `v0.1.0` 已 push。
+- [x] 全量回归 + 十条成功标准逐条证据（S4-4，2026-11-24）。typecheck 0 / tests **330/330**（329 pass + 1 skip，30 文件）/ build 0 / `--help`+`--version` / `--mock` 幂等 / dist 一致 / any 0 / 冒烟 `SMOKE OK`+`APPROVAL SMOKE OK`+`ALL TOOLS OK`；真实 API：首字 1314ms、3 次工具调用（4 轮 LLM）、审批拒绝回填；`INTEGRATION OK`；证据 `spikes/.out/s4-4-*.txt`、`docs/testing.md` S4-4。
+- [x] 发布清单通过，打 tag `v0.1.0` 并 push（见 §5 与 HANDOFF §5.3）。
 
 ## 3. v0.1 十条成功标准（发布前逐条勾选）
 
 | # | 标准 | 验证方法 | 证据 | 状态 |
 |---|---|---|---|---|
-| 1 | 流式回复、可中断、首字 < 2s | 真实 API 提问并掐表，Esc 中断 | 录屏/日志时间戳 | ⬜ |
+| 1 | 流式回复、可中断、首字 < 2s | 真实 API 提问并掐表，Esc 中断 | 日志时间戳 | ✅ 2026-11-24 真实 API 首字 **1314ms**（`spikes/.out/s4-4-real-api.txt`）；S1-4 用户 B 级验收含 Esc 中断 |
 | 2 | 6 工具可用 | `docs/testing.md` S2 工具小节 | 测试输出 | ✅（6 工具单测 + 真实模型 TUI 调用均通过，2026-11-24） |
-| 3 | 多工具自主连续调用（≥3 步） | 让模型完成"读 README → 改一行 → 跑测试" | 会话记录 | ⬜ |
-| 4 | 写/命令前确认，拒绝原因回填 | 拒绝一次 write，观察模型调整 | 会话截图 | ⬜ |
-| 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | 🔄（单测 ✅ 2026-11-24：`tests/paths.test.ts` 10 例 / `tests/danger.test.ts` 9 例 / `tests/permissions.test.ts` 18 例；危险命令 `rm -rf`·`del /f /s /q`·`format`·`shutdown` 与 `--print` 写拒绝已由用户实测通过；交互审批 ✅ S3-2，B 级 4 条已由用户 2026-11-24 实测通过） |
+| 3 | 多工具自主连续调用（≥3 步） | 让模型完成“读 README → 改一行 → 跑测试” | 会话记录 | ✅ 2026-11-24 真实 API：3 次工具调用（read_file→grep→bash）、4 轮 LLM、stop；S2-8 真实模型读 README 也通过 |
+| 4 | 写/命令前确认，拒绝原因回填 | 拒绝一次 write，观察模型调整 | 会话截图 | ✅ 2026-11-24 真实 API：审批询问 1 次、拒绝原因回填、文件未创建、模型继续；S3-2 用户 B 级 y/a/n 已验 |
+| 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | ✅ 单测（paths 10 / danger 9 / permissions 18）+ 用户实测危险命令与 headless 写拒绝；S3-5 集成 `rm -rf /` asked=0 |
 | 6 | 连续 50 轮不爆上下文 | 脚本灌 50 轮后继续提问 | token 统计 | ✅（S3-4 代码 + S3-5 集成：`spikes/.out/s3-5-integration.ts` 50 轮全部 `stopReason=stop`、内存历史 101 条完整、压缩 50 次 `maxDropped=41`、末次请求 18 条且 system 首位、tool 配对完整；用户 2026-11-24 50 轮 mock B 级通过） |
 | 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | ✅（S3-3：`session/store.ts` 每轮保存/启动恢复/`--new`/损坏降级 + `tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；B 级 2–5 已由用户 2026-11-24 实测通过；S3-5 集成脚本复验 2→4 条消息、createdAt 保留） |
-| 8 | WT 中文输入输出不乱码 | Windows Terminal 输入中文提问 | S0-1 已验输入；S1 验输出 | 🚧 |
+| 8 | WT 中文输入输出不乱码 | Windows Terminal 输入中文提问 | S0-1 输入；S4-4 输出 | ✅ 输入 S0-1（用户实测）；输出 2026-11-24 真实 API 中文无乱码 + TUI 冒烟 |
 | 9 | 一条命令启动 | 新目录 `npm install && npm run dev` | 截图 | ✅ `npm run dev`；S4-3 起全局 `mewagent`（`npm link`）与 `npx .` 也已实测（任意目录、含空格/中文路径） |
-| 10 | README + 测试 + 3 分钟演示 | 照 README 从零复现 | README 链接、演示文件 | 🔄（README ✅ 2026-11-24，A 级克隆验证通过；测试 303/303 ✅；3 分钟演示待 S4-4） |
+| 10 | README + 测试 + 3 分钟演示 | 照 README 从零复现 | README 链接、演示文件 | ✅ README 重写（S4-2 用户另一台机器实测通过）；测试 330/330；[`docs/demo.md`](demo.md) 3 分钟演示（README §7 链接） |
 
 ## 4. 阶段回归清单（每个阶段完成后跑一遍）
 
-- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**；S3-4：typecheck exit 0、tests **277/277**；S3-5 复跑同 277/277；S4-1：typecheck 0、tests **296/296**、build 0；S4-2 克隆副本：`npm install`（52 包/4s）→ typecheck 0 → tests **296/296** → `--mock` 0 → build 0 → dist 0）
+- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**；S3-4：typecheck exit 0、tests **277/277**；S3-5 复跑同 277/277；S4-1：typecheck 0、tests **296/296**、build 0；S4-2 克隆副本：`npm install`（52 包/4s）→ typecheck 0 → tests **296/296** → `--mock` 0 → build 0 → dist 0；S4-4：typecheck 0、tests **330/330**、build 0）
 - [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0；S2-8 同；S3-5 复跑同）
 - [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等；S2-8：两次输出一致；S3-5 复跑一致）
 - [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致；S2-8 同；S3-5 复跑一致）
@@ -110,8 +111,8 @@
 
 ## 5. 发布清单（v0.1.0）
 
-- [ ] `README.md` 快速开始可从零复制运行；包含环境要求、`.env` 说明、常用命令。
-- [ ] `docs/spec.md` §13 阶段状态全部 ✅；§3 十条标准证据齐全。
-- [ ] 全部 tag（`v0.1-s0` … `v0.1-s3`、`v0.1.0`）已 push 到远端。（当前 `v0.1-s0`/`v0.1-s1`/`v0.1-s2`/`v0.1-s3` 已 push；`v0.1.0` 待 S4）
-- [ ] 3 分钟演示可复现；演示脚本/录屏路径写进 README。
-- [ ] 已知限制清单（spec §11）与 `docs/tasks.md` 遗留项交给用户确认。
+- [x] `README.md` 快速开始可从零复制运行；包含环境要求、`.env` 说明、常用命令。（S4-2 克隆副本 A 级 + 用户另一台机器实测通过）
+- [x] `docs/spec.md` §13 阶段状态全部 ✅（S4 行 ✅）；§3 十条标准证据齐全（2026-11-24）。
+- [x] 全部 tag（`v0.1-s0` … `v0.1-s3`、`v0.1.0`）已 push 到远端（见 HANDOFF §5.3）。
+- [x] 3 分钟演示可复现；演示脚本路径已写进 README §7 与文档索引（[`docs/demo.md`](demo.md)）。
+- [ ] 已知限制清单（spec §11）与 `docs/tasks.md` 遗留项交给用户确认（B 级复核时一并确认）。

@@ -147,6 +147,10 @@ npm unlink -g mewagent
 
 > 如果 `mewagent` 提示找不到命令，确认 `%APPDATA%\npm`（或 `npm prefix -g` 的输出）在 `PATH` 中；重新打开终端即可刷新。
 
+### 7. 3 分钟演示
+
+跟着 [`docs/demo.md`](docs/demo.md) 走一遍，可以在 3 分钟内看到：流式对话与中断 → 多工具读项目回答架构问题 → 改真实文件（红绿 diff）+ 跑测试 → 审批、危险命令拦截与会话恢复。没有 API key 时可全程加 `--mock` 离线演示。
+
 ## 配置
 
 配置优先级：**命令行参数 > 环境变量 > 项目 `.env` > 用户级 `.env` > 用户级 `config.json` > 内置默认值**。两处 `.env` 都会被加载（加载时不会覆盖已存在的环境变量），`.env` 已在 `.gitignore` 中，别提交真实 key。
@@ -327,7 +331,7 @@ MewAgent/
 │   ├── session/store.ts    会话持久化与恢复
 │   ├── context/            token 估算 + 按轮压缩
 │   └── ui/                 Ink TUI（App、输入框、历史、审批、diff 渲染）
-├── tests/                  node:test 单元/集成测试（27 个文件，303 例）
+├── tests/                  node:test 单元/集成测试（30 个文件，330 例）
 ├── docs/                   spec / tasks / testing / checklist
 ├── .github/workflows/ci.yml
 ├── HANDOFF.md              交接文档（阶段状态、决策、会话记录）
@@ -481,7 +485,7 @@ npm run dev -- --mock --print "用 hello 工具向 Ada 问好"
 
 ```bash
 npm run typecheck     # tsc --noEmit（strict）
-npm test              # node:test，27 个测试文件 / 303 个用例
+npm test              # node:test，30 个测试文件 / 330 个用例
 npm run build         # 输出 dist/
 ```
 
@@ -528,6 +532,7 @@ v0.2 候选（尚未排期）：
 | [docs/spec.md](docs/spec.md) | 规格说明：架构、模块、CLI、TUI、工具、安全、测试 |
 | [docs/tasks.md](docs/tasks.md) | 任务看板与验收标准（唯一任务列表） |
 | [docs/testing.md](docs/testing.md) | 分级验收（A 自动化 / B 手工）与各任务结果 |
+| [docs/demo.md](docs/demo.md) | 3 分钟演示脚本（可复现） |
 | [docs/checklist.md](docs/checklist.md) | 10 条成功标准与阶段回归清单 |
 | [HANDOFF.md](HANDOFF.md) | 交接文档：当前状态、已定决策、关键文件、会话记录 |
 | [MewCode-TS实施方案.md](MewCode-TS实施方案.md) | 总体实施方案（S0~S4 拆分与风险） |

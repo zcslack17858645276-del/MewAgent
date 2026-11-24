@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）；S4-2 已完成（README 重写：安装/配置/命令/架构图/3 步加工具教程等齐全，`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 install → typecheck → 296/296 → `--mock` → build → dist），已由用户 2026-11-24 在另一台机器实测通过；S4-3 已完成（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口 shebang + realpath 直跑判断；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303）；HF-1 已完成（首次启动配置向导：交互式缺配置时弹 3 步向导 base-url/模型/API key，可测试连接后保存到用户级 `config.json`（0600）；`--setup` 重跑、非 TTY 不弹；`resolveConfig` 优先级 CLI > env > 用户 `config.json` > 默认；`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），E2E 证明用户级 `config.json` 生效），**下一任务 S4-4（10 条成功标准 + 3 分钟 demo + tag `v0.1.0`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277）、S3-5 已完成（S3 集成验收：50 轮不爆上下文 / 重启恢复 / 审批拒绝后继续 / 危险命令硬拦；全量回归 277/277、`INTEGRATION OK`），**S3 已完成并打 tag `v0.1-s3`（已 push）**；S4-1 已完成（edit diff 红绿展示 + `errors.ts` 统一错误描述，全量 296/296；B 级 3 条已由用户 2026-11-24 实测通过）；S4-2 已完成（README 重写：安装/配置/命令/架构图/3 步加工具教程等齐全，`--help` banner 改 v0.1；A 级：仓库克隆到新目录仅照 README 跑通 install → typecheck → 296/296 → `--mock` → build → dist），已由用户 2026-11-24 在另一台机器实测通过；S4-3 已完成（打包与启动：`package.json` 增 `bin.mewagent` / `prepack` / `files`，入口 shebang + realpath 直跑判断；`npm link` 后任意目录可用、`npx .` 可运行、含空格+中文路径正常、`npm unlink -g` 无残留、`npm pack` 产物 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303）；HF-1 已完成（首次启动配置向导：交互式缺配置时弹 3 步向导 base-url/模型/API key，可测试连接后保存到用户级 `config.json`（0600）；`--setup` 重跑、非 TTY 不弹；`resolveConfig` 优先级 CLI > env > 用户 `config.json` > 默认；`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），E2E 证明用户级 `config.json` 生效），S4-4 已完成（10 条成功标准逐项验收：真实 API 首字 1314ms、多工具 3 次调用、审批拒绝回填；`docs/demo.md` 3 分钟演示脚本 + README 链接；全量 330/330、冒烟三项、`INTEGRATION OK`），**v0.1.0 已发布（tag `v0.1.0` 已 push）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -14,18 +14,18 @@ MCP / Skill / Hook / SubAgent / Agent Teams / Git Worktree / 多模型路由 / �
 
 ## 3. 成功标准（§1.4 十条，逐条可验收）
 
-| # | 标准 | v0.1 目标 | 当前状态（2026-11-23） |
+| # | 标准 | v0.1 目标 | 当前状态（2026-11-24，v0.1.0 发布） |
 |---|---|---|---|
-| 1 | 流式回复，可中断，首字 < 2s | 是 | ✅ 代码完成并验收：SSE + OpenAI 客户端 + TUI 流式/中断（S1-4 8 条 B 级用户验收通过）；真实 API 中文输出与 401 链路已真机复验（S1-5/S1-6）；首字时延本机实测秒级（未专门压测） |
-| 2 | 6 个工具可用：read/write/edit/glob/grep/bash | 是 | ⬜ 待 S2 |
-| 3 | 多工具自主连续调用，能完成 3 步以上任务 | 是 | 🚧 mock 两轮链路已通（S0-4），真实执行待 S2 |
-| 4 | 写文件与执行命令前必须人工确认，拒绝原因回填模型 | 是 | ⬜ 待 S3 |
-| 5 | 文件系统不越界 + 危险命令拦截 | 是 | ⬜ 待 S2/S3 |
-| 6 | 连续 50 轮不爆上下文 | 是 | ⬜ 待 S3 |
-| 7 | 重启后恢复最近会话 | 是 | 🔄 代码完成（S3-3：`.mewcode/session.json` 每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258），待用户重启实测 B 级 2–5 |
-| 8 | Windows Terminal 中文输入输出不乱码 | 是 | ✅ 输入已验证（S0-1 判定 A）；输出随 TUI 在 S1 复验 |
+| 1 | 流式回复，可中断，首字 < 2s | 是 | ✅ 真实 API 首字时延 **1314ms**（<2000ms，spikes/.out/s4-4-real-api.txt）；SSE + OpenAI 客户端 + TUI 流式/中断（S1-4 B 级用户验收通过） |
+| 2 | 6 个工具可用：read/write/edit/glob/grep/bash | 是 | ✅ 6 工具 + 注册表（S2）；ALL TOOLS OK（S4-4 冒烟：steps=7 / toolCalls=6） |
+| 3 | 多工具自主连续调用，能完成 3 步以上任务 | 是 | ✅ 真实模型 3 次工具调用（read_file→grep→bash）、**4 轮 LLM**、stop（S4-4 真实 API 验收） |
+| 4 | 写文件与执行命令前必须人工确认，拒绝原因回填模型 | 是 | ✅ S3-1/S3-2 权限闸 + 审批 y/a/n；S4-4 真实 API：询问 1 次、拒绝原因回填、文件未创建、模型继续 |
+| 5 | 文件系统不越界 + 危险命令拦截 | 是 | ✅ S2-1 路径边界、S3-1 13 类危险命令硬拦；S3-5 集成 m -rf / asked=0 |
+| 6 | 连续 50 轮不爆上下文 | 是 | ✅ S3-4 按轮压缩；S3-5 集成：50 轮全部 stop、历史 101 条、maxDropped=41 |
+| 7 | 重启后恢复最近会话 | 是 | ✅ S3-3 .mewcode/session.json（用户 B 级通过 + S3-5 集成恢复 2→4） |
+| 8 | Windows Terminal 中文输入输出不乱码 | 是 | ✅ 输入 S0-1 判定 A（用户实测）；输出 S4-4 真实 API 中文 7 字无 `�` + TUI 冒烟 |
 | 9 | 一条命令启动 | 是 | ✅ `npm run dev`；S4-3 起全局 `mewagent`（npm link）与 `npx .` 也可一条命令启动 |
-| 10 | README 快速开始 + 测试 + 3 分钟演示 | 是 | 🚧 S0-5 起草文档，S4 完成演示 |
+| 10 | README 快速开始 + 测试 + 3 分钟演示 | 是 | ✅ README 重写（S4-2，用户另一台机器实测通过）+ 30 文件 330 例测试 + [docs/demo.md](demo.md) 3 分钟演示（README §7 链接） |
 
 ## 4. 架构
 
@@ -282,7 +282,8 @@ finish: stop
 | S4-3 | 打包与启动：`package.json` 增 `bin.mewagent=./dist/index.js` / `prepack` 构建 / `files` 白名单；`src/index.ts` 加 shebang，直跑判断改用 realpath（修 junction 下静默退出） | ✅（`npm link` 后任意目录 `--version`/`--help`/`--mock --print` 0（含空格+中文路径）、`npx . --mock --print hello` 0、`npm unlink -g mewagent` 无残留、`npm pack` 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303；B 级 4 条待用户） |
 | hotfix | 用户级 `.env`（2026-11-24）：启动时先加载 `~/.mewcode/.env`（`MEWCODE_HOME` 可改目录）再加载项目 `.env`；缺 key/模型提示两处路径；优先级 shell 环境变量 > 项目 `.env` > 用户级 `.env` > 默认值 | ✅（`tests/config.test.ts` 35/35、全量 305/305、build 0；cc-safety-net 拦 `.env` 创建/读取，端到端待用户在 `%USERPROFILE%\.mewcode\.env` 上做 B 级复核） |
 | HF-1 | 首启配置向导（2026-11-24，用户追加）：交互式缺配置时弹 3 步向导（base-url / 模型 / API key），可测试连接后保存到用户级 `config.json`（0600）；`--setup` 重跑、非 TTY 不弹；`src/setup/probe.ts` 连接测试；`resolveConfig` 第 4 参与新优先级 CLI > env > 用户 config.json > 默认 | ✅（`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），build 0；E2E：无 cwd `.env` 时从用户级 `config.json` 读取 model/key/base-url；B 级 4 条待用户） |
-| S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1/S4-2/S4-3 + HF-1 完成，下一 S4-4） |
+| S4-4 | 10 条成功标准逐项验收 + 3 分钟演示 + 发布 v0.1.0：`docs/demo.md`（4 段演示脚本，README §7 与文档索引链接）；README 测试计数更新 30 文件/330 例；全量回归 + 真实 API 验收（首字时延/多工具/审批拒绝） | ✅（全量 330/330（329 pass + 1 skip）、typecheck 0、build 0、`--mock` 幂等、dist 一致、any 0、冒烟 `SMOKE OK`/`APPROVAL SMOKE OK`/`ALL TOOLS OK`；真实 API 首字 **1314ms**、3 次工具调用（4 轮 LLM）、审批拒绝原因回填；`INTEGRATION OK`；tag `v0.1.0` 已 push；B 级 4 条待用户） |
+| S4 | 打磨、文档、演示、发布 v0.1.0 | ✅（tag `v0.1.0` 已 push；10 条成功标准全部打勾，见 §3） |
 
 已知边界（v0.1）：
 
