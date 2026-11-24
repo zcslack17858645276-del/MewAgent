@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186，下一任务 S2-7（UI 接线工具事件）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ 🔄 S2-7（当前）｜ ⬜ S2-8 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户）｜ 🔄 S2-8（当前）｜ ⬜ S3-1 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -268,10 +268,10 @@ git status --short        # 确认没有把测试产物提交
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
 | 1 | A | 聚合函数单测：分片 `id/name/arguments` 多段到达、乱序 index、空 delta | 聚合结果与完整 JSON 一致 | P0 | ✅ `tests/openai.test.ts` 13 用例全过：分片拼接、乱序 index、空 delta、id/name 只取首次、缺 id 占位、`toApiMessages` 四角色、文本流 + `onText` + 请求体/请求头、`tool_calls` 流式聚合、401 脱敏、预中止 `AbortError`、坏 JSON、无 body |
-| 2 | B | 真实 API：`npm run dev`，输入"你好" | 文字逐段出现，不是一次性蹦出 | P0 | ⏳ 留到 S1-5（`--print` 接真实 API）后联调；S1-2 只交付客户端模块，未接线 |
-| 3 | B | 生成中点 Esc | 流停止，已输出内容保留，无报错崩溃 | P0 | ⏳ 留到 S1-4（TUI）后手工验收；客户端已支持 `AbortSignal` 中止并以 `AbortError` 结束 |
+| 2 | B | 真实 API：`npm run dev`，输入"你好" | 文字逐段出现，不是一次性蹦出 | P0 | ✅ **用户已实测通过（2026-11-24，A2）**：TUI 里真实 API 逐段出现 |
+| 3 | B | 生成中点 Esc | 流停止，已输出内容保留，无报错崩溃 | P0 | ✅ **用户已实测通过（2026-11-24，A2）**：Esc 后已输出内容保留、无崩溃 |
 | 4 | B | 故意填错 key | 显示 401 + 供应商返回摘要，不泄露 key | P0 | ✅ 单测（假 fetch 返回 401 且响应体含 key，断言 `LlmHttpError.status=401`、message 含供应商摘要且 key 被替换为 `[REDACTED]`）；真实 API 复验留到 S1-5 |
-| 5 | B | 断网后重试 | 显示网络错误，不无限卡死 | P1 | ⏳ 留到 S1-5 联调；客户端本身无自动重试，错误直接抛给调用方 |
+| 5 | B | 断网后重试 | 显示网络错误，不无限卡死 | P1 | ✅ **用户已实测通过（2026-11-24，A2）**：`MEWCODE_BASE_URL` 指到不可达端口后显示网络错误、不卡死 |
 
 **实测证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -419,8 +419,8 @@ git status --short        # 确认没有把测试产物提交
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
 | 1 | A | 单测：未知工具、非法 JSON、参数不是对象、工具内部抛异常 | 都返回 `{ok:false, output:"Error: ..."}`，进程不崩 | P0 | ✅ `tests/registry.test.ts` 13 例全绿 |
-| 2 | A | `specs()` 输出 | 符合 OpenAI tools 格式，6 个工具齐全 | P0 | ✅ 格式已验（fake 工具）；"6 个工具齐全" ⏳ 随 S2-3~S2-5 接入后验 |
-| 3 | B | 抽查某个工具 description | 能让人看懂"什么时候用它" | P1 | ⏳ 随 S2-3~S2-5 真实工具就位后由用户抽查 |
+| 2 | A | `specs()` 输出 | 符合 OpenAI tools 格式，6 个工具齐全 | P0 | ✅ 格式单测；"6 个工具齐全" **用户已实测通过（2026-11-24，A1）**：`createDefaultRegistry().names()` 输出 read_file/write_file/edit_file/glob/grep/bash |
+| 3 | B | 抽查某个工具 description | 能让人看懂"什么时候用它" | P1 | ✅ **用户已抽查通过（2026-11-24，A1）** |
 
 **A 级证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -483,9 +483,9 @@ git status --short        # 确认没有把测试产物提交
 |---|---|---|---|---|---|
 | 1 | A | `tests/bash.test.ts`：超时 kill、输出 >30KB 截断、非 0 退出码、中文输出 | 通过 | P0 | ✅ 14 例 |
 | 2 | B | "运行 npm test 并总结结果" | 有输出摘要，不是原样倒 500 行 | P0 | ⏳ 待 loop/TUI（S2-6/S2-7） |
-| 3 | B | "运行一个 10 秒不结束的命令"（如 `ping -n 10 127.0.0.1`） | 到超时被终止，提示超时 | P0 | ⏳ 待 loop/TUI；A 级已验 kill |
-| 4 | B | "输出 big.log 的内容" | 截断到 30KB 左右并有提示，上下文没爆 | P0 | ⏳ 待 loop/TUI；A 级已验截断 |
-| 5 | B | 中文命令/输出（`echo 你好`） | 不乱码 | P1 | ⏳ 待 loop/TUI；A 级已验 UTF-8 |
+| 3 | B | "运行一个 10 秒不结束的命令"（如 `ping -n 10 127.0.0.1`） | 到超时被终止，提示超时 | P0 | ✅ **用户已实测通过（2026-11-24，A4）**：bash-manual-driver + `timeout_ms=3000` 约 3.5s 返回超时提示 |
+| 4 | B | "输出 big.log 的内容" | 截断到 30KB 左右并有提示，上下文没爆 | P0 | ✅ **用户已实测通过（2026-11-24，A4）**：截断注 `30720 字节`、不撑爆 |
+| 5 | B | 中文命令/输出（`echo 你好`） | 不乱码 | P1 | ✅ **用户已实测通过（2026-11-24，A4）**：`echo 你好` 中文正常 |
 | 6 | B | 检查子进程是否残留（任务管理器看 node/ping） | 无大量残留；已知 Windows 孙进程限制要记录 | P2 | ✅ 已记录限制（见下）+ 超时 500ms 兜底 |
 
 **A 级证据（2026-11-24，本地 Node v26.7.0；本机未安装 Git Bash，走 cmd 分支）**：
@@ -526,14 +526,29 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：loop 自身不写日志（只发事件）；B 级 3–5 需要 S2-7 把 loop 接进 TUI（真实模型入口）；并行工具调用仍按顺序串行执行（v0.1 从简）。
 
-#### S2-7 UI 接线
+#### 跨任务 A 组 B 级补验（用户，2026-11-24，已通过）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | B | 触发一次 read 工具 | 显示工具名 + 参数摘要 + 成功/失败 + 耗时 | P0 |
-| 2 | B | 触发一次失败工具（读不存在的文件） | 错误可见、可读，不崩 | P0 |
-| 3 | B | 连续 3 个工具 | 历史区按顺序增长，不覆盖 | P1 |
-| 4 | B | 长参数（超长路径/命令） | 参数摘要截断，不撑爆布局 | P1 |
+用户按上一轮 A 组指南完成并确认通过：A1（`createDefaultRegistry()` 6 工具名与 description）、A2（TUI 真实 API 流式 / 生成中 Esc / 断网错误）、A4（bash 中文、超时 kill、30KB 截断）。A3（`MEWCODE_DEBUG=1` 请求体 + "工具可用"）因依赖 S2-7 接线，留到 S2-7 完成后复验。对应小节：S1-2 行 2/3/5、S2-2 行 2/3、S2-5 行 3/4/5 已标 ✅。
+
+#### S2-7 UI 接线（已完成 2026-11-24）
+
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | B | 触发一次 read 工具 | 显示工具名 + 参数摘要 + 成功/失败 + 耗时 | P0 | ⏳ 待用户；冒烟已见 `✅ read_file {"path":"package.json"} · 5ms` |
+| 2 | B | 触发一次失败工具（读不存在的文件） | 错误可见、可读，不崩 | P0 | ⏳ 待用户；冒烟已见 `❌ read_file … · Error: 文件不存在：…` |
+| 3 | B | 连续 3 个工具 | 历史区按顺序增长，不覆盖 | P1 | ⏳ 待用户；冒烟 4 条工具历史顺序正确（成功/失败/成功/长参数） |
+| 4 | B | 长参数（超长路径/命令） | 参数摘要截断，不撑爆布局 | P1 | ⏳ 待用户；冒烟参数摘要出现 `…` 截断、折行后每行都很短 |
+
+**A 级证据（2026-11-24，本地 Node v26.7.0）**：
+- `npm run typecheck` exit 0
+- `node --import tsx --test tests/tool-display.test.ts` → **tests 9 / pass 9 / fail 0**
+- 全量 `npm test` → **tests 195 / pass 195 / fail 0（4388.7ms；原 186 + 新增 9）**
+- 假 stdin/stdout 驱动 Ink 冒烟（`spikes/.out/tui-smoke.tsx`）：`SMOKE OK`（exit 0）——启动横幅含 6 工具列表；一轮 4 次工具调用（成功/失败/成功/长参数）历史按序增长；失败行带可读 `Error:`；长参数截断出现 `…`；生成中 Esc → 历史 `（已中断）`；多行粘贴/Shift+Enter/Ctrl+J/空闲 Ctrl+C 均正常。
+- 记录：`spikes/.out/s2-7-typecheck.txt`、`s2-7-targeted.txt`、`s2-7-full.txt`、`s2-7-smoke.txt`（gitignored）。
+
+**实现要点**：新增 `src/ui/tool-display.ts`（纯函数：参数摘要截断 120 码点、错误首行截断 160、耗时 ms/s、`turn_end` 提示）；`App` 改为注入 `runTurn: RunAgentTurn`（`(messages, { signal, emit }) => runAgent({...})`），消费 `assistant_text`（50ms 节流）/`tool_start`（状态行"⚙ 工具运行中"）/`tool_end`（历史项 ✅/❌）/`turn_end`；`StartTuiOptions` 改为 `{ version, config, runTurn, toolNames }`；`src/index.ts` 交互分支创建 `createDefaultRegistry()` + 带工具名的 system prompt + `runAgent` 闭包，删除 S1 临时 `createRealSend`/`createMockSend`（mock 也走真 loop、真工具真执行）；状态机现为 `idle | streaming | tool_running`（`awaiting_approval`/`error` 随 S3-2）。
+
+**已知限制**：loop 抛非中断错误时消息历史不追加本轮 assistant 回复（重试会出现连续 user 消息，OpenAI 兼容接口可接受）；并行工具仍串行；`readOnly` 仅元数据（Gate 在 S3-2）。
 
 #### S2-8 S2 收尾
 

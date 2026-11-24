@@ -10,6 +10,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
+import { runAgent } from "./agent/loop.js";
 import { buildSystemPrompt, withSystemPrompt } from "./agent/prompt.js";
 import {
   CliError,
@@ -24,7 +25,8 @@ import { createMockLlmClient } from "./llm/mock.js";
 import { createOpenAiLlmClient, LlmHttpError } from "./llm/openai.js";
 import type { FetchLike } from "./llm/openai.js";
 import type { LlmClient, Message, ToolResult } from "./types.js";
-import type { SendMessage } from "./ui/App.js";
+import { createDefaultRegistry } from "./tools/index.js";
+import type { RunAgentTurn } from "./ui/App.js";
 import { startTui } from "./ui/start-tui.js";
 import type { StartTuiOptions } from "./ui/start-tui.js";
 
@@ -104,38 +106,6 @@ async function runMockTwoRounds(
   const second = await client.chat(messages, []);
   write(`${second.content}\n`);
   write(`finish: ${second.finishReason}\n`);
-}
-
-/** 真实客户端：把 LlmClient.chat 适配成 TUI 需要的 SendMessage（流式回调 + abort）。 */
-function createRealSend(client: LlmClient): SendMessage {
-  return (messages, { signal, onDelta }) =>
-    client.chat([...messages], [], { signal, onText: onDelta });
-}
-
-/**
- * mock 客户端：S1 还没有 Agent Loop（S2），这里用"脚本化两轮"代替
- * 工具调用 → 回填占位结果 → 最终文本，让 TUI 在无 key 时也能演示流式与中断。
- */
-function createMockSend(client: LlmClient): SendMessage {
-  return async (messages, { signal, onDelta }) => {
-    const history: Message[] = [...messages];
-    const first = await client.chat(history, [], { signal, onText: onDelta });
-    if (first.toolCalls.length === 0) {
-      return first;
-    }
-
-    const toolResults: Message[] = first.toolCalls.map((call) => ({
-      role: "tool",
-      toolCallId: call.id,
-      content: `（S0-4 占位工具结果：${call.name} 将在 S2 实现）`,
-    }));
-    const withToolResults: Message[] = [
-      ...history,
-      { role: "assistant", content: first.content, toolCalls: first.toolCalls },
-      ...toolResults,
-    ];
-    return client.chat(withToolResults, [], { signal, onText: onDelta });
-  };
 }
 
 function readPromptFromStdin(deps: MainDeps, stdinIsTTY: boolean): string {
@@ -320,13 +290,29 @@ export async function main(
           apiKey: config.apiKey,
           model: config.model,
         });
-    const send = config.mock ? createMockSend(client) : createRealSend(client);
+    // S2-7：TUI 不再直接调 LLM，而是注入"跑一轮 Agent Loop"的函数；
+    // UI 只消费 AgentEvent（assistant_text / tool_start / tool_end / turn_end）。
+    const tools = createDefaultRegistry();
+    const systemPrompt = buildSystemPrompt({
+      workspace: config.workspace,
+      toolNames: tools.names(),
+    });
+    const runTurn: RunAgentTurn = (messages, { signal, emit }) =>
+      runAgent({
+        llm: client,
+        tools,
+        workspace: config.workspace,
+        messages: [...messages],
+        systemPrompt,
+        signal,
+        emit,
+      });
     const launchTui = deps.startTui ?? startTui;
     await launchTui({
       version,
       config,
-      send,
-      systemPrompt: buildSystemPrompt({ workspace: config.workspace }),
+      runTurn,
+      toolNames: tools.names(),
     });
     return 0;
   } catch (error) {

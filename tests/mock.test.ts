@@ -231,11 +231,19 @@ test("main：MEWCODE_MOCK_DELAY_MS 让交互 TUI 的 mock 回复按块流式", a
     assert.ok(captured !== undefined);
 
     const deltas: string[] = [];
-    const reply = await captured.send([USER_MESSAGE], {
+    const turnResult = await captured.runTurn([USER_MESSAGE], {
       signal: new AbortController().signal,
-      onDelta: (delta) => deltas.push(delta),
+      emit: (event) => {
+        if (event.type === "assistant_text") {
+          deltas.push(event.delta);
+        }
+      },
     });
-    assert.equal(reply.content, MOCK_FINAL_TEXT);
+    const finalMessage = turnResult.messages.at(-1);
+    assert.equal(finalMessage?.role, "assistant");
+    if (finalMessage?.role === "assistant") {
+      assert.equal(finalMessage.content, MOCK_FINAL_TEXT);
+    }
     assert.ok(deltas.length > 1, "环境变量应让 mock 分多块输出");
     assert.equal(deltas.join(""), MOCK_FINAL_TEXT);
   } finally {
