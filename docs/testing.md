@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167，下一任务 S2-6（`agent/loop.ts`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186，下一任务 S2-7（UI 接线工具事件）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ 🔄 S2-6（当前）｜ ⬜ S2-7 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ 🔄 S2-7（当前）｜ ⬜ S2-8 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -502,15 +502,28 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：Windows 上 `child.kill` 不杀孙进程（v0.1 接受，方案 §6.10；v0.2 改 `taskkill /T /F`）；`bash -lc` 分支本机未安装 Git Bash、未真机验证（CI 为 Linux `sh -c`，已覆盖 `-c` 分支）；尚未接入 loop/TUI（B 级 2–5 条届时再验）。
 
-#### S2-6 Agent Loop
+#### S2-6 Agent Loop（已完成 2026-11-24）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `tests/loop.test.ts`：mock 先返回工具调用再返回文本；事件顺序；maxSteps 触发；abort；工具错误回填 | 全绿 | P0 |
-| 2 | A | 断言 messages 中 assistant.toolCalls 与 tool 结果一一配对 | 无悬空 tool 消息 | P0 |
-| 3 | B | 真实模型："读 package.json，告诉我 scripts，然后运行 typecheck，最后总结" | 至少 3 次工具调用，顺序合理 | P0 |
-| 4 | B | 观察事件 UI | 工具开始/结束有状态，不是干等 | P1 |
-| 5 | B | 中途 Esc | 循环停止，无后续工具调用 | P0 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `tests/loop.test.ts`：mock 先返回工具调用再返回文本；事件顺序；maxSteps 触发；abort；工具错误回填 | 全绿 | P0 | ✅ 19 例 |
+| 2 | A | 断言 messages 中 assistant.toolCalls 与 tool 结果一一配对 | 无悬空 tool 消息 | P0 | ✅ 多工具/中断/未知工具用例均配对 |
+| 3 | B | 真实模型："读 package.json，告诉我 scripts，然后运行 typecheck，最后总结" | 至少 3 次工具调用，顺序合理 | P0 | ⏳ 待 S2-7 UI 接线（自然语言入口） |
+| 4 | B | 观察事件 UI | 工具开始/结束有状态，不是干等 | P1 | ⏳ 待 S2-7 |
+| 5 | B | 中途 Esc | 循环停止，无后续工具调用 | P0 | ⏳ 待 S2-7（loop 侧 abort 已由 A 级覆盖） |
+
+**A 级证据（2026-11-24，本地 Node v26.7.0）**：
+
+- `npm run typecheck` exit 0
+- `node --import tsx --test tests/loop.test.ts` → **tests 19 / pass 19 / fail 0（203.7ms）**
+- 全量 `npm test` → **tests 186 / pass 186 / fail 0（4108.8ms；原 167 + 新增 19）**
+- 覆盖：纯文本流式单轮（逐段 `assistant_text` → `turn_end` stop）；工具→文本事件顺序（`tool_start` → `tool_end` → `assistant_text` → `turn_end`）与 assistant/tool 配对；一轮多工具；`maxSteps=3` 与默认 30；signal 启动前中止（0 次 `chat`）；工具执行中途中止（剩余工具回填中断 `Error:` 且配对完整、不再请求 LLM）；LLM 抛 AbortError 收敛；未知工具/坏 JSON 回填不崩且不双前缀；`ok:false` 自动补 `Error:`；gate 拒绝与 gate 抛异常；`systemPrompt` 归一；非流式 content 补发；signal 与 `registry.specs()` 透传；`createDefaultRegistry` 6 工具；`maxSteps=0` 拒绝。
+- 手工演示（`spikes/.out/loop-demo.ts`，gitignored）：假 LLM 剧本「`read_file` package.json → 总结」，用真实文件工具跑 `runAgent`；事件序列 `tool_start` → `tool_end(ok=true)` → `assistant_text` → `turn_end: stop`；`stopReason=stop steps=2 toolCallCount=1`，messages `system → user → assistant → tool → assistant`，输出 `DEMO OK`。
+- 记录：`spikes/.out/s2-6-typecheck.txt`、`s2-6-loop.txt`、`s2-6-full.txt`、`s2-6-demo.txt`（均 gitignored）。
+
+**实现要点**：`runAgent` 注入 `llm/tools/workspace/emit/gate/maxSteps/signal`；事件顺序 `assistant_text* → (tool_start → tool_end)* → … → turn_end`；`tool_start.args` 解析失败为 `null`（契约）；tool 消息失败保证单个 `Error:` 前缀；Gate 预留（S3 接线）；`max_steps` / `aborted` 以事件 + 返回值收敛而非抛异常；非中断 LLM 错误向上抛。
+
+**已知限制**：loop 自身不写日志（只发事件）；B 级 3–5 需要 S2-7 把 loop 接进 TUI（真实模型入口）；并行工具调用仍按顺序串行执行（v0.1 从简）。
 
 #### S2-7 UI 接线
 
@@ -792,7 +805,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S2-3 ✅ | typecheck + `tests/fs.test.ts`（14 用例；全量 141/141；testbed 手工 B 级 3–5 条随 loop/TUI/审批接线后验） |
 | S2-4 ✅ | typecheck + `tests/search.test.ts`（11 用例；全量 153/153；B 级 2–4 随 loop/TUI 接线后验） |
 | S2-5 ✅ | typecheck + `tests/bash.test.ts`（14 用例；全量 167/167；B 级 2–5 随 loop/TUI 接线后验） |
-| S2-6 | `tests/loop.test.ts` + 多工具任务 |
+| S2-6 ✅ | typecheck + `tests/loop.test.ts`（19 用例；全量 186/186；B 级 3–5 随 S2-7 UI 接线后验） |
 | S2-7 | 手工 UI |
 | S3-1 | `tests/permissions.test.ts` + 故意使坏 |
 | S3-2 | 手工审批 |
@@ -822,3 +835,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S2-3 补丁：`read_file` 字节截断时续读 offset 改为按实际渲染行数（不跳行），`tests/fs.test.ts` 增 1 例（全量 142/142）；用户实测 #6（CRLF 保真）/#7（大文件截断）通过，S2-3 第 6/7 行结果更新并加 B 级段 |
 | 2026-11-23 | S2-4 完成：新增 `src/tools/search.ts`（`glob` 星号/双星/问号/字符类 + 200 条与 30KB 截断；`grep` 正则逐行 + 100 条上限，跳过 .git/node_modules/二进制/5MB）+ `tests/search.test.ts` 11 用例（全量 153/153）；S2-4 章节改为已完成并附证据，进度切到 S2-5 |
 | 2026-11-24 | S2-5 完成：新增 `src/tools/bash.ts`（`resolveShell`：`MEWCODE_SHELL` > Git Bash > cmd；cmd 用 `/d /s /c` + `chcp 65001` + `windowsVerbatimArguments`；超时 kill + 500ms 兜底；30KB UTF-8 安全截断；UTF-8→GBK 回退；cwd 固定工作区）+ `tests/bash.test.ts` 14 用例（全量 167/167）；S2-5 章节改为已完成并附证据，进度切到 S2-6 |
+| 2026-11-24 | S2-6 完成：新增 `src/agent/loop.ts`（`runAgent`：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留；`max_steps`/`aborted` 以事件+返回值收敛）+ `src/tools/index.ts`（`createDefaultRegistry` 6 工具）+ `tests/loop.test.ts` 19 用例（全量 186/186）；S2-6 章节改为已完成并附证据，进度切到 S2-7 |
