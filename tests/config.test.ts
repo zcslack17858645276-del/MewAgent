@@ -5,6 +5,7 @@
 
 import assert from "node:assert/strict";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -54,6 +55,8 @@ interface FetchStubOptions {
   status?: number;
   statusText?: string;
   body?: ReadableStream<Uint8Array> | null;
+  /** 依次返回不同 body（用于多轮请求：工具调用 → 最终文本）。 */
+  bodies?: readonly ReadableStream<Uint8Array>[];
   text?: () => Promise<string>;
   /** 抛出的错误（模拟断网/代理失败）。 */
   fail?: Error;
@@ -68,11 +71,12 @@ function createFetchStub(options: FetchStubOptions = {}): {
   const fetchImpl: FetchLike = async (url, init) => {
     calls.push({ url, body: init.body });
     if (options.fail !== undefined) throw options.fail;
+    const queuedBody = options.bodies?.[calls.length - 1];
     return {
       ok: options.ok ?? true,
       status: options.status ?? 200,
       statusText: options.statusText ?? "OK",
-      body: options.body ?? sseStream(["data: [DONE]\n\n"]),
+      body: queuedBody ?? options.body ?? sseStream(["data: [DONE]\n\n"]),
       text: options.text ?? (async () => ""),
     };
   };
@@ -672,6 +676,49 @@ test("main：网络失败时退出 1 并提示网络与代理", async () => {
     assert.equal(result.code, 1);
     assert.match(result.err, /网络请求失败/);
     assert.match(result.err, /127\.0\.0\.1:7890/);
+  } finally {
+    removeTempDir(cwd);
+  }
+});
+
+// ---- S3-1：headless 权限闸（写工具被拒 → 原因回填模型 → 模型换方案） ----
+
+test("main：--print headless 拒绝写工具，拒绝原因回填给模型（退出 0 且不落文件）", async () => {
+  const { fetchImpl, calls } = createFetchStub({
+    bodies: [
+      sseStream([
+        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_w1","function":{"name":"write_file","arguments":"{\\"path\\":\\"a.txt\\",\\"content\\":\\"x\\"}"}}]}}]}\n\n',
+        'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}]}\n\n',
+        "data: [DONE]\n\n",
+      ]),
+      sseStream([
+        'data: {"choices":[{"delta":{"content":"无法写文件"}}]}\n\n',
+        'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n',
+        "data: [DONE]\n\n",
+      ]),
+    ],
+  });
+  const cwd = makeTempDir();
+  try {
+    const result = await runCli(["--print", "写个文件"], {
+      cwd,
+      env: { MEWCODE_API_KEY: "test-key", MEWCODE_MODEL: "test-model" },
+      fetchImpl,
+    });
+
+    assert.equal(result.code, 0);
+    assert.equal(result.out, "无法写文件\n", "stdout 仍只放模型文本");
+    assert.match(result.err, /\[工具\] write_file/);
+    assert.match(result.err, /\[工具结果\] write_file 失败/);
+    assert.match(result.err, /权限被拒绝/);
+    assert.match(result.err, /headless/);
+
+    assert.equal(calls.length, 2, "拒绝原因必须回填给模型，再跑一轮");
+    const secondBody = calls[1]?.body ?? "";
+    assert.match(secondBody, /"role":"tool"/);
+    assert.match(secondBody, /权限被拒绝/);
+    assert.match(secondBody, /headless/);
+    assert.ok(!existsSync(path.join(cwd, "a.txt")), "headless 写工具必须真的不执行");
   } finally {
     removeTempDir(cwd);
   }

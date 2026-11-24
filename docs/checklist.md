@@ -60,8 +60,10 @@
 
 ### S3 权限 + 会话 + 压缩（目标：tag `v0.1-s3`）
 
-- [ ] `safety/danger.ts` 危险命令识别（`rm -rf /`、格式化、`git push --force` 等）单测。
-- [ ] `safety/permissions.ts` Gate：写/命令必确认，拒绝原因回填模型并可继续。
+- [x] `safety/danger.ts` 危险命令识别（`rm -rf /`、格式化、`git push --force` 等）单测。
+  - 证据（S3-1，2026-11-24）：`tests/danger.test.ts` **9 例**通过（`rm -rf`/`rmdir`/`del /f /s /q`/`format`/`shutdown`/`diskpart`/`disk`/`dd`/`bcdedit`/注册表系统 hive/写系统目录/fork 炸弹；包装器 `sudo`/`env`/`powershell -Command` 等剥壳后识别；正常命令不误杀）；全量 232/232。
+- [x] `safety/permissions.ts` Gate：写/命令必确认，拒绝原因回填模型并可继续。
+  - 证据（S3-1，2026-11-24）：`tests/permissions.test.ts` **18 例**通过（只读放行、写需审批、y/a/n、白名单、路径越界先于审批、危险命令硬拦、headless 只读规则、审批异常按拒绝、`summarizeToolCall` 摘要）；`tests/config.test.ts` headless 拒绝写工具端到端（模型收到 `权限被拒绝` 后改用文本回答、文件未创建）；交互审批 UI 随 S3-2。
 - [ ] `session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`；损坏文件降级处理。
 - [ ] `context/*`：按用户轮次压缩，50 轮模拟不超限、工具调用/结果配对不破坏。
 - [ ] 更新文档、打 tag。
@@ -80,7 +82,7 @@
 | 2 | 6 工具可用 | `docs/testing.md` S2 工具小节 | 测试输出 | ✅（6 工具单测 + 真实模型 TUI 调用均通过，2026-11-24） |
 | 3 | 多工具自主连续调用（≥3 步） | 让模型完成"读 README → 改一行 → 跑测试" | 会话记录 | ⬜ |
 | 4 | 写/命令前确认，拒绝原因回填 | 拒绝一次 write，观察模型调整 | 会话截图 | ⬜ |
-| 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | ⬜ |
+| 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | 🔄（单测 ✅ 2026-11-24：`tests/paths.test.ts` 10 例 / `tests/danger.test.ts` 9 例 / `tests/permissions.test.ts` 18 例；TUI 审批实测随 S3-2） |
 | 6 | 连续 50 轮不爆上下文 | 脚本灌 50 轮后继续提问 | token 统计 | ⬜ |
 | 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | ⬜ |
 | 8 | WT 中文输入输出不乱码 | Windows Terminal 输入中文提问 | S0-1 已验输入；S1 验输出 | 🚧 |
