@@ -11,7 +11,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import { runAgent } from "./agent/loop.js";
-import { buildSystemPrompt, withSystemPrompt } from "./agent/prompt.js";
+import { buildSystemPrompt } from "./agent/prompt.js";
 import {
   CliError,
   loadDotEnv,
@@ -24,6 +24,7 @@ import type { AppConfig } from "./config.js";
 import { createMockLlmClient } from "./llm/mock.js";
 import { createOpenAiLlmClient, LlmHttpError } from "./llm/openai.js";
 import type { FetchLike } from "./llm/openai.js";
+import { createPermissionGate } from "./safety/permissions.js";
 import type { LlmClient, Message, ToolResult } from "./types.js";
 import { createDefaultRegistry } from "./tools/index.js";
 import type { RunAgentTurn } from "./ui/App.js";
@@ -173,10 +174,11 @@ function isNetworkFailure(error: unknown): error is TypeError {
 }
 
 /**
- * S1-5 的 headless 真实链路：system prompt 放首位 → 一轮流式 chat → 文本写到 stdout。
+ * S1-5 / S3-1 的 headless 真实链路：Agent Loop + 只读工具 + headless 权限闸。
  *
- * stdout 只放模型文本（便于管道/重定向），诊断信息走 stderr。
- * 不执行工具（S2 接入 Agent Loop）；模型若仍返回 tool_calls 只提示、不执行。
+ * stdout 只放模型文本（便于管道/重定向）；诊断、工具状态与错误都走 stderr。
+ * headless 规则：只读工具放行；写文件 / bash / 危险命令由 `permissions.ts` 直接拒绝，
+ * 拒绝原因回填给模型让它换方案（S3-1 验收第 8 条）。
  */
 async function runRealHeadless(
   prompt: string,
@@ -200,23 +202,60 @@ async function runRealHeadless(
       : undefined,
   });
 
-  const systemPrompt = buildSystemPrompt({ workspace: config.workspace });
-  const messages = withSystemPrompt(
-    [{ role: "user", content: prompt }],
-    systemPrompt,
-  );
+  const tools = createDefaultRegistry();
+  const systemPrompt = buildSystemPrompt({
+    workspace: config.workspace,
+    toolNames: tools.names(),
+  });
+  const permissions = createPermissionGate({
+    tools,
+    workspace: config.workspace,
+    mode: "headless",
+  });
+
   writeError(
     `mewagent ${version} · headless · model: ${config.model} · base-url: ${config.baseUrl}\n`,
   );
 
-  const result = await client.chat(messages, [], {
-    onText: (delta) => write(delta),
+  let streamed = "";
+  const result = await runAgent({
+    llm: client,
+    tools,
+    workspace: config.workspace,
+    messages: [{ role: "user", content: prompt }],
+    systemPrompt,
+    gate: permissions.gate,
+    emit: (event) => {
+      if (event.type === "assistant_text") {
+        streamed += event.delta;
+        write(event.delta);
+        return;
+      }
+      if (event.type === "tool_start") {
+        writeError(`[工具] ${event.call.name} ${event.call.arguments || "{}"}\n`);
+        return;
+      }
+      if (event.type === "tool_end") {
+        const status = event.result.ok ? "成功" : "失败";
+        writeError(`[工具结果] ${event.call.name} ${status}（${event.durationMs}ms）\n`);
+        if (!event.result.ok) {
+          const firstLine = event.result.output.split("\n")[0] ?? "";
+          writeError(`  ${firstLine}\n`);
+        }
+      }
+    },
   });
-  if (result.content !== "" && !result.content.endsWith("\n")) write("\n");
-  if (result.content === "") writeError("（模型没有返回任何文本）\n");
-  if (result.toolCalls.length > 0) {
-    const names = result.toolCalls.map((call) => call.name).join("、");
-    writeError(`（模型请求调用工具：${names}；工具执行将在 S2 接入，本次未执行）\n`);
+
+  if (streamed !== "" && !streamed.endsWith("\n")) {
+    write("\n");
+  }
+  if (streamed === "") {
+    writeError("（模型没有返回任何文本）\n");
+  }
+  if (result.stopReason === "max_steps") {
+    writeError(`（已达到最大步数 ${result.steps}，已停止）\n`);
+  } else if (result.stopReason === "aborted") {
+    writeError("（已中断）\n");
   }
   return 0;
 }
@@ -297,6 +336,13 @@ export async function main(
       workspace: config.workspace,
       toolNames: tools.names(),
     });
+    // S3-1：交互模式接权限闸。S3-1 还没有审批 UI（S3-2 接入），因此写操作会
+    // 被拒绝并回填原因，只读工具照常放行——这是过渡行为，不是最终形态。
+    const permissions = createPermissionGate({
+      tools,
+      workspace: config.workspace,
+      mode: "interactive",
+    });
     const runTurn: RunAgentTurn = (messages, { signal, emit }) =>
       runAgent({
         llm: client,
@@ -306,6 +352,7 @@ export async function main(
         systemPrompt,
         signal,
         emit,
+        gate: permissions.gate,
       });
     const launchTui = deps.startTui ?? startTui;
     await launchTui({

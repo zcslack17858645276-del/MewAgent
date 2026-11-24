@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；下一任务 S3-1（权限三道闸）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（`src/safety/danger.ts` 危险命令识别 + `src/safety/permissions.ts` 权限三道闸、会话白名单、headless 只读规则；全量 232/232），下一任务 S3-2（交互审批 UI）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines 十八个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions 二十个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -181,6 +181,7 @@ finish: stop
 - 只读工具（`readOnly: true`）可配置免确认；写文件与 bash 必须确认。
 - 拒绝时 `reason` 回填为 `role:"tool"` 结果，模型需据此调整方案。
 - 红线：不提交 `.env`；不把 key 写进日志/输出。
+- S3-1 已实现（2026-11-24）：`safety/danger.ts` 规则表（13 类危险命令 + 包装器剥壳，最多 4 层）/ `safety/permissions.ts` 的 `createPermissionGate`（顺序：arguments 解析 → 未知工具 → 路径边界 → readOnly → 危险命令 → headless → 会话白名单 → `ask` y/a/n；异常按拒绝）；`src/index.ts` 交互分支已接 gate（暂无审批 UI → 写操作拒绝并提示 S3-2，只读放行）；`runRealHeadless` 升级为 Agent Loop + 只读工具 + headless 闸。拒绝原因统一回填 `Error: 权限被拒绝：<原因>\n下一步：…`，不破坏 assistant/tool 配对。
 
 ## 8. 上下文与会话（S3）
 
@@ -244,7 +245,8 @@ finish: stop
 | S2-7 | `src/ui/App.tsx`：消费 `AgentEvent`（`assistant_text`/`tool_start`/`tool_end`/`turn_end`），工具历史 `✅/❌` + 参数摘要 + 耗时；`runTurn` 注入；`src/ui/tool-display.ts` 纯函数 | ✅（`tests/tool-display.test.ts` 9 例，全量 195/195；假 stdin 冒烟 SMOKE OK；B 级 4 条已由用户 2026-11-24 实测通过；补丁：`src/ui/stream-lines.ts` 修复流式叠字 + `tests/stream-lines.test.ts` 9 例，全量 204/204） |
 | S2-8 | S2 全量验收 + 真实模型自主读 README 并总结 + tag `v0.1-s2` | ✅（typecheck 0 / tests 204/204 / help+version / mock 幂等 / build+dist 一致 / any 0 / TUI 冒烟 SMOKE OK / 6 工具 loop 演示 ALL TOOLS OK / 真实 API exit 0；真实模型 README 任务 2 工具 3 步 `README ACCEPTANCE OK`；tag 已 push） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ✅（tag `v0.1-s2` 已 push） |
-| S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
+| S3-1 | `src/safety/danger.ts` + `src/safety/permissions.ts`：危险命令识别（13 类 + 包装器剥壳）+ 权限三道闸（路径边界 → readOnly → 危险 → 白名单 → 审批）+ headless 只读规则 | ✅（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例，全量 232/232；交互审批 UI 待 S3-2） |
+| S3 | 权限确认 + 会话持久化 + 上下文压缩 | 🔄（S3-1 完成，下一 S3-2） |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
 
 已知边界（v0.1）：

@@ -3,8 +3,8 @@
 > 配套：[docs/tasks.md](tasks.md)（任务看板）｜[MewCode-TS实施方案.md](../MewCode-TS实施方案.md)（设计契约）
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
-> 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）；S2-7 补丁：流式输出滚动叠字修复（`src/ui/stream-lines.ts` 完整行按行提交 Static + 动态区尾巴上限，`tests/stream-lines.test.ts` 9 例，全量 204/204）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> 最后更新：2026-11-24 ｜ 对应任务数：29（S0-1 … S4-4）
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）；S2-7 补丁：流式输出滚动叠字修复（`src/ui/stream-lines.ts` 完整行按行提交 Static + 动态区尾巴上限，`tests/stream-lines.test.ts` 9 例，全量 204/204）；S3-1（`safety/danger.ts` 危险命令识别 + `safety/permissions.ts` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → 审批/headless；`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 拒绝写工具端到端 1 例，全量 232/232；交互审批 UI 待 S3-2）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ 🔄 S2-8（当前）｜ ⬜ S3-1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 2–4/7 待 S3-2 审批 UI，5/6/8 可先验）｜ 🔄 S3-2（当前）｜ ⬜ S3-3 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -584,18 +584,24 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 ### S3 · 权限 + 会话 + 上下文压缩
 
-#### S3-1 权限三道闸
+#### S3-1 权限三道闸（已完成 2026-11-24）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `tests/permissions.test.ts`：只读自动放行；写操作需询问；路径越界拒绝；危险命令拦截；headless 写拒绝 | 全绿 | P0 |
-| 2 | B | testbed 里让它"删除 sample.txt" | 弹审批，显示工具与参数 | P0 |
-| 3 | B | 选 `n` | 文件还在；模型收到拒绝并换方案/说明 | P0 |
-| 4 | B | 选 `y` | 文件删除成功 | P0 |
-| 5 | B | 让它执行 `rm -rf D:\workplace\AIAgent\mewagent-testbed` | 不弹审批，直接硬拦，提示危险 | P0 |
-| 6 | B | 让它 `del /f /s /q`、`format`、`shutdown` | 均硬拦 | P0 |
-| 7 | B | 同类写操作先选一次 `a`，再做第二次 | 本会话不再询问 | P1 |
-| 8 | B | `--print` 模式下让它写文件 | 直接拒绝并说明 headless 限制 | P0 |
+| # | 类型 | 步骤 | 预期 | 结果 | 级别 |
+|---|---|---|---|---|---|
+| 1 | A | `tests/permissions.test.ts`：只读自动放行；写操作需询问；路径越界拒绝；危险命令拦截；headless 写拒绝 | 全绿 | ✅ 18 例通过（另有 `tests/danger.test.ts` 9 例、`tests/config.test.ts` headless 端到端 1 例；全量 232/232） | P0 |
+| 2 | B | testbed 里让它"删除 sample.txt" | 弹审批，显示工具与参数 | ⏳ 待 S3-2（当前无审批 UI：写操作直接拒绝并提示 S3-2；`summarizeToolCall` 已实现，S3-2 接 UI 后复验） | P0 |
+| 3 | B | 选 `n` | 文件还在；模型收到拒绝并换方案/说明 | ⏳ 待 S3-2（`ask` 返回 n 的行为已有单测覆盖） | P0 |
+| 4 | B | 选 `y` | 文件删除成功 | ⏳ 待 S3-2 | P0 |
+| 5 | B | 让它执行 `rm -rf D:\workplace\AIAgent\mewagent-testbed` | 不弹审批，直接硬拦，提示危险 | ✅ 可先在 TUI 验（`danger.ts` 9 例硬拦；TUI 走 bash 工具 → gate 返回 `权限被拒绝：危险命令…`） | P0 |
+| 6 | B | 让它 `del /f /s /q`、`format`、`shutdown` | 均硬拦 | ✅ 可先在 TUI 验（同上，规则覆盖） | P0 |
+| 7 | B | 同类写操作先选一次 `a`，再做第二次 | 本会话不再询问 | ⏳ 待 S3-2（白名单逻辑已有单测） | P1 |
+| 8 | B | `--print` 模式下让它写文件 | 直接拒绝并说明 headless 限制 | ✅ 已由 `tests/config.test.ts` 端到端覆盖（假 fetch 剧本：write_file → 拒绝原因回填 → 模型改用文本回答；文件未创建） | P0 |
+
+**A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/danger.test.ts` 9/9、`tests/permissions.test.ts` 18/18；定向 config+mock+danger+permissions 68/68（994.6ms）；全量 `npm test` **232/232**（4056.4ms）。记录文件 `spikes/.out/s3-1-typecheck4.txt`、`s3-1-targeted.txt`、`s3-1-full2.txt`（gitignored）。
+
+**实现要点**：危险规则 13 条 + 包装器剥壳（`sudo`/`env`/`nohup`/`time`/`command`/`sh`/`bash`/`powershell`/`cmd`，最多 4 层）；gate 顺序见方案 §6.6（arguments → 未知工具 → 路径边界 → readOnly → 危险命令 → headless → 白名单 → `ask`）；拒绝文案带具体原因与"下一步"；`runRealHeadless` 升级为 loop + 只读工具，`[工具]`/`[工具结果]` 走 stderr。
+
+**已知限制**：交互审批 UI 属 S3-2，当前 TUI 写操作一律拒绝（提示 S3-2）；headless 仅只读；fork 炸弹等只按文本特征检测（不执行）。
 
 #### S3-2 审批 UI
 
@@ -840,16 +846,16 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S1-1 ✅ | typecheck + `tests/sse.test.ts`（`npm test`，13 用例） |
 | S1-2 ✅ | typecheck + `tests/openai.test.ts`（`npm test`，13 用例）；真实流式联调见 S1-5 |
 | S1-3 ✅ | typecheck + `tests/messages.test.ts` + `tests/prompt.test.ts`（`npm test`，各 6 用例） |
-| S1-4 ⏳ | 手工 TUI 清单（8 条 B 级）+ UI 单测 `tests/ui.test.ts`（A 级补充） |
-| S1-5 | 管道命令 |
+| S1-4 ✅ | 手工 TUI 清单（8 条 B 级已由用户验收）+ UI 单测 `tests/ui.test.ts` + 补丁 `tests/input-text.test.ts` / `tests/stream-lines.test.ts` |
+| S1-5 ✅ | 管道命令 + 假 fetch 单测 `tests/config.test.ts` / `tests/openai.test.ts`（真实 API A 级复验已通过） |
 | S2-1 ✅ | typecheck + `tests/paths.test.ts`（10 用例；全量 `npm test` 114/114；B 级 TUI 项随 S2-6/S2-7 后验） |
 | S2-2 ✅ | typecheck + `tests/registry.test.ts`（13 用例；全量 127/127；"6 工具齐全"随 S2-3~S2-5 后验） |
 | S2-3 ✅ | typecheck + `tests/fs.test.ts`（14 用例；全量 141/141；testbed 手工 B 级 3–5 条随 loop/TUI/审批接线后验） |
 | S2-4 ✅ | typecheck + `tests/search.test.ts`（11 用例；全量 153/153；B 级 2–4 随 loop/TUI 接线后验） |
 | S2-5 ✅ | typecheck + `tests/bash.test.ts`（14 用例；全量 167/167；B 级 2–5 随 loop/TUI 接线后验） |
 | S2-6 ✅ | typecheck + `tests/loop.test.ts`（19 用例；全量 186/186；B 级 3–5 随 S2-7 UI 接线后验） |
-| S2-7 | 手工 UI |
-| S3-1 | `tests/permissions.test.ts` + 故意使坏 |
+| S2-7 ✅ | 手工 UI + `tests/tool-display.test.ts`（9 用例）+ 补丁 `tests/stream-lines.test.ts`（9 用例；全量 204/204） |
+| S3-1 ✅ | typecheck + `tests/danger.test.ts`（9 例）+ `tests/permissions.test.ts`（18 例）+ `tests/config.test.ts` headless 端到端 1 例（全量 232/232）；B 级 5/6/8 可先验，2–4/7 待 S3-2 审批 UI |
 | S3-2 | 手工审批 |
 | S3-3 | `tests/session.test.ts` + 重启 |
 | S3-4 | `tests/compress.test.ts` + 50 轮 |
@@ -881,3 +887,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-24 | S2-7 完成：`src/ui/App.tsx` 改为注入 `runTurn` 并消费 `AgentEvent`（`tool_start`/`tool_end` 历史项、`tool_running` 状态行、`turn_end` 提示），新增 `src/ui/tool-display.ts` 纯函数、`tests/tool-display.test.ts` 9 用例（全量 195/195），假 stdin 冒烟 `SMOKE OK`；S2-7 章节改为已完成并附证据，进度切到 S2-8 |
 | 2026-11-24 | S2-7 补丁：修复"流式输出时向上滚动导致输出反复叠加"——新增 `src/ui/stream-lines.ts`（完整行立即提交 `<Static>`、未完成尾巴只留最后 ≤800 码点、CRLF `\r` 剥离），`App` 改为按行提交；新增 `tests/stream-lines.test.ts` 9 用例（全量 204/204），冒烟增加"60 行长输出每行只出现一次"断言；文档同步（spec §9 流式渲染、S2-7 小节补丁段、tasks/checklist） |
 | 2026-11-24 | S2-8 完成：S2 全量验收通过（typecheck 0 / tests 204/204 / --help 8 参数 / --version 0.1.0 / --mock --print 幂等 / build+dist 一致 / any 0 / TUI 冒烟 SMOKE OK / 6 工具 loop 演示 ALL TOOLS OK / 真实 API exit 0）；真实模型自主 `read_file`+`glob` 读 README 并总结 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项用户 2026-11-24 通过；打 tag `v0.1-s2` 并 push；S2-8 章节改为已完成并附证据，进度切到 S3-1 |
+| 2026-11-24 | S3-1 完成：新增 `src/safety/danger.ts`（13 类危险命令识别 + `sudo`/`sh`/`powershell` 等包装器剥壳，最多 4 层）与 `src/safety/permissions.ts`（`createPermissionGate` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → `ask` y/a/n；headless 只读；拒绝原因回填 `Error: 权限被拒绝：…`）；`src/index.ts` 交互分支接 gate、`runRealHeadless` 升级为 Agent Loop + 只读工具；新增 `tests/danger.test.ts` 9 例、`tests/permissions.test.ts` 18 例、`tests/config.test.ts` headless 端到端 1 例（全量 232/232）；S3-1 章节改为已完成并附证据，进度切到 S3-2 |
