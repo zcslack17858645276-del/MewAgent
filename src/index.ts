@@ -28,6 +28,7 @@ import { createPermissionGate } from "./safety/permissions.js";
 import type { LlmClient, Message, ToolResult } from "./types.js";
 import { createDefaultRegistry } from "./tools/index.js";
 import type { RunAgentTurn } from "./ui/App.js";
+import { createApprovalController } from "./ui/approval.js";
 import { startTui } from "./ui/start-tui.js";
 import type { StartTuiOptions } from "./ui/start-tui.js";
 
@@ -336,12 +337,13 @@ export async function main(
       workspace: config.workspace,
       toolNames: tools.names(),
     });
-    // S3-1：交互模式接权限闸。S3-1 还没有审批 UI（S3-2 接入），因此写操作会
-    // 被拒绝并回填原因，只读工具照常放行——这是过渡行为，不是最终形态。
+    // S3-2：交互审批桥——gate 的 ask 挂起，App 渲染 ApprovalPrompt，按键后 respond。
+    const approvals = createApprovalController();
     const permissions = createPermissionGate({
       tools,
       workspace: config.workspace,
       mode: "interactive",
+      ask: approvals.ask,
     });
     const runTurn: RunAgentTurn = (messages, { signal, emit }) =>
       runAgent({
@@ -360,6 +362,7 @@ export async function main(
       config,
       runTurn,
       toolNames: tools.names(),
+      approvals,
     });
     return 0;
   } catch (error) {

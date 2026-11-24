@@ -28,7 +28,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
 
 import type { AgentLoopResult } from "../agent/loop.js";
+import type { ApprovalChoice, ApprovalRequest } from "../safety/permissions.js";
 import type { AgentEvent, Message } from "../types.js";
+import type { ApprovalController } from "./approval.js";
+import { ApprovalPrompt } from "./ApprovalPrompt.js";
 import { HistoryItem, createHistoryEntry } from "./HistoryItem.js";
 import type { HistoryEntry, HistoryEntryKind } from "./HistoryItem.js";
 import { InputBox } from "./InputBox.js";
@@ -65,6 +68,8 @@ export interface AppProps {
   /** 已注册的工具名，仅用于启动横幅展示（真正执行在入口注入的 runTurn 里）。 */
   readonly toolNames: readonly string[];
   readonly runTurn: RunAgentTurn;
+  /** 审批桥（S3-2）：存在时，权限闸询问会以审批弹窗形式出现在动态区。 */
+  readonly approvals?: ApprovalController | undefined;
   /** 流式刷新间隔，默认 50ms（方案 §6.9）；测试可调小。 */
   readonly streamThrottleMs?: number;
 }
@@ -87,6 +92,7 @@ export function App({
   mock,
   toolNames,
   runTurn,
+  approvals,
   streamThrottleMs = 50,
 }: AppProps): ReactElement {
   const { exit } = useApp();
@@ -112,6 +118,8 @@ export function App({
   const [streaming, setStreaming] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [toolStatus, setToolStatus] = useState<string | null>(null);
+  // S3-2：等待用户审批的工具调用。非 null 时 ApprovalPrompt 独占按键。
+  const [pendingApproval, setPendingApproval] = useState<ApprovalRequest | null>(null);
   const [queue, setQueue] = useState<readonly string[]>([]);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [cursorPosition, setCursorState] = useState<CursorPosition | undefined>(undefined);
@@ -298,9 +306,39 @@ export function App({
     setQueue((previous) => [...previous, prompt]);
   }, []);
 
+  // 审批桥 → React 状态：gate 调 ask 时出现弹窗，respond 后收起。
+  useEffect(() => {
+    if (approvals === undefined) {
+      return;
+    }
+
+    const syncPending = (): void => {
+      setPendingApproval(approvals.current());
+    };
+    syncPending();
+    return approvals.subscribe(syncPending);
+  }, [approvals]);
+
+  const decideApproval = useCallback(
+    (choice: ApprovalChoice) => {
+      approvals?.respond(choice);
+    },
+    [approvals],
+  );
+
   const busy = phase !== "idle";
 
   useInput((typed, key) => {
+    // 审批时按键归 ApprovalPrompt（y/a/n/Esc）；这里只保留 Ctrl+C 中断整轮。
+    if (pendingApproval !== null) {
+      if (key.ctrl && typed === "c") {
+        approvals?.respond("n");
+        abortRef.current?.abort();
+      }
+
+      return;
+    }
+
     if (key.ctrl && typed === "c") {
       if (busy) {
         abortRef.current?.abort();
@@ -338,7 +376,7 @@ export function App({
   // 多行时 y 需要加上 caret 所在行号，x 需要加上该行的前缀宽度（首行提示符/续行缩进）。
   useEffect(() => {
     const node = inputBoxRef.current;
-    if (node === null) {
+    if (node === null || pendingApproval !== null) {
       setCursorState(undefined);
       return;
     }
@@ -357,11 +395,15 @@ export function App({
       x: metrics.x + prefixWidth + displayWidth(line.slice(0, columnIndex)),
       y: metrics.y + lineIndex,
     });
-  }, [input, cursorOffset, streaming, toolStatus, errorText, entries.length, phase]);
+  }, [input, cursorOffset, pendingApproval, streaming, toolStatus, errorText, entries.length, phase]);
 
   setCursorPosition(cursorPosition);
 
   const statusLine = useMemo(() => {
+    if (pendingApproval !== null) {
+      return "等待审批：y 允许 · a 本会话总是允许 · n/Esc 拒绝";
+    }
+
     if (phase === "tool_running") {
       return toolStatus !== null
         ? `工具运行中：${toolStatus}（Esc 中断）`
@@ -381,7 +423,7 @@ export function App({
     return mock
       ? "就绪（mock 离线）· Enter 发送 · Shift+Enter 换行 · Esc 清空 · Ctrl+C 退出"
       : "就绪 · Enter 发送 · Shift+Enter 换行 · Esc 清空 · Ctrl+C 退出";
-  }, [mock, phase, queue.length, toolStatus]);
+  }, [mock, pendingApproval, phase, queue.length, toolStatus]);
 
   return (
     <Box flexDirection="column">
@@ -398,10 +440,14 @@ export function App({
         </Box>
       ) : null}
 
-      {phase === "tool_running" && toolStatus !== null ? (
+      {phase === "tool_running" && toolStatus !== null && pendingApproval === null ? (
         <Box marginTop={1}>
           <Text color="yellow">⚙ {toolStatus}…</Text>
         </Box>
+      ) : null}
+
+      {pendingApproval !== null ? (
+        <ApprovalPrompt request={pendingApproval} onDecision={decideApproval} />
       ) : null}
 
       {errorText !== null ? (
@@ -419,12 +465,15 @@ export function App({
             setCursorOffset(offset);
           }}
           onSubmit={handleSubmit}
+          active={pendingApproval === null}
           placeholder={
-            busy
-              ? "生成中，可先输入下一条（Enter 排队，Shift+Enter 换行）"
-              : "输入问题（Enter 发送，Shift+Enter 换行）"
+            pendingApproval !== null
+              ? "审批中：按键交给上方提示（y/a/n/Esc）"
+              : busy
+                ? "生成中，可先输入下一条（Enter 排队，Shift+Enter 换行）"
+                : "输入问题（Enter 发送，Shift+Enter 换行）"
           }
-          promptColor={busy ? "gray" : "cyan"}
+          promptColor={busy || pendingApproval !== null ? "gray" : "cyan"}
         />
       </Box>
 
