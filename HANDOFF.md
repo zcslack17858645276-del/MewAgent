@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-24 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 进行中（S2-1、S2-2、S2-3、S2-4、S2-5、S2-6、S2-7 完成，含流式叠字修复）｜ 下一任务：S2-8
+> 最后更新：2026-11-24 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 已完成（tag `v0.1-s2` 已推送，S2-1~S2-8 全部完成，含流式叠字修复）｜ 下一任务：S3-1
 
 ---
 
@@ -12,8 +12,8 @@
 - **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（私有，默认分支 `main`）
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
-- **当前状态**：S0 阶段已完成并打 tag `v0.1-s0`；**S1 阶段已完成并打 tag `v0.1-s1`**——S1-1（SSE 解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（`agent/prompt.ts` system prompt + `agent/messages.ts` 消息转换）、S1-4（Ink TUI：Static 历史 / 50ms 节流 / 输入框 / 错误行 / Esc·Ctrl+C / 排队；补丁：自研多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式）、S1-5（`--print` headless 接真实 API）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，`npm test` **104/104**、CI 全绿。S1-4 的 8 条 B 级手工项与补丁项、S1-5 的真实 API 复验（中文输出 / 无 TTY 无 raw mode / B3 重定向 UTF-8 / 假 key 401）均已由用户于 2026-11-23 验收通过。
-- **下一步**：按 `docs/tasks.md` 做 S2-1（`tools/paths.ts`：工作区边界校验 + `tests/paths.test.ts`），依据 `docs/testing.md` S2-1 四行验收；契约先行（`src/types.ts` 已有 `ToolDefinition`，不改契约）。
+- **当前状态**：S0/S1/S2 三个阶段全部完成并分别打 tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2`（均已 push）——S2-1~S2-8 依次交付：路径边界校验、工具注册表、文件工具（read/write/edit）、搜索工具（glob/grep）、bash、Agent Loop、TUI 工具事件（含流式叠字修复）、S2 全量验收；全量 `npm test` **204/204**、CI 全绿；6 个工具在真实模型 TUI 与假 LLM loop 演示中均可用，真实模型可自主读 README 并总结（`README ACCEPTANCE OK`）。S2 全部 B 级手工项已由用户 2026-11-24 验收通过。
+- **下一步**：按 `docs/tasks.md` 做 S3-1（`src/safety/danger.ts` 危险命令识别 + `tests/danger.test.ts`），依据 `docs/testing.md` S3-1 八行验收与方案 §4/§6.7；先做纯函数 + 单测，再接 `permissions.ts` 与 loop 的 `gate`。
 
 ---
 
@@ -168,7 +168,7 @@ git push origin v0.1-s0
 
 Tag 计划：`v0.1-s0` → `v0.1-s1` → `v0.1-s2` → `v0.1-s3` → `v0.1.0`（S4 完成）。
 
-已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）。
+已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）；`v0.1-s2` —— 2026-11-24，S2 收尾提交（annotated tag，已 push；S2 全量验收见 §7 会话 22）。
 
 ### 5.4 回滚
 
@@ -203,7 +203,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 ## 6. 任务看板
 
-以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 15 单测）已完成，全量 `npm test` **142/142**、CI 全绿；S2-4（`src/tools/search.ts` glob/grep：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条，`tests/search.test.ts` 11 单测）已完成，全量 `npm test` **153/153**、CI 全绿；S2-5（`src/tools/bash.ts` shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区，`tests/bash.test.ts` 14 单测）已完成，全量 `npm test` **167/167**、CI 全绿；S2-6（`src/agent/loop.ts` Agent Loop：`AgentEvent` 事件流 + 多轮工具 + `maxSteps=30` + `turn_end` 原因 + Gate 预留，`src/tools/index.ts` 默认注册表，`tests/loop.test.ts` 19 单测）已完成，全量 `npm test` **186/186**、CI 全绿；S2-7（`src/ui/App.tsx` 消费 `AgentEvent`：`tool_start`/`tool_end` 历史项 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、`src/ui/tool-display.ts` 纯函数、mock 也走真 loop，`tests/tool-display.test.ts` 9 单测 + 假 stdin 冒烟）已完成，全量 `npm test` **195/195**、CI 全绿（补丁 2026-11-24：流式叠字修复 + `tests/stream-lines.test.ts` 9 例，全量 **204/204**）；下一步 S2-8（S2 收尾 + tag `v0.1-s2`）。
+以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 15 单测）已完成，全量 `npm test` **142/142**、CI 全绿；S2-4（`src/tools/search.ts` glob/grep：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条，`tests/search.test.ts` 11 单测）已完成，全量 `npm test` **153/153**、CI 全绿；S2-5（`src/tools/bash.ts` shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区，`tests/bash.test.ts` 14 单测）已完成，全量 `npm test` **167/167**、CI 全绿；S2-6（`src/agent/loop.ts` Agent Loop：`AgentEvent` 事件流 + 多轮工具 + `maxSteps=30` + `turn_end` 原因 + Gate 预留，`src/tools/index.ts` 默认注册表，`tests/loop.test.ts` 19 单测）已完成，全量 `npm test` **186/186**、CI 全绿；S2-7（`src/ui/App.tsx` 消费 `AgentEvent`：`tool_start`/`tool_end` 历史项 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、`src/ui/tool-display.ts` 纯函数、mock 也走真 loop，`tests/tool-display.test.ts` 9 单测 + 假 stdin 冒烟）已完成，全量 `npm test` **195/195**、CI 全绿（补丁 2026-11-24：流式叠字修复 + `tests/stream-lines.test.ts` 9 例，全量 **204/204**）；**S2 已完成并打 tag `v0.1-s2`（已 push）**——S2-8 全量验收通过（typecheck 0 / tests 204/204 / `--help` 8 参数 / `--version` 0.1.0 / `--mock --print` 幂等 / build 与 dist 一致 / any 0 / TUI 冒烟 `SMOKE OK` / 6 工具 loop 演示 `ALL TOOLS OK` / 真实 API exit 0）+ 真实模型 README 任务 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项用户 2026-11-24 通过。下一步 S3-1（权限三道闸）。
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -442,6 +442,17 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **补丁（2026-11-24，流式输出滚动叠字）**：用户反馈"流式输出时向上滚动窗口 → 同一段输出反复叠加"（截图同一段结论重复 3 次）。根因：流式文本整段留在 Ink 动态区，长输出时动态区高度超过终端，超出屏幕的旧帧无法被清除、残留进 scrollback，滚动时可见。修复：新增 `src/ui/stream-lines.ts`（`splitCompletedLines` 完整行立即提交 `<Static>`、`clampDynamicTail` 未完成尾巴只留最后 ≤800 码点、CRLF 行尾 `\r` 剥离），`App` 改为按行提交、动态区只渲染尾巴；新增 `tests/stream-lines.test.ts` 9 例，冒烟增加"60 行长输出每行只出现一次"断言。验证：typecheck 0；全量 `npm test` **204/204**；冒烟 `SMOKE OK`。**提交**：分支 `fix/s2-7-stream-overlap` 提交 `4be728d`（已 push，远端保留原始提交）→ squash 合并 main `0e5df46`；**CI**：`45310862547`（分支, `4be728d`）、`45310880670`（main, `0e5df46`）全部 success，日志 `# tests 204 / # pass 204 / # fail 0`。
 - **坑**：①`tests/config.test.ts`/`tests/mock.test.ts` 新增局部变量 `result` 与既有变量重名 → TS2451，改名 `turnResult`；②冒烟断言"长参数摘要被截断"不能按单行检查——Ink 会按终端宽度折行、`…` 落在续行 → 改为在整段输出里找 `…`；③`App` 消息历史直接以 `result.messages`（去 system）覆盖，避免流式/工具轮次重复；④`turn_end` 事件不单独渲染（避免与历史重复），只用 `stopReason` 追加提示。
 - **下次第一步**：S2-8（手工验收 + tag `v0.1-s2`）；先读 `docs/testing.md` S2-8 与方案 §4，跑全量验收并让用户做真实模型"读 README → 总结"三步任务。
+
+### 2026-11-24 · 会话 22（S2-8：S2 全量验收 + tag `v0.1-s2`）
+
+- **做了什么**：① 清理仓库根用户测试遗留 `sample.txt`/`sample2.txt`；② 写 `spikes/.out/run-s2-8.ps1` 跑 S2 全量验收（typecheck / 全量 test / --help / --version / --mock --print 幂等 / build + dist 对比 / any 扫描 / TUI 冒烟 / 6 工具 loop 演示 / 真实 API headless）；③ 写 `spikes/.out/readme-acceptance.ts` 用真实模型 + 真工具验证「自主读 README 并总结」：模型 `read_file README.md` → `glob **/README*` → 如实总结"README 只有一行标题"，`stopReason=stop steps=3 toolCalls=2`，输出 `README ACCEPTANCE OK`；④ 更新 tasks/testing/spec/checklist/HANDOFF；⑤ 打 annotated tag `v0.1-s2` 并 push。
+- **验收数据（2026-11-24，本地 Node v26.7.0）**：`npm run typecheck` exit 0；全量 `npm test` **204/204（fail 0）**；`--help` 8 参数；`--version` = `0.1.0`；`--mock --print hello` 连跑两次完全一致；`npm run build` exit 0 且 `dist` 与 dev 输出一致；`src/` `\bany\b` 0 匹配；TUI 假终端冒烟 `SMOKE OK`；6 工具 loop 演示 `ALL TOOLS OK`；真实 API `node --import tsx src/index.ts --print hello` exit 0（457B 中文；headless 无工具属预期）；真实模型 README 任务 `README ACCEPTANCE OK`（2 工具 3 步）。证据：`spikes/.out/s2-8-acceptance.txt`、`s2-8-readme.txt`（gitignored）。
+- **B 级**：S2 全部手工项（S2-1 #3/#4、S2-3 #3–#5、S2-4 #2–#4、S2-5 #2–#5、S2-6 #3–#5、S2-7 #1–#4）已由用户 2026-11-24 实测通过（会话 A/B）；A 组补验之外 A3（`MEWCODE_DEBUG=1` 工具可用）已在 S2-7 后复验。
+- **文档**：`docs/tasks.md` S2-8 done、焦点 S3-1；`docs/testing.md` S2 各行 B 级标用户已验 + 新增「S2 B 级复核」段 + S2-8 已完成小节 + 附录 D；`docs/spec.md` line 3 状态、line 83 十八个测试文件、§13 S2-8 ✅ 与 S2 ✅；`docs/checklist.md` S2 末项 `[x]`、§3 6 工具 ✅、§4 回归补 S2-8、§5 tag 记录；`HANDOFF.md` line 5/§1/§5.3/§6。
+- **提交**：分支 `task/s2-8-acceptance` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`；tag `v0.1-s2` 打在 docs 哈希回填提交上（annotated，已 push）。
+- **CI**：`<待回填>`（task 分支）、`<待回填>`（main）全部 success，日志 `# tests 204 / # pass 204 / # fail 0`。
+- **坑**：PS 5.1 下 `npm test` 输出以 `ℹ tests N` 呈现（grep 计数兼容两种）；`spikes/.out/` 全部 gitignored；tag 用 annotated（`-a`）并单独 push。
+- **下次第一步**：S3-1（`src/safety/danger.ts` 危险命令识别 + 单测）；先读 `docs/testing.md` S3-1 与方案 §4/§6.7。
 
 
 ```text

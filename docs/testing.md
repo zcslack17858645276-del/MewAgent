@@ -401,8 +401,8 @@ git status --short        # 确认没有把测试产物提交
 |---|---|---|---|---|---|
 | 1 | A | `tests/paths.test.ts`：`../x`、`..\x`、绝对路径、盘符路径、`%TEMP%` | 全部拒绝 | P0 | ✅ `UnsafePathError` + `下一步` 文案，10 例全绿 |
 | 2 | A | 合法：`src/a.ts`、`./a.ts`、带空格/中文文件名 | 全部允许 | P0 | ✅ 输出正斜杠绝对路径、保留原始大小写 |
-| 3 | B | TUI 里让它"读取 ../secret.txt" | 工具返回拒绝原因，模型不会硬读 | P0 | ⏳ 工具未接入 TUI（S2-6/S2-7 接线后验） |
-| 4 | B | 创建 junction/symlink 指向 testbed 外，再让它读 | 拒绝或明确提示不支持 | P1 | ✅ 单元级已验（`tests/paths.test.ts` 第 9 例）；TUI 级 ⏳ 随 S2-6/S2-7 |
+| 3 | B | TUI 里让它"读取 ../secret.txt" | 工具返回拒绝原因，模型不会硬读 | P0 | ✅ **用户实测通过（2026-11-24，会话 A）：TUI 里读 `../secret.txt` 与 `%TEMP%` 外部路径均返回拒绝原因，模型未硬读** |
+| 4 | B | 创建 junction/symlink 指向 testbed 外，再让它读 | 拒绝或明确提示不支持 | P1 | ✅ **用户实测通过（2026-11-24，会话 A）：`linked-outside/secret.txt` 被拒，错误含「符号链接/junction 指向工作区外」；单元级亦覆盖** |
 
 **A 级证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -438,9 +438,9 @@ git status --short        # 确认没有把测试产物提交
 |---|---|---|---|---|---|
 | 1 | A | `tests/fs.test.ts`：edit 唯一匹配、0 匹配、多匹配（无 replace_all）、多匹配（有 replace_all） | 行为与实施方案 §6.5 一致 | P0 | ✅ 14 例覆盖四种分支 |
 | 2 | A | CRLF 文件 edit、write 自动建目录、read 带行号、超长截断 | 通过 | P0 | ✅ 单测全过 |
-| 3 | B | testbed 里："读 sample.txt 并复述" | 内容正确、带行号 | P0 | ⏳ 待工具接 loop/TUI（S2-6/S2-7） |
-| 4 | B | "把 sample.txt 第 2 行改成 line-two" | 审批后文件真的变了，`Get-Content` 确认 | P0 | ⏳ 待审批（S3）+ loop 接线 |
-| 5 | B | "把文件里所有的 line 换成 row" | 提示多处匹配，要求 replace_all | P0 | ⏳ 待 loop 接线后手工验 |
+| 3 | B | testbed 里："读 sample.txt 并复述" | 内容正确、带行号 | P0 | ✅ **用户实测通过（2026-11-24，会话 A）：TUI 读 `sample.txt` 带行号复述正确** |
+| 4 | B | "把 sample.txt 第 2 行改成 line-two" | 审批后文件真的变了，`Get-Content` 确认 | P0 | ✅ **用户实测通过（2026-11-24，会话 A）：TUI 里 `edit_file` 后 `Get-Content` 确认第 2 行落盘；审批交互待 S3-2** |
+| 5 | B | "把文件里所有的 line 换成 row" | 提示多处匹配，要求 replace_all | P0 | ✅ **用户实测通过（2026-11-24，会话 A）：多匹配先返回可操作错误（提示 `replace_all:true`），模型重试后全部替换为 row** |
 | 6 | B | 对 crlf.txt 做同样 edit | 不因 `\r\n` 失败，且不整文件改成 LF | P1 | ✅ 用户已实测通过（2026-11-23，fs-manual-driver 演示：LF 写法命中 + 写回仍 CRLF） |
 | 7 | B | 让 read 一个大文件 | 输出被截断，有"已截断/落盘"提示 | P1 | ✅ 用户已实测通过（2026-11-23；字节截断时续读 offset 不跳行） |
 
@@ -460,9 +460,9 @@ git status --short        # 确认没有把测试产物提交
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
 | 1 | A | `tests/search.test.ts`：glob 模式、跳过 .git/node_modules、200 条上限、grep 正则、中文内容 | 全部通过 | P0 | ✅ 11 例全过 |
-| 2 | B | "列出 src 下所有 ts 文件" | 结果 ≤200，路径可读 | P1 | ⏳ 待工具接 loop/TUI（S2-6/S2-7） |
-| 3 | B | "搜索 mewcode 出现在哪些文件" | 返回 `文件:行号:内容` | P1 | ⏳ 待 loop/TUI 接线后手工验 |
-| 4 | B | 对 big.log 搜索 | 不卡死，结果有上限 | P1 | ⏳ 待 loop/TUI 接线后手工验 |
+| 2 | B | "列出 src 下所有 ts 文件" | 结果 ≤200，路径可读 | P1 | ✅ **用户实测通过（2026-11-24，会话 A/六工具测试）：glob 结果路径可读且 ≤200** |
+| 3 | B | "搜索 mewcode 出现在哪些文件" | 返回 `文件:行号:内容` | P1 | ✅ **用户实测通过（2026-11-24）：grep 返回 `文件:行号:内容`** |
+| 4 | B | 对 big.log 搜索 | 不卡死，结果有上限 | P1 | ✅ **用户实测通过（2026-11-24，会话 A）：10 万行 big.log 搜索数秒内返回、有上限** |
 
 **A 级自动化证据（2026-11-23，本地 Node v26.7.0）**：
 
@@ -475,14 +475,14 @@ git status --short        # 确认没有把测试产物提交
 
 **实现要点**：`walkFiles` 用 `readdirSync` 排序遍历、只 yield 文件、不跟随 symlink，`SKIP_DIR_NAMES` 跳过 node_modules/.git；glob 段级匹配支持 `*`/`?`/`**`（段级回溯）/`[abc]`/`[!abc]`，win32 下大小写不敏感；`OutputBuilder` 统一 30KB 字节预算。grep 逐文件先 `stat` 判 5MB、读前 8KB 判 NUL 二进制；命中行超 500 字符截断，结果上限 100 处。两工具均 `readOnly:true`，失败统一 `Error: …` + "下一步"。
 
-**已知限制**：v0.1 不做"替换式 grep"（找到后由 `edit_file` 修改）；glob 不支持 `{}` 展开与 `!` 排除；grep 是逐行匹配、不支持多行；只给匹配行、不给上下文（需上下文用 `read_file`）；尚未接入 loop/TUI（S2-6/S2-7 接线，B 级 2–4 条届时再验）。
+**已知限制**：v0.1 不做"替换式 grep"（找到后由 `edit_file` 修改）；glob 不支持 `{}` 展开与 `!` 排除；grep 是逐行匹配、不支持多行；只给匹配行、不给上下文（需上下文用 `read_file`）；已接入 loop/TUI（S2-6/S2-7），B 级 2–4 条已由用户 2026-11-24 实测通过。
 
 #### S2-5 bash 工具（已完成 2026-11-24）
 
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
 | 1 | A | `tests/bash.test.ts`：超时 kill、输出 >30KB 截断、非 0 退出码、中文输出 | 通过 | P0 | ✅ 14 例 |
-| 2 | B | "运行 npm test 并总结结果" | 有输出摘要，不是原样倒 500 行 | P0 | ⏳ 待 loop/TUI（S2-6/S2-7） |
+| 2 | B | "运行 npm test 并总结结果" | 有输出摘要，不是原样倒 500 行 | P0 | ✅ **用户实测通过（2026-11-24，会话 A）：模型跑命令后给出摘要** |
 | 3 | B | "运行一个 10 秒不结束的命令"（如 `ping -n 10 127.0.0.1`） | 到超时被终止，提示超时 | P0 | ✅ **用户已实测通过（2026-11-24，A4）**：bash-manual-driver + `timeout_ms=3000` 约 3.5s 返回超时提示 |
 | 4 | B | "输出 big.log 的内容" | 截断到 30KB 左右并有提示，上下文没爆 | P0 | ✅ **用户已实测通过（2026-11-24，A4）**：截断注 `30720 字节`、不撑爆 |
 | 5 | B | 中文命令/输出（`echo 你好`） | 不乱码 | P1 | ✅ **用户已实测通过（2026-11-24，A4）**：`echo 你好` 中文正常 |
@@ -496,11 +496,11 @@ git status --short        # 确认没有把测试产物提交
 - 完整记录：`spikes/.out/s2-5-typecheck.txt`、`s2-5-bash.txt`、`s2-5-full.txt`（均 gitignored）
 - CI（gh 只读）：`45304592450`（task/s2-5-bash, `a075f72`）、`45304612323`（main, `32f43e6`）全部 success；job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 167 / # pass 167 / # fail 0`。
 
-**结果**：行 1 ✅（14 例）；行 2–5 ⏳ 需模型真正调用 bash（loop/TUI 接线后，S2-6/S2-7 后验）；行 6 ✅ 已记录 Windows 孙进程限制（`child.kill` 只杀直接子进程，输出里有提示，超时场景 500ms 兜底返回）。
+**结果**：行 1 ✅（14 例）；行 2–5 ✅ 已由用户在 TUI 里实测通过（2026-11-24，会话 A；A4 另覆盖行 3/4/5 的驱动级验证）；行 6 ✅ 已记录 Windows 孙进程限制（`child.kill` 只杀直接子进程，输出里有提示，超时场景 500ms 兜底返回）。
 
 **实现要点**：`resolveShell(platform, env, exists)` 返回 `{command,args,label,prependChcp,verbatim}`——`MEWCODE_SHELL` 覆盖 > Windows Git Bash（`C:\Program Files\Git\bin\bash.exe`，`-lc`）> `cmd.exe /d /s /c`（带 `chcp 65001 >nul &&` 前缀）；**cmd 分支必须 `windowsVerbatimArguments:true`**（否则含 `;`/`(` 的命令会被 cmd 拆坏，开发中实测踩坑）。输出先 UTF-8 解码，出现 U+FFFD 再试 GBK。超时 `child.kill()` 后 500ms 兜底 resolve，避免孙进程占管道导致卡死；stdout/stderr 各 4MB 采集上限，合并输出按 UTF-8 字节安全截断到 30KB。
 
-**已知限制**：Windows 上 `child.kill` 不杀孙进程（v0.1 接受，方案 §6.10；v0.2 改 `taskkill /T /F`）；`bash -lc` 分支本机未安装 Git Bash、未真机验证（CI 为 Linux `sh -c`，已覆盖 `-c` 分支）；尚未接入 loop/TUI（B 级 2–5 条届时再验）。
+**已知限制**：Windows 上 `child.kill` 不杀孙进程（v0.1 接受，方案 §6.10；v0.2 改 `taskkill /T /F`）；`bash -lc` 分支本机未安装 Git Bash、未真机验证（CI 为 Linux `sh -c`，已覆盖 `-c` 分支）；已接入 loop/TUI（S2-6/S2-7），B 级 2–5 条已由用户 2026-11-24 实测通过。
 
 #### S2-6 Agent Loop（已完成 2026-11-24）
 
@@ -508,9 +508,9 @@ git status --short        # 确认没有把测试产物提交
 |---|---|---|---|---|---|
 | 1 | A | `tests/loop.test.ts`：mock 先返回工具调用再返回文本；事件顺序；maxSteps 触发；abort；工具错误回填 | 全绿 | P0 | ✅ 19 例 |
 | 2 | A | 断言 messages 中 assistant.toolCalls 与 tool 结果一一配对 | 无悬空 tool 消息 | P0 | ✅ 多工具/中断/未知工具用例均配对 |
-| 3 | B | 真实模型："读 package.json，告诉我 scripts，然后运行 typecheck，最后总结" | 至少 3 次工具调用，顺序合理 | P0 | ⏳ 待 S2-7 UI 接线（自然语言入口） |
-| 4 | B | 观察事件 UI | 工具开始/结束有状态，不是干等 | P1 | ⏳ 待 S2-7 |
-| 5 | B | 中途 Esc | 循环停止，无后续工具调用 | P0 | ⏳ 待 S2-7（loop 侧 abort 已由 A 级覆盖） |
+| 3 | B | 真实模型："读 package.json，告诉我 scripts，然后运行 typecheck，最后总结" | 至少 3 次工具调用，顺序合理 | P0 | ✅ **用户实测通过（2026-11-24，会话 A）：真实模型多步工具调用顺序合理（S2-8 另用 README 任务复验 2 工具 3 步）** |
+| 4 | B | 观察事件 UI | 工具开始/结束有状态，不是干等 | P1 | ✅ **用户实测通过（2026-11-24）：`⚙ 工具运行中` + `✅/❌` 历史项可见** |
+| 5 | B | 中途 Esc | 循环停止，无后续工具调用 | P0 | ✅ **用户实测通过（2026-11-24）：生成中 Esc 后停止且历史标 `（已中断）`** |
 
 **A 级证据（2026-11-24，本地 Node v26.7.0）**：
 
@@ -524,7 +524,7 @@ git status --short        # 确认没有把测试产物提交
 
 **实现要点**：`runAgent` 注入 `llm/tools/workspace/emit/gate/maxSteps/signal`；事件顺序 `assistant_text* → (tool_start → tool_end)* → … → turn_end`；`tool_start.args` 解析失败为 `null`（契约）；tool 消息失败保证单个 `Error:` 前缀；Gate 预留（S3 接线）；`max_steps` / `aborted` 以事件 + 返回值收敛而非抛异常；非中断 LLM 错误向上抛。
 
-**已知限制**：loop 自身不写日志（只发事件）；B 级 3–5 需要 S2-7 把 loop 接进 TUI（真实模型入口）；并行工具调用仍按顺序串行执行（v0.1 从简）。
+**已知限制**：loop 自身不写日志（只发事件）；B 级 3–5 已由用户 2026-11-24 实测通过（S2-7 接线后）；并行工具调用仍按顺序串行执行（v0.1 从简）。
 
 #### 跨任务 A 组 B 级补验（用户，2026-11-24，已通过）
 
@@ -534,10 +534,10 @@ git status --short        # 确认没有把测试产物提交
 
 | # | 类型 | 步骤 | 预期 | 级别 | 结果 |
 |---|---|---|---|---|---|
-| 1 | B | 触发一次 read 工具 | 显示工具名 + 参数摘要 + 成功/失败 + 耗时 | P0 | ⏳ 待用户；冒烟已见 `✅ read_file {"path":"package.json"} · 5ms` |
-| 2 | B | 触发一次失败工具（读不存在的文件） | 错误可见、可读，不崩 | P0 | ⏳ 待用户；冒烟已见 `❌ read_file … · Error: 文件不存在：…` |
-| 3 | B | 连续 3 个工具 | 历史区按顺序增长，不覆盖 | P1 | ⏳ 待用户；冒烟 4 条工具历史顺序正确（成功/失败/成功/长参数） |
-| 4 | B | 长参数（超长路径/命令） | 参数摘要截断，不撑爆布局 | P1 | ⏳ 待用户；冒烟参数摘要出现 `…` 截断、折行后每行都很短 |
+| 1 | B | 触发一次 read 工具 | 显示工具名 + 参数摘要 + 成功/失败 + 耗时 | P0 | ✅ **用户实测通过（2026-11-24）：`✅ read_file {"path":…} · Nms`** |
+| 2 | B | 触发一次失败工具（读不存在的文件） | 错误可见、可读，不崩 | P0 | ✅ **用户实测通过（2026-11-24）：`❌ … · Error: 文件不存在：…` 可读且不崩** |
+| 3 | B | 连续 3 个工具 | 历史区按顺序增长，不覆盖 | P1 | ✅ **用户实测通过（2026-11-24）：历史按序增长不覆盖** |
+| 4 | B | 长参数（超长路径/命令） | 参数摘要截断，不撑爆布局 | P1 | ✅ **用户实测通过（2026-11-24）：超长参数出现 `…` 截断、布局正常** |
 
 **A 级证据（2026-11-24，本地 Node v26.7.0）**：
 - `npm run typecheck` exit 0
@@ -553,9 +553,31 @@ git status --short        # 确认没有把测试产物提交
 
 **补丁（2026-11-24，流式输出滚动叠字）**：用户反馈"流式输出时向上滚动窗口 → 同一段输出反复叠加"。根因：流式文本整段留在 Ink 动态区，长输出时动态区高度超过终端，超出屏幕的旧帧无法被清除、残留进 scrollback，滚动时可见。修复：`src/ui/stream-lines.ts`（`splitCompletedLines` 完整行立即提交 `<Static>`；`clampDynamicTail` 未完成尾巴只留最后 ≤800 码点；CRLF 行尾 `\r` 剥离），`App` 改为按行提交、动态区只渲染尾巴；新增 `tests/stream-lines.test.ts` 9 例，冒烟增加"60 行长输出每行只出现一次"断言。验证：`npm run typecheck` exit 0；全量 `npm test` **204/204（195 + 9）**；冒烟 `SMOKE OK`（exit 0）。记录：`spikes/.out/bugfix-typecheck.txt`、`bugfix-stream-lines.txt`、`bugfix-full.txt`、`bugfix-smoke.txt`（gitignored）。CI（gh 只读）：`45310862547`（fix/s2-7-stream-overlap, `4be728d`）、`45310880670`（main, `0e5df46`）全部 success，日志 `# tests 204 / # pass 204 / # fail 0`。
 
-#### S2-8 S2 收尾
+#### S2 B 级复核（用户，2026-11-24，全部通过）
 
-tag `v0.1-s2`；跑 S0–S2 全部自动化；按 §4 S2 回归清单手工过一遍。
+用户按上面各小节手工项在 Windows Terminal 里完成并确认通过：S2-1 #3/#4（TUI 里 `../secret.txt` 与 junction 均被拒）、S2-3 #3（读 sample.txt 带行号）、#4（edit 落盘）、#5（多匹配保护 → 重试后 replace_all 成功）、S2-4 #2/#3/#4（glob 可读、grep `文件:行号:内容`、大文件不卡死）、S2-5 #2–#5、S2-6 #3–#5、S2-7 #1–#4。A 组补验（A1/A2/A4）见上段；A3（`MEWCODE_DEBUG=1` + 工具可用）已在 S2-7 接线后复验通过。
+
+#### S2-8 S2 收尾（已完成 2026-11-24）
+
+tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归清单手工过一遍。证据（`spikes/.out/` 均 gitignored）：
+
+**自动验收（2026-11-24，本地 Node v26.7.0）**：
+
+| # | 项 | 结果 |
+|---|---|---|
+| 1 | `npm run typecheck` | ✅ exit 0 |
+| 2 | `npm test` 全量 | ✅ **ℹ tests 204 / pass 204 / fail 0** |
+| 3 | `npm run dev -- --help` / `--version` | ✅ 8 参数齐全 / `0.1.0` exit 0 |
+| 4 | `--mock --print hello` 连跑两次 | ✅ 两次输出完全一致（幂等） |
+| 5 | `npm run build` + `node dist/index.js --mock --print hello` | ✅ build exit 0，dist 与 dev 输出一致 |
+| 6 | `src/` 中 `\bany\b` 扫描 | ✅ 0 匹配 |
+| 7 | TUI 假终端冒烟 / 6 工具 loop 演示 | ✅ `SMOKE OK` / `ALL TOOLS OK` |
+| 8 | 真实 API `--print hello` | ✅ exit 0（457B 中文；headless 无工具属预期） |
+
+- 完整记录：`spikes/.out/s2-8-acceptance.txt`、`s2-8-readme.txt`（gitignored）。
+- **真实模型 README 验收（S2-8 核心）**：`spikes/.out/readme-acceptance.ts` 用真实 API + 真 `runAgent`/`createDefaultRegistry`，模型自主 `read_file README.md` → `glob **/README*` → 如实总结"README 只有一行标题、无实质内容"；`stopReason=stop steps=3 toolCalls=2`，输出 `README ACCEPTANCE OK`。
+- **回归**：§4 S2 回归清单六项按 `docs/checklist.md` 更新（含用户 TUI 实测 glob/grep/bash、中文输出、B 级全通过）。
+- **tag**：`v0.1-s2`（annotated，S2 收尾提交，已 push 远端；见 HANDOFF §5.3 与 §7 会话 22）。
 
 ---
 
@@ -857,3 +879,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-24 | S2-6 完成：新增 `src/agent/loop.ts`（`runAgent`：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留；`max_steps`/`aborted` 以事件+返回值收敛）+ `src/tools/index.ts`（`createDefaultRegistry` 6 工具）+ `tests/loop.test.ts` 19 用例（全量 186/186）；S2-6 章节改为已完成并附证据，进度切到 S2-7 |
 | 2026-11-24 | S2-7 完成：`src/ui/App.tsx` 改为注入 `runTurn` 并消费 `AgentEvent`（`tool_start`/`tool_end` 历史项、`tool_running` 状态行、`turn_end` 提示），新增 `src/ui/tool-display.ts` 纯函数、`tests/tool-display.test.ts` 9 用例（全量 195/195），假 stdin 冒烟 `SMOKE OK`；S2-7 章节改为已完成并附证据，进度切到 S2-8 |
 | 2026-11-24 | S2-7 补丁：修复"流式输出时向上滚动导致输出反复叠加"——新增 `src/ui/stream-lines.ts`（完整行立即提交 `<Static>`、未完成尾巴只留最后 ≤800 码点、CRLF `\r` 剥离），`App` 改为按行提交；新增 `tests/stream-lines.test.ts` 9 用例（全量 204/204），冒烟增加"60 行长输出每行只出现一次"断言；文档同步（spec §9 流式渲染、S2-7 小节补丁段、tasks/checklist） |
+| 2026-11-24 | S2-8 完成：S2 全量验收通过（typecheck 0 / tests 204/204 / --help 8 参数 / --version 0.1.0 / --mock --print 幂等 / build+dist 一致 / any 0 / TUI 冒烟 SMOKE OK / 6 工具 loop 演示 ALL TOOLS OK / 真实 API exit 0）；真实模型自主 `read_file`+`glob` 读 README 并总结 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项用户 2026-11-24 通过；打 tag `v0.1-s2` 并 push；S2-8 章节改为已完成并附证据，进度切到 S3-1 |
