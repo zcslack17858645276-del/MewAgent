@@ -21,7 +21,9 @@ import {
   CliError,
   DEFAULT_BASE_URL,
   DEFAULT_MOCK_MODEL,
+  applyEnvContent,
   loadDotEnv,
+  loadDotEnvFallback,
   parseArgs,
   readPackageVersion,
   resolveConfig,
@@ -338,6 +340,75 @@ test("loadDotEnv：读取 .env，文件缺失时静默跳过", () => {
     }
     removeTempDir(dir);
   }
+});
+
+test("loadDotEnvFallback：老 Node 兜底解析（注释/空行/export/引号/CRLF/已有变量优先）", () => {
+  const dir = makeTempDir();
+  const keys = [
+    "MEWCODE_TEST_FALLBACK_A",
+    "MEWCODE_TEST_FALLBACK_B",
+    "MEWCODE_TEST_FALLBACK_C",
+    "MEWCODE_TEST_FALLBACK_D",
+    "MEWCODE_TEST_FALLBACK_EXISTING",
+  ];
+  const previous = new Map(keys.map((key) => [key, process.env[key]]));
+  try {
+    for (const key of keys) {
+      delete process.env[key];
+    }
+    process.env.MEWCODE_TEST_FALLBACK_EXISTING = "已有值";
+    const content = [
+      "# 注释行忽略",
+      "",
+      "MEWCODE_TEST_FALLBACK_A=plain",
+      "export MEWCODE_TEST_FALLBACK_B=exported",
+      'MEWCODE_TEST_FALLBACK_C="带 空格 # 井号"',
+      "MEWCODE_TEST_FALLBACK_D='单引号'",
+      "MEWCODE_TEST_FALLBACK_EXISTING=文件值",
+      "",
+    ].join("\r\n");
+    const envPath = path.join(dir, ".env");
+    writeFileSync(envPath, content, "utf8");
+    loadDotEnvFallback(envPath);
+    assert.equal(process.env.MEWCODE_TEST_FALLBACK_A, "plain");
+    assert.equal(process.env.MEWCODE_TEST_FALLBACK_B, "exported");
+    assert.equal(process.env.MEWCODE_TEST_FALLBACK_C, "带 空格 # 井号");
+    assert.equal(process.env.MEWCODE_TEST_FALLBACK_D, "单引号");
+    assert.equal(process.env.MEWCODE_TEST_FALLBACK_EXISTING, "已有值");
+
+    // 文件缺失时让 ENOENT 冒泡，由 loadDotEnv 统一静默处理。
+    assert.throws(() => loadDotEnvFallback(path.join(dir, "missing.env")));
+    assert.doesNotThrow(() =>
+      loadDotEnv(path.join(dir, "missing.env"), loadDotEnvFallback),
+    );
+  } finally {
+    for (const key of keys) {
+      const value = previous.get(key);
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    removeTempDir(dir);
+  }
+});
+
+test("applyEnvContent：格式非法时报行号与下一步，且不回显值", () => {
+  const secret = "sk-should-not-leak-123456";
+  assert.throws(
+    () => applyEnvContent(`OK=1\n${secret}\n`, "测试 .env"),
+    (error: unknown) =>
+      error instanceof CliError &&
+      error.message.includes("第 2 行") &&
+      error.message.includes("下一步：") &&
+      !error.message.includes(secret),
+  );
+  assert.throws(
+    () => applyEnvContent("1BAD=1\n", "测试 .env"),
+    (error: unknown) =>
+      error instanceof CliError && error.message.includes("变量名不合法"),
+  );
 });
 
 test("readPackageVersion：与 package.json 的 version 一致", () => {
