@@ -561,3 +561,87 @@ test("loop：maxSteps 非法值抛可读错误", async () => {
     /maxSteps 必须是 ≥1 的整数/,
   );
 });
+
+test("loop：设置 contextTokens 时请求前压缩，返回历史仍是完整版（S3-4）", async () => {
+  const llm = createScriptedLlm([{ content: "总结完成" }]);
+  const compressed: unknown[] = [];
+  const history: Message[] = [
+    { role: "user", content: "a".repeat(400) },
+    { role: "assistant", content: "ok1", toolCalls: [] },
+    { role: "user", content: "b".repeat(400) },
+    { role: "assistant", content: "ok2", toolCalls: [] },
+    { role: "user", content: "latest" },
+  ];
+
+  const result = await runAgent({
+    llm,
+    tools: new ToolRegistry(),
+    workspace: WORKSPACE,
+    systemPrompt: "sys",
+    messages: history,
+    contextTokens: 60, // budget 42
+    onCompress: (info) => {
+      compressed.push(info);
+    },
+  });
+
+  // 发给模型的副本只有 system + 最新 user（旧轮被整轮丢弃）
+  const sent = llm.calls[0]?.messages ?? [];
+  assert.deepEqual(
+    sent.map((message) => message.role),
+    ["system", "user"],
+  );
+  assert.equal(sent[1]?.content, "latest");
+  // onCompress 收到统计：丢 2 轮
+  assert.equal(compressed.length, 1);
+  const info = compressed[0] as { droppedTurns: number; beforeTokens: number; afterTokens: number };
+  assert.equal(info.droppedTurns, 2);
+  assert.ok(info.afterTokens < info.beforeTokens);
+  // 返回值仍是完整历史 + 本轮 assistant（供会话持久化）
+  assert.deepEqual(
+    result.messages.map((message) => message.role),
+    ["system", "user", "assistant", "user", "assistant", "user", "assistant"],
+  );
+});
+
+test("loop：最新一轮工具输出超预算时只截断发给模型的副本，历史保持完整", async () => {
+  const longTool: ToolDefinition = {
+    name: "dump",
+    description: "输出超长文本，用于验证压缩截断。",
+    parameters: { type: "object", properties: {} },
+    readOnly: true,
+    run: async (): Promise<ToolResult> => ({ ok: true, output: "x".repeat(3000) }),
+  };
+  const llm = createScriptedLlm([
+    { toolCalls: [toolCall("call_dump", "dump", {})] },
+    { content: "done" },
+  ]);
+  let truncatedSeen = false;
+
+  const result = await runAgent({
+    llm,
+    tools: new ToolRegistry([longTool]),
+    workspace: WORKSPACE,
+    systemPrompt: "sys",
+    messages: [{ role: "user", content: "run" }],
+    contextTokens: 50,
+    onCompress: (info) => {
+      if (info.truncated) {
+        truncatedSeen = true;
+      }
+    },
+  });
+
+  // 第二次请求时 tool 内容被截断（2000 字符 + 标记）
+  const secondRequest = llm.calls[1]?.messages ?? [];
+  const sentTool = secondRequest.find((message) => message.role === "tool");
+  assert.ok(sentTool !== undefined && sentTool.role === "tool");
+  assert.ok(sentTool.content.length < 2100);
+  assert.ok(sentTool.content.endsWith("…（已截断）"));
+  assert.equal(truncatedSeen, true);
+  // 本地历史保留完整工具输出（落盘/UI 用）
+  const localTool = result.messages.find((message) => message.role === "tool");
+  assert.ok(localTool !== undefined && localTool.role === "tool");
+  assert.equal(localTool.content.length, 3000);
+});
+

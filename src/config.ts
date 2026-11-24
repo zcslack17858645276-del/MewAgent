@@ -336,6 +336,7 @@ export function usage(version: string): string {
     "  MEWCODE_MODEL          模型名（必需，--mock 时不需要）",
     "  MEWCODE_DEBUG          设为 1 时把请求体打到 stderr（不含 key，可安全粘贴）",
     "  MEWCODE_MOCK_DELAY_MS  mock 离线模式的慢速流式块间延迟（毫秒，默认 0）",
+    "  MEWCODE_CONTEXT_TOKENS 上下文预算（token，默认 128000；调小可观察压缩行为）",
     "  MEWCODE_SHELL          覆盖 Windows 下的 shell 选择（S2 使用）",
     "",
     "示例：",
