@@ -135,7 +135,9 @@ test("permissions：路径越界的写操作在审批前被拒绝", async () => 
 test("permissions：路径越界的读取同样被拒绝（边界先于 readOnly）", async () => {
   const { ask, requests } = makeAsk();
   const gate = createPermissionGate({ tools: registry, workspace, mode: "interactive", ask });
-  const result = await gate.gate(makeCall("read_file", { path: "..\\secret.txt" }));
+  // 用 path.join 生成平台正确的越界路径：POSIX 下反斜杠是合法文件名字符，
+  // 写死 "..\\secret.txt" 会被当成工作区内的文件名（CI 已踩过）。
+  const result = await gate.gate(makeCall("read_file", { path: path.join("..", "secret.txt") }));
   assert.equal(result.allow, false);
   if (result.allow) return;
   assert.match(result.reason, /路径越界/);
