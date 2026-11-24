@@ -7,13 +7,15 @@ import { render } from "ink";
 
 import type { AppConfig } from "../config.js";
 import { App } from "./App.js";
-import type { SendMessage } from "./App.js";
+import type { RunAgentTurn } from "./App.js";
 
 export interface StartTuiOptions {
   readonly version: string;
   readonly config: AppConfig;
-  readonly send: SendMessage;
-  readonly systemPrompt: string;
+  /** 一轮执行的注入点（S2-7 起接 Agent Loop；测试注入假实现）。 */
+  readonly runTurn: RunAgentTurn;
+  /** 已注册工具名，仅用于启动横幅。 */
+  readonly toolNames: readonly string[];
 }
 
 /** 读取 Kitty 键盘协议的开关（`MEWCODE_KITTY_KEYBOARD=0/off` 可关闭）。 */
@@ -33,15 +35,15 @@ function readKittyKeyboardMode(): "auto" | "disabled" {
 
 /** 启动交互式 TUI，直到用户 Ctrl+C（空闲态）或进程被信号终止。 */
 export async function startTui(options: StartTuiOptions): Promise<void> {
-  const { version, config, send, systemPrompt } = options;
+  const { version, config, runTurn, toolNames } = options;
   const instance = render(
     <App
       version={version}
       model={config.model}
       workspace={config.workspace}
       mock={config.mock}
-      systemPrompt={systemPrompt}
-      send={send}
+      toolNames={toolNames}
+      runTurn={runTurn}
     />,
     {
       // Ctrl+C 由 App 自己的 useInput 处理（生成中只中断，空闲才退出）。

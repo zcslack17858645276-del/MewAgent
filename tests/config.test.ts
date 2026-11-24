@@ -28,6 +28,7 @@ import {
 } from "../src/config.js";
 import { main } from "../src/index.js";
 import type { FetchLike } from "../src/llm/openai.js";
+import type { AgentEvent } from "../src/types.js";
 import type { StartTuiOptions } from "../src/ui/start-tui.js";
 
 function makeTempDir(): string {
@@ -460,17 +461,30 @@ test("main：TTY 下启动交互 TUI（注入 startTui，退出 0）", async () 
     assert.equal(tui.config.workspace, path.resolve(cwd));
     assert.equal(tui.config.model, DEFAULT_MOCK_MODEL);
     assert.equal(tui.version, readPackageVersion());
-    assert.match(tui.systemPrompt, /MewAgent/);
-    assert.match(tui.systemPrompt, /工作区/);
+    assert.ok(tui.toolNames.includes("read_file"));
+    assert.equal(tui.toolNames.length, 6);
 
-    // mock 模式下 send 能离线跑出"工具调用 → 最终文本"两轮。
-    const reply = await tui.send([{ role: "user", content: "你好" }], {
+    // S2-7：TUI 的 runTurn 走完整 Agent Loop（mock 剧本：工具调用 → 真实执行 → 最终文本）。
+    const events: AgentEvent[] = [];
+    const turnResult = await tui.runTurn([{ role: "user", content: "你好" }], {
       signal: new AbortController().signal,
-      onDelta: () => {
-        // 流式回调在下面单独断言，这里只要不抛错。
+      emit: (event) => {
+        events.push(event);
       },
     });
-    assert.match(reply.content, /离线 mock|两轮/);
+    assert.equal(turnResult.stopReason, "stop");
+    assert.ok(events.some((event) => event.type === "tool_start"), "应有 tool_start 事件");
+    assert.ok(events.some((event) => event.type === "tool_end"), "应有 tool_end 事件");
+    assert.ok(
+      events.some((event) => event.type === "assistant_text"),
+      "应有 assistant_text 事件",
+    );
+    assert.equal(turnResult.messages[0]?.role, "system", "loop 应把 system prompt 放首位");
+    const finalMessage = turnResult.messages.at(-1);
+    assert.equal(finalMessage?.role, "assistant");
+    if (finalMessage?.role === "assistant") {
+      assert.match(finalMessage.content, /离线 mock|两轮/);
+    }
   } finally {
     removeTempDir(cwd);
   }
