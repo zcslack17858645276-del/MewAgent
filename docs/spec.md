@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 进行中（S2-1~S2-7 完成，当前 S2-8 S2 收尾 + tag `v0.1-s2`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；下一任务 S3-1（权限三道闸）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display 十七个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines 十八个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -219,7 +219,7 @@ finish: stop
 - 手工：`docs/testing.md` 按 task 分 A/B/C 级；P0 未过不得标 done。
 - 发布前逐条勾选 `docs/checklist.md`。
 
-## 13. 阶段状态（2026-11-23）
+## 13. 阶段状态（2026-11-24）
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
@@ -241,8 +241,9 @@ finish: stop
 | S2-4 | `src/tools/search.ts`：`glob`（`*`/`?`/`**`/字符类，200 条 + 30KB 截断）/ `grep`（正则逐行，100 条，跳过 .git/node_modules/二进制/5MB） | ✅（`tests/search.test.ts` 11 例，全量 153/153；B 级 2–4 待 loop/TUI 接线后验） |
 | S2-5 | `src/tools/bash.ts`：shell 选择（`MEWCODE_SHELL` > Git Bash > cmd）/ 超时 kill + 兜底 / 30KB 截断 / UTF-8→GBK / cwd 固定工作区 | ✅（`tests/bash.test.ts` 14 例，全量 167/167；B 级 2–5 待 loop/TUI 接线后验） |
 | S2-6 | `src/agent/loop.ts`：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留；`src/tools/index.ts` 默认注册表 | ✅（`tests/loop.test.ts` 19 例，全量 186/186；B 级 3–5 待 S2-7 UI 接线后验） |
-| S2-7 | `src/ui/App.tsx`：消费 `AgentEvent`（`assistant_text`/`tool_start`/`tool_end`/`turn_end`），工具历史 `✅/❌` + 参数摘要 + 耗时；`runTurn` 注入；`src/ui/tool-display.ts` 纯函数 | ✅（`tests/tool-display.test.ts` 9 例，全量 195/195；假 stdin 冒烟 SMOKE OK；B 级 4 条待用户） |
-| S2 | 6 工具 + 工具注册表 + Agent Loop | 🔄 |
+| S2-7 | `src/ui/App.tsx`：消费 `AgentEvent`（`assistant_text`/`tool_start`/`tool_end`/`turn_end`），工具历史 `✅/❌` + 参数摘要 + 耗时；`runTurn` 注入；`src/ui/tool-display.ts` 纯函数 | ✅（`tests/tool-display.test.ts` 9 例，全量 195/195；假 stdin 冒烟 SMOKE OK；B 级 4 条已由用户 2026-11-24 实测通过；补丁：`src/ui/stream-lines.ts` 修复流式叠字 + `tests/stream-lines.test.ts` 9 例，全量 204/204） |
+| S2-8 | S2 全量验收 + 真实模型自主读 README 并总结 + tag `v0.1-s2` | ✅（typecheck 0 / tests 204/204 / help+version / mock 幂等 / build+dist 一致 / any 0 / TUI 冒烟 SMOKE OK / 6 工具 loop 演示 ALL TOOLS OK / 真实 API exit 0；真实模型 README 任务 2 工具 3 步 `README ACCEPTANCE OK`；tag 已 push） |
+| S2 | 6 工具 + 工具注册表 + Agent Loop | ✅（tag `v0.1-s2` 已 push） |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
 

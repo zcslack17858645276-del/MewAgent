@@ -55,7 +55,8 @@
 - [x] `tools/registry.ts` + `agent/loop.ts`：多工具连续调用、`maxSteps=30`、`turn_end` 原因正确。✅ 2026-11-24：loop 19 例（工具→文本事件顺序、多工具配对、maxSteps 默认 30、abort 三种时机、未知工具/坏 JSON/ok:false 回填、gate 拒绝/抛异常、system prompt 归一、非流式补发、signal 与 specs 透传、`createDefaultRegistry` 6 工具）；全量 186/186。B 级真实模型多工具任务随 S2-7 UI 接线后验。
 - [x] 失败路径：bash 超时/kill（`tests/bash.test.ts` 超时用例，1000ms 超时约 1.5s 返回）、edit 多处匹配（`tests/fs.test.ts`）、读不存在文件（fs/search）、越界路径拒绝（`tests/paths.test.ts`）；审批级"无权限"交互随 S3-2 Gate 接线后验。
 - [x] `ui/App.tsx` 事件接线（S2-7，2026-11-24）：`runTurn` 注入 + `AgentEvent` 消费（`assistant_text`/`tool_start`/`tool_end`/`turn_end`）；工具历史 `✅/❌ <name> {参数摘要} · 耗时[ · Error: 首行]`；`tool_running` 状态行；`src/ui/tool-display.ts` 纯函数 9 例；全量 `npm test` 195/195；假 stdin 冒烟 `SMOKE OK`。B 级 4 条（工具可见/失败可读/连发 3 工具/长参数截断）待用户。补丁（2026-11-24）：`src/ui/stream-lines.ts` 完整行提交 Static + 动态区尾巴 ≤800 码点，修复长输出滚动叠字，`tests/stream-lines.test.ts` 9 例、全量 204/204、冒烟 `SMOKE OK`（长输出每行只出现一次）。
-- [ ] mock 端到端 + 真实模型三步任务验收；更新文档、打 tag。
+- [x] mock 端到端 + 真实模型三步任务验收；更新文档、打 tag。
+  - 证据（S2-8，2026-11-24）：自动验收 `npm run typecheck` exit 0、全量 `npm test` **204/204**、`--help` 8 参数、`--version 0.1.0`、`--mock --print` 两次输出一致、`build` + `dist` 与 dev 一致、`src/` `any` 0、TUI 假终端冒烟 `SMOKE OK`、6 工具 loop 演示 `ALL TOOLS OK`、真实 API `--print` exit 0；真实模型自主任务：`read_file` + `glob` 读 README 并总结 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项已由用户 2026-11-24 实测通过（会话 A/B）；tag `v0.1-s2` 已打并 push（见 HANDOFF §7 会话 22、`docs/testing.md` S2-8）。
 
 ### S3 权限 + 会话 + 压缩（目标：tag `v0.1-s3`）
 
@@ -76,7 +77,7 @@
 | # | 标准 | 验证方法 | 证据 | 状态 |
 |---|---|---|---|---|
 | 1 | 流式回复、可中断、首字 < 2s | 真实 API 提问并掐表，Esc 中断 | 录屏/日志时间戳 | ⬜ |
-| 2 | 6 工具可用 | `docs/testing.md` S2 工具小节 | 测试输出 | ⬜ |
+| 2 | 6 工具可用 | `docs/testing.md` S2 工具小节 | 测试输出 | ✅（6 工具单测 + 真实模型 TUI 调用均通过，2026-11-24） |
 | 3 | 多工具自主连续调用（≥3 步） | 让模型完成"读 README → 改一行 → 跑测试" | 会话记录 | ⬜ |
 | 4 | 写/命令前确认，拒绝原因回填 | 拒绝一次 write，观察模型调整 | 会话截图 | ⬜ |
 | 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | ⬜ |
@@ -88,17 +89,17 @@
 
 ## 4. 阶段回归清单（每个阶段完成后跑一遍）
 
-- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104）
-- [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0）
-- [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等）
-- [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致）
-- [x] Windows Terminal 下中文输入/输出一次（人工）。（S0-1 IME spike 在 WT 内完成中文输入与显示，证据 `spikes/.out/r1-03-committed.png`；S1-4 多行输入/Shift+Enter 与 S1-5 真实 API 中文输出均由用户在 WT 验收通过）
-- [x] `git status` 干净、无敏感文件；远端 main 与本地一致。（S1-6 提交 tag 后核对；tag `v0.1-s0`/`v0.1-s1` 均已 push）
+- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**）
+- [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0；S2-8 同）
+- [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等；S2-8：两次输出一致）
+- [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致；S2-8 同）
+- [x] Windows Terminal 下中文输入/输出一次（人工）。（S0-1 IME spike 在 WT 内完成中文输入与显示，证据 `spikes/.out/r1-03-committed.png`；S1-4 多行输入/Shift+Enter 与 S1-5 真实 API 中文输出均由用户在 WT 验收通过；S2-8 用户 TUI 实测 glob/grep/bash 中文输出正常）
+- [x] `git status` 干净、无敏感文件；远端 main 与本地一致。（S1-6 提交 tag 后核对；S2 收尾后核对：tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2` 均已 push）
 
 ## 5. 发布清单（v0.1.0）
 
 - [ ] `README.md` 快速开始可从零复制运行；包含环境要求、`.env` 说明、常用命令。
 - [ ] `docs/spec.md` §13 阶段状态全部 ✅；§3 十条标准证据齐全。
-- [ ] 全部 tag（`v0.1-s0` … `v0.1-s3`、`v0.1.0`）已 push 到远端。
+- [ ] 全部 tag（`v0.1-s0` … `v0.1-s3`、`v0.1.0`）已 push 到远端。（当前 `v0.1-s0`/`v0.1-s1`/`v0.1-s2` 已 push；`v0.1-s3`、`v0.1.0` 待后续阶段）
 - [ ] 3 分钟演示可复现；演示脚本/录屏路径写进 README。
 - [ ] 已知限制清单（spec §11）与 `docs/tasks.md` 遗留项交给用户确认。
