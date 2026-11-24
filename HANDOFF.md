@@ -572,8 +572,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **做了什么**：用户反馈全局 `mewagent` 在仓库外只能跑 mock（`.env` 只按 cwd 加载）。改为双层配置：`src/config.ts` 新增 `USER_CONFIG_DIR_NAME=".mewcode"`、`resolveUserConfigDir(env)`（`MEWCODE_HOME` 优先，默认 `~/.mewcode`）、`resolveUserEnvPath(env)`、`resolveEnvFilePaths(cwd, env)`（`[用户级 .env, cwd/.env]`，相同时去重）；`src/index.ts` 启动时按序加载两处 `.env`；缺 key/模型名错误改为同时提示两处路径与 `.env.example` 模板。`.env.example` 头部重写（项目级/用户级用法 + 优先级 + `MEWCODE_HOME`）；`README.md` 配置章新增「用户级 / 全局」小节与 PowerShell 创建示例、环境变量表加 `MEWCODE_HOME`、已知限制补"不向上查找仓库根 `.env`"一条；`docs/spec.md` §5.2 与 §13 同步。
 - **验收**：`npm run typecheck` 0；`tests/config.test.ts` **35/35**（新增 2 例：`resolveEnvFilePaths` 顺序/`MEWCODE_HOME`/去重、`main` 依次加载用户级与项目 `.env`）；全量 `npm test` **305/305**；`npm run build` 0；`--help`（dev 与 dist）含"两处都会加载/优先级/`MEWCODE_HOME`"；证据 `spikes/.out/cfg-typecheck.txt`、`cfg-full.txt`、`cfg-build.txt`、`cfg-help.txt`、`cfg-a-level.txt`。**端到端未在自动化中验证**：本机 cc-safety-net 规则 `secret.basename.env` 拦截 `.env` 的创建/读取（含临时目录），需用户在自己机器 `%USERPROFILE%\.mewcode\.env` 上做 B 级复核。
 - **文档**：`README.md`（配置章 + 环境变量表 + 已知限制）、`.env.example`、`docs/spec.md`（§5.2、§13 hotfix 行）、`docs/testing.md`（附录 D 更新行）、`HANDOFF.md`（L5、§1、§4、§7）。
-- **提交**：<待回填>
-- **CI**：<待回填>
+- **提交**：分支 `fix/env-user-config` 提交 **`99aa4af`**（8 files +184/−17，已 push，远端保留）→ squash 合并 main **`2a2c2a7`**（同标题，已 push）。
+- **CI**：task 分支 run `45349323595`（`99aa4af`）与 main run `45349338720`（`2a2c2a7`）均 success，日志 `# tests 305 / # pass 305 / # fail 0`。
 - **坑**：①cc-safety-net 对 `.env` 路径（`secret.basename.env`）拦截严格，临时目录下写 `.env` 也会被 BLOCKED，因此把端到端验证让给用户；②既有的"缺 key"单测断言错误信息含 `.env.example`，修改文案时必须保留该模板提示（首跑 305 中 1 例失败即此原因）；③`git config core.autocrlf=true` 下用 `[IO.File]::WriteAllText` 改文档会引入整文件行尾抖动，提交前需统一 LF。
 - **下次第一步**：S4-4（10 条成功标准逐项验收 + 3 分钟 demo + tag `v0.1.0`），依据 `docs/testing.md` S4-4 与 `docs/checklist.md` §5。
 
