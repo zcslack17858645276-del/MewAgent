@@ -589,6 +589,11 @@ async function runAgent(messages, deps):
 
 要点：拒绝/异常也走同一条回填路径；`call.id` 必须原样使用；不要用 `name` 当 tool_call_id。
 
+> **实现注记（2026-11-24，S2-6 已落地）**：`src/agent/loop.ts` 对上述伪代码做了两处有意调整，理由、测试与证据见 `HANDOFF.md` §4「Agent Loop（S2-6）」与 `docs/testing.md` S2-6：
+> 1. **`maxSteps` 用尽不 `throw`**：改为 `emit turn_end("max_steps")` 后正常返回 `AgentLoopResult`（含已累积 messages/steps/toolCallCount）。理由：抛异常会让事件流缺少闭合的 `turn_end`（UI 状态机悬挂），且 UI/headless 需要保留上下文；"步数用完"是可控终止条件而非程序错误。
+> 2. **`AbortSignal` 三处检查**（每步开始前 / 每个工具执行前 / 捕获 LLM 抛出的 `AbortError`）：中止时为**剩余每个 `tool_call` 回填中断 `Error:` 消息**保证 assistant.toolCalls 与 tool 消息一一配对（否则下一轮请求 400），随后 `emit turn_end("aborted")` 并返回，不再请求 LLM。伪代码第 580 行只处理了单工具级 abort 且未终止后续步骤，此处补齐。
+> 非中断的 LLM 错误仍向上抛；`Gate` 拒绝与工具异常均走同一条 `Error:` 回填路径（保证只有一个前缀）。
+
 ### 6.4 工具注册表（`tools/registry.ts`）
 
 - `specs()` 输出 OpenAI tools 格式（`{type:"function", function:{name,description,parameters}}`）；
