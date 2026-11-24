@@ -9,7 +9,7 @@
 ## 1. 30 秒看懂
 
 - **项目**：MewAgent —— 类 Claude Code 的 CLI Coding Agent（个人精简版）。目标是能日常用来读代码、改代码、跑命令。
-- **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（私有，默认分支 `main`）
+- **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（**公开**，2026-11-24 由 private 转为 public，便于跨机器 clone；默认分支 `main`）
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
 - **当前状态**：S0/S1/S2 三个阶段全部完成并分别打 tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2`（均已 push）——S2-1~S2-8 依次交付：路径边界校验、工具注册表、文件工具（read/write/edit）、搜索工具（glob/grep）、bash、Agent Loop、TUI 工具事件（含流式叠字修复）、S2 全量验收；全量 `npm test` **204/204**、CI 全绿；6 个工具在真实模型 TUI 与假 LLM loop 演示中均可用，真实模型可自主读 README 并总结（`README ACCEPTANCE OK`）。S2 全部 B 级手工项已由用户 2026-11-24 验收通过。**S3 已完成并打 tag `v0.1-s3`**：S3-1（权限三道闸 + headless 只读，232/232）、S3-2（交互审批 UI，241/241）、S3-3（会话持久化 `.mewcode/session.json` 每轮保存/启动恢复/`--new`/损坏降级，258/258）、S3-4（上下文压缩 `src/context/tokens.ts` + `compress.ts`，`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例，277/277）、S3-5（S3 集成验收：全量回归 277/277 + 脚本化集成 `INTEGRATION OK` + tag `v0.1-s3` 已 push）全部完成；S3 各任务 B 级均已由用户 2026-11-24 实测通过（S3-1 第 2/3/4/7、S3-2 4 条、S3-3 2–5、S3-4 2–4）。**S4-1 已完成**：新增 `src/tools/diff.ts`（行级 unified diff）+ `src/errors.ts`（统一错误描述）+ `src/ui/diff-view.ts` 与 `HistoryItem` 的 diff 条目（红删/绿增/青 hunk、4 位行号、最多 80 行），`edit_file` 输出改为 diff，`App`/headless 的错误都带「下一步」；`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例 + ui/fs/tool-display 断言更新，全量 **296/296**；B 级 3 条已由用户 2026-11-24 实测通过。**S4-2 已完成**：`README.md` 由 11 字节占位重写为完整文档（安装、配置、快速开始、命令参数、ASCII 架构图 + 数据流、目录结构、6 工具表、3 步加工具教程、权限与安全、会话与压缩、错误展示、测试与 CI、Windows 注意、已知限制/Roadmap、文档索引），`src/config.ts` 的 `--help` banner 改「（v0.1）」并修正 `MEWCODE_SHELL` 说明；A 级：把仓库克隆到临时目录后**只照 README** 跑通 `npm install`（52 包/4s）→ `npm run typecheck` 0 → `npm test` 296/296（4.4s）→ `npm run dev -- --mock --print "你好"` 0 → `npm run build` 0 → `node dist/index.js --mock --print "你好"` 0；顺带发现无 `.env` 时 mock 的模型标识是内置 `mock`（已修正 README 示例）。
@@ -57,7 +57,7 @@
 
 | 项目 | 值 |
 |---|---|
-| 仓库 | <https://github.com/zcslack17858645276-del/MewAgent>（私有） |
+| 仓库 | <https://github.com/zcslack17858645276-del/MewAgent>（公开，2026-11-24 起） |
 | 远端 | `origin`，HTTPS；凭据由本机 Git Credential Manager 管理（账号 `zcslack17858645276-del`），不要手动保存 token |
 | 分支 | `main` 随时可运行；任务分支见 §5.1 |
 | 本地路径 | `D:\workplace\AIAgent\MewCode` |

@@ -462,4 +462,4 @@ v0.2 候选（尚未排期）：
 
 ## License
 
-私有项目，`UNLICENSED`，仅个人使用；仓库内不要提交真实 API key 或 `.env`。
+仓库已于 2026-11-24 由 private 转为 **public**（便于在不同机器上 `git clone`）；代码 `UNLICENSED`（未授予使用/分发许可，仅个人使用）；仓库内不要提交真实 API key 或 `.env`（`.env` 已被 `.gitignore` 忽略，只有 `.env.example` 会入库）。
