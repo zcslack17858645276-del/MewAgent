@@ -551,7 +551,7 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：loop 抛非中断错误时消息历史不追加本轮 assistant 回复（重试会出现连续 user 消息，OpenAI 兼容接口可接受）；并行工具仍串行；`readOnly` 仅元数据（Gate 在 S3-2）。
 
-**补丁（2026-11-24，流式输出滚动叠字）**：用户反馈"流式输出时向上滚动窗口 → 同一段输出反复叠加"。根因：流式文本整段留在 Ink 动态区，长输出时动态区高度超过终端，超出屏幕的旧帧无法被清除、残留进 scrollback，滚动时可见。修复：`src/ui/stream-lines.ts`（`splitCompletedLines` 完整行立即提交 `<Static>`；`clampDynamicTail` 未完成尾巴只留最后 ≤800 码点；CRLF 行尾 `\r` 剥离），`App` 改为按行提交、动态区只渲染尾巴；新增 `tests/stream-lines.test.ts` 9 例，冒烟增加"60 行长输出每行只出现一次"断言。验证：`npm run typecheck` exit 0；全量 `npm test` **204/204（195 + 9）**；冒烟 `SMOKE OK`（exit 0）。记录：`spikes/.out/bugfix-typecheck.txt`、`bugfix-stream-lines.txt`、`bugfix-full.txt`、`bugfix-smoke.txt`（gitignored）。
+**补丁（2026-11-24，流式输出滚动叠字）**：用户反馈"流式输出时向上滚动窗口 → 同一段输出反复叠加"。根因：流式文本整段留在 Ink 动态区，长输出时动态区高度超过终端，超出屏幕的旧帧无法被清除、残留进 scrollback，滚动时可见。修复：`src/ui/stream-lines.ts`（`splitCompletedLines` 完整行立即提交 `<Static>`；`clampDynamicTail` 未完成尾巴只留最后 ≤800 码点；CRLF 行尾 `\r` 剥离），`App` 改为按行提交、动态区只渲染尾巴；新增 `tests/stream-lines.test.ts` 9 例，冒烟增加"60 行长输出每行只出现一次"断言。验证：`npm run typecheck` exit 0；全量 `npm test` **204/204（195 + 9）**；冒烟 `SMOKE OK`（exit 0）。记录：`spikes/.out/bugfix-typecheck.txt`、`bugfix-stream-lines.txt`、`bugfix-full.txt`、`bugfix-smoke.txt`（gitignored）。CI（gh 只读）：`45310862547`（fix/s2-7-stream-overlap, `4be728d`）、`45310880670`（main, `0e5df46`）全部 success，日志 `# tests 204 / # pass 204 / # fail 0`。
 
 #### S2-8 S2 收尾
 
