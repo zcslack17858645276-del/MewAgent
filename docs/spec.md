@@ -127,16 +127,25 @@ npm run dev -- [选项] [prompt]
 
 `--` 之后的全部内容作为 prompt 文本；也可以直接写位置参数（以空格拼接）。
 
-### 5.2 环境变量
+### 5.2 环境变量与 `.env`
 
 ```dotenv
-MEWCODE_API_KEY=       # 必填（--mock 外）；只从环境读取，不进命令行、不打印
-MEWCODE_BASE_URL=      # 可选，默认 https://api.deepseek.com
-MEWCODE_MODEL=         # 可选；真实模式必填（如 deepseek-chat）
-MEWCODE_SHELL=         # 可选，覆盖 bash 路径（S2 bash 工具使用）
+MEWCODE_API_KEY=          # 必填（--mock 外）；只从环境/.env 读取，不进命令行、不打印
+MEWCODE_BASE_URL=         # 可选，默认 https://api.deepseek.com
+MEWCODE_MODEL=            # 可选；真实模式必填（如 deepseek-chat）
+MEWCODE_DEBUG=            # 可选，1 时打印请求体（不含 key）与压缩日志
+MEWCODE_MOCK_DELAY_MS=    # 可选，mock 慢速流式块间延迟
+MEWCODE_CONTEXT_TOKENS=   # 可选，上下文预算（默认 128000，压缩取 70%）
+MEWCODE_SHELL=            # 可选，覆盖 bash 工具使用的 shell
+MEWCODE_HOME=             # 可选，用户级配置目录（默认 ~/.mewcode）
 ```
 
-优先级：**CLI 参数 > 环境变量 > 默认值**；`.env` 通过 Node 内置 `process.loadEnvFile` 加载（不引第三方依赖）。空字符串视为未设置。
+配置文件（启动时依次加载，加载器不覆盖已存在变量）：
+
+1. **用户级**：`~/.mewcode/.env`（Windows `%USERPROFILE%\.mewcode\.env`），目录可用 `MEWCODE_HOME` 覆盖；全局安装后跨目录共用一份 key/模型（2026-11-24 hotfix）。
+2. **项目级**：当前工作目录下的 `.env`（`--workspace` 不改变 cwd 的 `.env` 查找；不向上查找）。
+
+优先级：**CLI 参数 > shell 环境变量 > 项目 `.env` > 用户级 `.env` > 内置默认值**。`.env` 优先用 Node 内置 `process.loadEnvFile` 加载，Node < 20.12 时自动回退内置解析器；空字符串视为未设置。
 
 ### 5.3 退出码与错误
 
@@ -262,6 +271,7 @@ finish: stop
 | S4-1 | `src/tools/diff.ts` 行级 unified diff + `edit_file` 输出 diff + `src/ui/diff-view.ts`/`HistoryItem` 红绿 diff 条目（带行号、最多 80 行）+ `src/errors.ts` 统一错误描述（HTTP/网络/中断/工具失败/超步数，均带「下一步」）+ headless 复用 | ✅（`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例；ui/fs/tool-display 断言更新；全量 296/296；TUI 冒烟 `SMOKE OK`；B 级 3 条待用户） |
 | S4-2 | `README.md` 重写（定位/特性/环境要求/安装/配置/快速开始/命令与参数/架构图+数据流/目录结构/6 工具表/3 步加工具教程/权限与安全/会话与压缩/错误展示/测试与 CI/Windows 注意/已知限制与 Roadmap/文档索引）；`src/config.ts` 的 `--help` banner 改「（v0.1）」、`MEWCODE_SHELL` 说明更新 | ✅（A 级：仓库克隆到临时目录后仅照 README 跑通 `npm install`（52 包/4s）→ typecheck 0 → 296/296 → `--mock` 0 → build 0 → dist 0；B 级 3 条已由用户 2026-11-24 在另一台机器实测通过） |
 | S4-3 | 打包与启动：`package.json` 增 `bin.mewagent=./dist/index.js` / `prepack` 构建 / `files` 白名单；`src/index.ts` 加 shebang，直跑判断改用 realpath（修 junction 下静默退出） | ✅（`npm link` 后任意目录 `--version`/`--help`/`--mock --print` 0（含空格+中文路径）、`npx . --mock --print hello` 0、`npm unlink -g mewagent` 无残留、`npm pack` 77 项/230KB；`tests/packaging.test.ts` 5 例，全量 303/303；B 级 4 条待用户） |
+| hotfix | 用户级 `.env`（2026-11-24）：启动时先加载 `~/.mewcode/.env`（`MEWCODE_HOME` 可改目录）再加载项目 `.env`；缺 key/模型提示两处路径；优先级 shell 环境变量 > 项目 `.env` > 用户级 `.env` > 默认值 | ✅（`tests/config.test.ts` 35/35、全量 305/305、build 0；cc-safety-net 拦 `.env` 创建/读取，端到端待用户在 `%USERPROFILE%\.mewcode\.env` 上做 B 级复核） |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | 🔄（S4-1/S4-2/S4-3 完成，下一 S4-4） |
 
 已知边界（v0.1）：

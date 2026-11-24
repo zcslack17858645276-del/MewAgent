@@ -8,6 +8,7 @@
 // - key 只从环境变量/`.env` 读取，绝不通过 CLI 参数传入，也不出现在任何输出里。
 
 import { readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -257,6 +258,47 @@ export function applyEnvContent(content: string, source = ".env"): void {
   }
 }
 
+/** 用户级配置目录名（位于用户主目录下，默认 `~/.mewcode`）。 */
+export const USER_CONFIG_DIR_NAME = ".mewcode";
+
+/**
+ * 解析用户级配置目录：`MEWCODE_HOME` 优先（可指向任意目录），否则 `~/.mewcode`。
+ * 用于跨目录全局使用（`npm link` 安装后在任何目录启动）时共享 key/模型配置。
+ */
+export function resolveUserConfigDir(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const override = firstNonEmpty(env.MEWCODE_HOME);
+  if (override !== undefined) {
+    return path.resolve(override);
+  }
+  return path.join(homedir(), USER_CONFIG_DIR_NAME);
+}
+
+/** 用户级 `.env` 路径：`<用户配置目录>/.env`（默认 `~/.mewcode/.env`）。 */
+export function resolveUserEnvPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  return path.join(resolveUserConfigDir(env), ".env");
+}
+
+/**
+ * 按优先级返回要加载的 `.env` 路径：先用户级、后项目根目录（cwd）。
+ * 加载器「已存在的环境变量优先」，因此最终优先级是：
+ * shell 环境变量 > 项目 `.env` > 用户级 `.env` > 内置默认值。
+ */
+export function resolveEnvFilePaths(
+  cwd: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  const userEnv = resolveUserEnvPath(env);
+  const localEnv = path.join(cwd, ".env");
+  if (path.resolve(userEnv) === path.resolve(localEnv)) {
+    return [localEnv];
+  }
+  return [userEnv, localEnv];
+}
+
 function stripQuotes(value: string): string {
   if (value.length >= 2) {
     const first = value[0];
@@ -327,12 +369,12 @@ export function resolveConfig(
 
   if (!options.mock && model === undefined) {
     throw new CliError(
-      "缺少模型名。\n下一步：在 .env 里设置 MEWCODE_MODEL（例如 deepseek-chat），或加 --model <名字>；只想离线体验可以加 --mock。",
+      "缺少模型名。\n下一步：在项目根目录 .env（模板见 .env.example）或用户级配置 %USERPROFILE%\\.mewcode\\.env（~/.mewcode/.env）里设置 MEWCODE_MODEL（例如 deepseek-chat），或加 --model <名字>；只想离线体验可以加 --mock。",
     );
   }
   if (!options.mock && apiKey === undefined) {
     throw new CliError(
-      "缺少 API key。\n下一步：复制 .env.example 为 .env 并填写 MEWCODE_API_KEY（或设置同名环境变量）；只想离线体验可以加 --mock。",
+      "缺少 API key。\n下一步：在项目根目录 .env（模板见 .env.example）或用户级配置 %USERPROFILE%\\.mewcode\\.env（~/.mewcode/.env）里设置 MEWCODE_API_KEY（或设置同名环境变量）；只想离线体验可以加 --mock。",
     );
   }
 
@@ -405,10 +447,14 @@ export function usage(version: string): string {
     '      --print            headless 模式：不启动 TUI，跑一轮后输出（prompt 取自位置参数或 stdin）',
     "  --                     其后的内容都当作 prompt 文本",
     "",
-    "环境变量（也可写在项目根目录的 .env 里，.env 已加入 .gitignore）：",
+    "环境变量（也可写在项目根目录 .env 或用户级 .env 里；两处都会加载）：",
+    "  优先级：shell 环境变量 > 项目根目录 .env > 用户级 .env > 内置默认值。",
+    "  用户级 .env 默认是 ~/.mewcode/.env（Windows：%USERPROFILE%\\.mewcode\\.env），",
+    "  全局安装后在任何目录都能用同一份 key/模型；目录可用 MEWCODE_HOME 覆盖。",
     "  MEWCODE_API_KEY        API key（必需，--mock 时不需要）",
     `  MEWCODE_BASE_URL       API 根地址（默认 ${DEFAULT_BASE_URL}）`,
     "  MEWCODE_MODEL          模型名（必需，--mock 时不需要）",
+    "  MEWCODE_HOME           用户级配置目录（默认 ~/.mewcode，里面放 .env）",
     "  MEWCODE_DEBUG          设为 1 时把请求体打到 stderr（不含 key，可安全粘贴）",
     "  MEWCODE_MOCK_DELAY_MS  mock 离线模式的慢速流式块间延迟（毫秒，默认 0）",
     "  MEWCODE_CONTEXT_TOKENS 上下文预算（token，默认 128000；调小可观察压缩行为）",
@@ -419,6 +465,7 @@ export function usage(version: string): string {
     '  npm run dev -- --mock --print "你好"',
     '  npm run dev -- --print "你好"          # 真实 API：无 TTY 也能跑一轮',
     "  npm run dev -- --workspace D:\\work\\my-project",
+    '  mewagent --print "你好"                 # npm link 全局安装后任意目录可用',
     "",
   ].join("\n");
 }
