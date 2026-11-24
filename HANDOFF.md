@@ -490,7 +490,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **文档**：`docs/tasks.md` S3-3 done、焦点 S3-4；`docs/testing.md` L7/L128 + S3-1 第 2/3/4/7 行用户已验 + S3-2 B 级段 + S3-3 已完成小节 + 附录 C/D；`docs/spec.md` L3/L83/§7/§13/§3 标准 #7；`docs/checklist.md` session 项与标准 #5/#7；本节。
 - **提交**：分支 `task/s3-3-session` 提交 `49d6f03`（已 push，远端保留）→ squash 合并 main `da13fc2`。
 - **CI**：`45322608903`（task 分支, `49d6f03`）、`45322616714`（main, `da13fc2`）success，日志 `# tests 258 / # pass 258 / # fail 0`。
-- **坑**：①`tests/session.test.ts` 初版用 `require("node:fs")` 包装（ESM+tsx 下无 `require`）→ 改静态 import；②`tests/config.test.ts` 新增用例里 `oldMessages` 需显式 `Message[]` 否则 role 被推断为 string（TS2322）；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
+- **坑**：①`tests/session.test.ts` 初版用 `require("node:fs")` 包装（ESM+tsx 下无 `require`）→ 改静态 import；②`tests/config.test.ts` 新增用例里 `oldMessages` 需显式 `Message[]` 否则 role 被推断为 string（TS2322）；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改；④记录 B 级复核的 docs 提交 `dcc3ea4` 用 PowerShell `Out-File -Encoding ascii` 写消息文件导致中文标题变 `??`（内容正确、已 push 不回滚）——**此后一律用 write 工具写提交消息文件**。
+- **B 级复核补充说明**：用户 2026-11-24 通过全部 4 项，并提问两个语义问题（已答复并入库）：①命令行单独的 `--` 是"选项结束"标记（详见 §4「CLI `--` 语义」行；注意 `npm run dev --` 的第一个 `--` 属于 npm）；②当前设计**每个 workspace 只有一个会话**，多会话用不同 `--workspace`；命名会话/`--resume` 属 v0.2 候选（详见 §4 未定事项第 4 条）。
 - **下次第一步**：S3-4（`src/context/tokens.ts` + `compress.ts`：按用户轮次压缩、工具调用/结果配对不破坏、50 轮模拟不超限），依据 `docs/testing.md` S3-4 与方案 §4/§6.7。
 
 
