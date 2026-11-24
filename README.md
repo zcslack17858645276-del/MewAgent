@@ -335,7 +335,8 @@ MewAgent/
 ├── docs/                   spec / tasks / testing / checklist
 ├── .github/workflows/ci.yml
 ├── HANDOFF.md              交接文档（阶段状态、决策、会话记录）
-└── MewCode-TS实施方案.md    总体实施方案（S0~S4 拆解）
+├── MewCode-TS实施方案.md    总体实施方案（S0~S4 拆解）
+└── MewAgent-v0.1.0-开发复盘.md   v0.1.0 收尾复盘（规划/执行/设计/复现）
 ```
 
 ## 工具
@@ -536,6 +537,7 @@ v0.2 候选（尚未排期）：
 | [docs/checklist.md](docs/checklist.md) | 10 条成功标准与阶段回归清单 |
 | [HANDOFF.md](HANDOFF.md) | 交接文档：当前状态、已定决策、关键文件、会话记录 |
 | [MewCode-TS实施方案.md](MewCode-TS实施方案.md) | 总体实施方案（S0~S4 拆分与风险） |
+| [MewAgent-v0.1.0-开发复盘.md](MewAgent-v0.1.0-开发复盘.md) | v0.1.0 收尾复盘：规划、执行、设计取舍、踩坑与复现指南 |
 
 ## License
 

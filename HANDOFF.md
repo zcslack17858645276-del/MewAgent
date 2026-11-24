@@ -625,6 +625,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 | `CLAUDE.md` | Claude 薄入口（指向 AGENTS.md） | 使用 Claude 时 |
 | `.github/workflows/ci.yml` | CI：`npm ci` → typecheck → test | 改构建/测试命令时 |
 | `MewCode-个人版实施计划.md` | 范围、排期、为什么砍功能 | 想改范围时 |
+| `MewAgent-v0.1.0-开发复盘.md` | v0.1.0 收尾复盘：规划/执行/设计取舍/踩坑/复现 | 复习、复现或想快速理解全局时 |
 | `技术选型报告.md` | 开源盘点、跨端与语言对比 | 质疑选型、写简历时 |
 | `research/01-oss-survey.md` | 16 个开源项目的技术栈证据 | 查事实来源 |
 | `research/02-tui-frameworks.md` | TUI 框架对比与中文 IME 证据 | 选 TUI、遇 IME 问题 |
