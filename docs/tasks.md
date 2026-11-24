@@ -51,7 +51,7 @@
 |---|---|---|---|---|
 | S3-1 | `safety/danger.ts` + `permissions.ts`：三道闸、会话白名单、headless 规则 | 4h | done | `rm -rf` 等危险命令硬拦；拒绝原因回填模型并可继续；headless 写/命令直接拒绝并说明限制（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例；全量 232/232；交互审批 UI 待 S3-2；证据见 HANDOFF §7 会话 23） |
 | S3-2 | `ui/ApprovalPrompt.tsx`：y / a / n / Esc | 3h | done | 选 a 后同类不再问；Esc 视为拒绝（`tests/approval.test.ts` 9 例：controller/Esc→拒绝/白名单/弹窗渲染；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；全量 241/241；B 级 4 条待用户；证据见 HANDOFF §7 会话 24） |
-| S3-3 | `session/store.ts`：每轮保存、启动恢复、`--new` | 3h | done | 退出重进恢复上下文（`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；全量 258/258；B 级 2–5 待用户；证据见 HANDOFF §7 会话 25） |
+| S3-3 | `session/store.ts`：每轮保存、启动恢复、`--new` | 3h | done | 退出重进恢复上下文（`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 实测通过；证据见 HANDOFF §7 会话 25） |
 | S3-4 | `context/tokens.ts` + `compress.ts`：按轮压缩 + 测试 | 4h | todo | system 保留、最新轮保留、无悬空 tool |
 | S3-5 | 集成验收：50 轮不爆、恢复、拒绝后继续 + 打 tag `v0.1-s3` | 1h | todo | 全部通过 |
 

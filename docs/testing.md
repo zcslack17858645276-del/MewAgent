@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 5/6/8 已由用户 2026-11-24 通过，2–4/7 随 S3-2 验）｜ ✅ S3-2（`tests/approval.test.ts` 9 例；全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 通过）｜ ✅ S3-3（`tests/session.test.ts` 14 例 + config 3 例端到端；全量 258/258；B 级 2–5 待用户）｜ 🔄 S3-4（当前）｜ ⬜ S3-4 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 5/6/8 已由用户 2026-11-24 通过，2–4/7 随 S3-2 验）｜ ✅ S3-2（`tests/approval.test.ts` 9 例；全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 通过）｜ ✅ S3-3（`tests/session.test.ts` 14 例 + config 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 通过）｜ 🔄 S3-4（当前）｜ ⬜ S3-4 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -629,14 +629,16 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 | # | 类型 | 步骤 | 预期 | 结果 | 级别 |
 |---|---|---|---|---|---|
 | 1 | A | `tests/session.test.ts`：保存/加载往返、版本字段、损坏 JSON 回退、`--new` | 全绿 | ✅ 14 例通过（另有 `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端；全量 258/258） | P0 |
-| 2 | B | TUI 聊 2 轮 → 退出 → 重开 | 顶部提示"已恢复 N 条消息"，上下文连续 | ⏳ 待用户（实现：`App` 顶部 info 行"已恢复 N 条消息（上次会话继续；--new 可开新会话）"；`tests/config.test.ts` 断言 `restoredMessageCount`/`initialMessages` 注入） | P0 |
-| 3 | B | 重开时加 `--new` | 全新会话，不加载旧记录 | ⏳ 待用户（`tests/config.test.ts` 断言 `--new` 时 `restoredMessageCount===0`、`initialMessages===[]`） | P0 |
-| 4 | B | 手动把 `.mewcode/session.json` 改坏再启动 | 不崩溃，提示损坏并新建 | ⏳ 待用户（`tests/config.test.ts` 断言 `sessionNotice` 含"会话文件损坏"；`tests/session.test.ts` 覆盖坏 JSON/版本 99/非法消息） | P0 |
-| 5 | B | `git status` | `.mewcode/` 未被跟踪 | ⏳ 待用户（`.gitignore` 已含 `.mewcode/`） | P0 |
+| 2 | B | TUI 聊 2 轮 → 退出 → 重开 | 顶部提示"已恢复 N 条消息"，上下文连续 | ✅ 用户实测通过（2026-11-24）：恢复提示出现、上下文连续 | P0 |
+| 3 | B | 重开时加 `--new` | 全新会话，不加载旧记录 | ✅ 用户实测通过（2026-11-24）：`--new` 全新开始 | P0 |
+| 4 | B | 手动把 `.mewcode/session.json` 改坏再启动 | 不崩溃，提示损坏并新建 | ✅ 用户实测通过（2026-11-24）：不崩溃、提示「会话文件损坏，已按新会话启动」 | P0 |
+| 5 | B | `git status` | `.mewcode/` 未被跟踪 | ✅ 用户实测通过（2026-11-24）：`.mewcode/` 未出现在 git status | P0 |
 
 **A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/session.test.ts` 14/14；定向 `tests/config.test.ts`+`tests/session.test.ts` 47/47；全量 `npm test` **258/258**（`spikes/.out/s3-3-full2.txt`）；`npm run build` exit 0；`src/session/store.ts` `\bany\b` 0 匹配。记录文件 `spikes/.out/s3-3-typecheck4.txt`、`s3-3-targeted2.txt`、`s3-3-full2.txt`、`s3-3-build.txt`（gitignored）。
 
 **CI 证据**：`45322608903`（task 分支, `49d6f03`）、`45322616714`（main, `da13fc2`）success；job `typecheck + test (Node 22)` 日志 `# tests 258 / # pass 258 / # fail 0`。
+
+**B 级复核（用户，2026-11-24，2–5 行全部通过）**：聊 2 轮退出重开出现恢复提示且上下文连续、`--new` 全新会话、改坏 session.json 不崩溃且提示损坏、`.mewcode/` 未被 git 跟踪。另外记录当前设计边界：**每个 workspace 只有一个会话**（固定路径 `.mewcode/session.json`，每轮覆盖保存）；需要多个并行会话请用不同 `--workspace` 目录；命名会话/`--resume` 属 v0.2 候选（见 HANDOFF §4 待定项）。
 
 **实现要点**：`src/session/store.ts` 导出 `resolveSessionPath` / `loadSession(workspace, {forceNew?})` / `saveSession(workspace, model, messages, {createdAt?, now?})`；路径 `<workspace>/.mewcode/session.json`；格式 `{version:1, workspace, model, createdAt, updatedAt, messages}`；只存 user/assistant/tool（system 每次启动重建、加载时静默跳过）；保存先写 `.tmp` 再 `rename` 原子替换，空历史不落盘，失败返回 `{ok:false, reason}` 不抛异常；加载 ENOENT→空会话、坏 JSON/未知版本/非法消息→`corrupt`+可读原因；`src/index.ts` 交互分支启动时加载并注入 `initialMessages`/`restoredMessageCount`/`sessionNotice`，每轮结束（含中断）调用 `persistMessages` 落盘，失败仅打 `警告：会话保存失败：…`；headless 不读写会话。
 
