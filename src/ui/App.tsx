@@ -70,6 +70,14 @@ export interface AppProps {
   readonly runTurn: RunAgentTurn;
   /** 审批桥（S3-2）：存在时，权限闸询问会以审批弹窗形式出现在动态区。 */
   readonly approvals?: ApprovalController | undefined;
+  /** 会话恢复（S3-3）：上次会话的历史消息（不含 system）。 */
+  readonly initialMessages?: readonly Message[] | undefined;
+  /** 会话恢复（S3-3）：恢复的消息条数，>0 时在历史区顶部提示。 */
+  readonly restoredMessageCount?: number | undefined;
+  /** 会话恢复（S3-3）：加载异常（损坏等）时的提示文案。 */
+  readonly sessionNotice?: string | undefined;
+  /** 会话保存（S3-3）：每轮结束回调，由入口写入 .mewcode/session.json。 */
+  readonly persistMessages?: ((messages: readonly Message[]) => void) | undefined;
   /** 流式刷新间隔，默认 50ms（方案 §6.9）；测试可调小。 */
   readonly streamThrottleMs?: number;
 }
@@ -93,25 +101,54 @@ export function App({
   toolNames,
   runTurn,
   approvals,
+  initialMessages,
+  restoredMessageCount = 0,
+  sessionNotice,
+  persistMessages,
   streamThrottleMs = 50,
 }: AppProps): ReactElement {
   const { exit } = useApp();
   const { setCursorPosition } = useCursor();
 
   // Ink 的 <Static items> 要求可变数组，所以这里不用 readonly。
-  const [entries, setEntries] = useState<HistoryEntry[]>(() => [
-    createHistoryEntry(0, "info", `MewAgent ${version}${mock ? "（mock 离线模式）" : ""} · 模型 ${model}`),
-    createHistoryEntry(1, "info", `工作区 ${workspace}`),
-    createHistoryEntry(2, "info", `工具：${toolNames.length > 0 ? toolNames.join("、") : "（无）"}`),
-    createHistoryEntry(
-      3,
-      "info",
-      "输入问题后回车发送；工具调用会显示在历史区（✅/❌ + 耗时）。生成中 Esc 中断，空闲 Ctrl+C 退出。",
-    ),
-  ]);
-  const nextIdRef = useRef(4);
+  const [entries, setEntries] = useState<HistoryEntry[]>(() => {
+    const base: HistoryEntry[] = [
+      createHistoryEntry(
+        0,
+        "info",
+        `MewAgent ${version}${mock ? "（mock 离线模式）" : ""} · 模型 ${model}`,
+      ),
+      createHistoryEntry(1, "info", `工作区 ${workspace}`),
+      createHistoryEntry(
+        2,
+        "info",
+        `工具：${toolNames.length > 0 ? toolNames.join("、") : "（无）"}`,
+      ),
+      createHistoryEntry(
+        3,
+        "info",
+        "输入问题后回车发送；工具调用会显示在历史区（✅/❌ + 耗时）。生成中 Esc 中断，空闲 Ctrl+C 退出。",
+      ),
+    ];
+
+    if (restoredMessageCount > 0) {
+      base.push(
+        createHistoryEntry(
+          base.length,
+          "info",
+          `已恢复 ${restoredMessageCount} 条消息（上次会话继续；--new 可开新会话）。`,
+        ),
+      );
+    }
+    if (sessionNotice !== undefined) {
+      base.push(createHistoryEntry(base.length, "error", sessionNotice));
+    }
+    return base;
+  });
+  const nextIdRef = useRef(entries.length);
   // S2-7 起消息历史由 Agent Loop 维护（含 tool 消息），UI 只保存 loop 返回的完整历史。
-  const [messages, setMessages] = useState<Message[]>([]);
+  // S3-3：启动时可用上次会话的消息作为初始历史（loop 会重建 system prompt）。
+  const [messages, setMessages] = useState<Message[]>(() => [...(initialMessages ?? [])]);
   const messagesRef = useRef<Message[]>(messages);
   const [input, setInput] = useState("");
   const [cursorOffset, setCursorOffset] = useState(0);
@@ -275,9 +312,11 @@ export function App({
         setStreaming("");
         setToolStatus(null);
         setPhase("idle");
+        // S3-3：每轮结束落盘（含被中断的轮次）；保存失败由入口打警告，不阻塞 UI。
+        persistMessages?.(messagesRef.current);
       }
     },
-    [appendEntry, appendStreamLines, commitMessages, runTurn, streamThrottleMs],
+    [appendEntry, appendStreamLines, commitMessages, persistMessages, runTurn, streamThrottleMs],
   );
 
   // 队列驱动：空闲且有排队消息时自动发送下一条。

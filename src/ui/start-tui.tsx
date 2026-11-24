@@ -9,6 +9,7 @@ import type { AppConfig } from "../config.js";
 import { App } from "./App.js";
 import type { RunAgentTurn } from "./App.js";
 import type { ApprovalController } from "./approval.js";
+import type { Message } from "../types.js";
 
 export interface StartTuiOptions {
   readonly version: string;
@@ -19,6 +20,14 @@ export interface StartTuiOptions {
   readonly toolNames: readonly string[];
   /** 审批桥（S3-2）：权限闸需要人工确认时，由 App 渲染审批弹窗。 */
   readonly approvals?: ApprovalController | undefined;
+  /** 会话恢复（S3-3）：初始历史消息（不含 system）。 */
+  readonly initialMessages?: readonly Message[] | undefined;
+  /** 会话恢复（S3-3）：恢复条数（>0 时 UI 顶部提示）。 */
+  readonly restoredMessageCount?: number | undefined;
+  /** 会话恢复（S3-3）：加载异常提示（损坏等）。 */
+  readonly sessionNotice?: string | undefined;
+  /** 会话保存（S3-3）：每轮结束回调。 */
+  readonly persistMessages?: ((messages: readonly Message[]) => void) | undefined;
 }
 
 /** 读取 Kitty 键盘协议的开关（`MEWCODE_KITTY_KEYBOARD=0/off` 可关闭）。 */
@@ -38,7 +47,17 @@ function readKittyKeyboardMode(): "auto" | "disabled" {
 
 /** 启动交互式 TUI，直到用户 Ctrl+C（空闲态）或进程被信号终止。 */
 export async function startTui(options: StartTuiOptions): Promise<void> {
-  const { version, config, runTurn, toolNames, approvals } = options;
+  const {
+    version,
+    config,
+    runTurn,
+    toolNames,
+    approvals,
+    initialMessages,
+    restoredMessageCount,
+    sessionNotice,
+    persistMessages,
+  } = options;
   const instance = render(
     <App
       version={version}
@@ -48,6 +67,10 @@ export async function startTui(options: StartTuiOptions): Promise<void> {
       toolNames={toolNames}
       runTurn={runTurn}
       approvals={approvals}
+      initialMessages={initialMessages}
+      restoredMessageCount={restoredMessageCount}
+      sessionNotice={sessionNotice}
+      persistMessages={persistMessages}
     />,
     {
       // Ctrl+C 由 App 自己的 useInput 处理（生成中只中断，空闲才退出）。

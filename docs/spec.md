@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（`src/safety/danger.ts` 危险命令识别 + `src/safety/permissions.ts` 权限三道闸、会话白名单、headless 只读规则；全量 232/232）、S3-2 已完成（`src/ui/approval.ts` 审批桥 + `src/ui/ApprovalPrompt.tsx` y/a/n/Esc 交互审批、`awaiting_approval` 展示态、a 会话白名单；全量 241/241），下一任务 S3-3（会话持久化）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258），下一任务 S3-4（上下文压缩）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -22,7 +22,7 @@ MCP / Skill / Hook / SubAgent / Agent Teams / Git Worktree / 多模型路由 / �
 | 4 | 写文件与执行命令前必须人工确认，拒绝原因回填模型 | 是 | ⬜ 待 S3 |
 | 5 | 文件系统不越界 + 危险命令拦截 | 是 | ⬜ 待 S2/S3 |
 | 6 | 连续 50 轮不爆上下文 | 是 | ⬜ 待 S3 |
-| 7 | 重启后恢复最近会话 | 是 | ⬜ 待 S3 |
+| 7 | 重启后恢复最近会话 | 是 | 🔄 代码完成（S3-3：`.mewcode/session.json` 每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258），待用户重启实测 B 级 2–5 |
 | 8 | Windows Terminal 中文输入输出不乱码 | 是 | ✅ 输入已验证（S0-1 判定 A）；输出随 TUI 在 S1 复验 |
 | 9 | 一条命令启动 | 是 | ✅ `npm run dev` |
 | 10 | README 快速开始 + 测试 + 3 分钟演示 | 是 | 🚧 S0-5 起草文档，S4 完成演示 |
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions/approval 二十一个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions/approval/session 二十二个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -183,6 +183,7 @@ finish: stop
 - 红线：不提交 `.env`；不把 key 写进日志/输出。
 - S3-1 已实现（2026-11-24）：`safety/danger.ts` 规则表（13 类危险命令 + 包装器剥壳，最多 4 层）/ `safety/permissions.ts` 的 `createPermissionGate`（顺序：arguments 解析 → 未知工具 → 路径边界 → readOnly → 危险命令 → headless → 会话白名单 → `ask` y/a/n；异常按拒绝）；`src/index.ts` 交互分支已接 gate（暂无审批 UI → 写操作拒绝并提示 S3-2，只读放行）；`runRealHeadless` 升级为 Agent Loop + 只读工具 + headless 闸。拒绝原因统一回填 `Error: 权限被拒绝：<原因>\n下一步：…`，不破坏 assistant/tool 配对。
 - S3-2 已实现（2026-11-24）：`src/ui/approval.ts` 审批桥（`ask` 返回挂起 Promise，`subscribe`/`current`/`respond`，同一时刻仅一个 pending，重叠请求抛错）；`src/ui/ApprovalPrompt.tsx` 只接受单字符 `y`/`a`/`n`，`Esc` → 拒绝，其它键忽略；App 增加 `pendingApproval` 展示态（`awaiting_approval`）：审批时输入框失焦（`InputBox active=false`）、App 的 `useInput` 让位（仅 Ctrl+C 仍可中断整轮）、光标隐藏、状态行显示「等待审批：y 允许 · a 本会话总是允许 · n/Esc 拒绝」；`start-tui`/`index.ts` 把 controller 传给 gate 的 `ask`；headless 不变（无 ask，写操作直接拒绝）。
+- S3-3 已实现（2026-11-24）：`src/session/store.ts` 提供 `resolveSessionPath` / `loadSession(workspace, {forceNew?})` / `saveSession(workspace, model, messages, {createdAt?, now?})`；会话路径 `<workspace>/.mewcode/session.json`，格式 `{version:1, workspace, model, createdAt, updatedAt, messages}`；只存 user/assistant/tool（system 每次重建、加载时静默跳过）；保存先写 `.tmp` 再 `rename` 原子替换、空历史不落盘、失败返回 `{ok:false}` 不抛异常；加载出错（坏 JSON/未知版本/非法消息）降级为 `corrupt` + 可读原因；`src/index.ts` 交互分支启动加载并注入 `initialMessages`/`restoredMessageCount`/`sessionNotice`，每轮结束（含中断）调 `persistMessages` 落盘，失败仅警告；headless 不读写会话；`.mewcode/` 已在 `.gitignore`。
 
 ## 8. 上下文与会话（S3）
 
@@ -247,8 +248,9 @@ finish: stop
 | S2-8 | S2 全量验收 + 真实模型自主读 README 并总结 + tag `v0.1-s2` | ✅（typecheck 0 / tests 204/204 / help+version / mock 幂等 / build+dist 一致 / any 0 / TUI 冒烟 SMOKE OK / 6 工具 loop 演示 ALL TOOLS OK / 真实 API exit 0；真实模型 README 任务 2 工具 3 步 `README ACCEPTANCE OK`；tag 已 push） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ✅（tag `v0.1-s2` 已 push） |
 | S3-1 | `src/safety/danger.ts` + `src/safety/permissions.ts`：危险命令识别（13 类 + 包装器剥壳）+ 权限三道闸（路径边界 → readOnly → 危险 → 白名单 → 审批）+ headless 只读规则 | ✅（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例，全量 232/232；B 级 5/6/8 已由用户 2026-11-24 实测通过） |
-| S3-2 | `src/ui/approval.ts` + `src/ui/ApprovalPrompt.tsx`：y/a/n/Esc 交互审批、会话白名单、`awaiting_approval` 展示态 | ✅（`tests/approval.test.ts` 9 例，全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条待用户） |
-| S3 | 权限确认 + 会话持久化 + 上下文压缩 | 🔄（S3-1、S3-2 完成，下一 S3-3） |
+| S3-2 | `src/ui/approval.ts` + `src/ui/ApprovalPrompt.tsx`：y/a/n/Esc 交互审批、会话白名单、`awaiting_approval` 展示态 | ✅（`tests/approval.test.ts` 9 例，全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 实测通过） |
+| S3-3 | `src/session/store.ts`：`.mewcode/session.json` 每轮保存 / 启动恢复 / `--new` / 损坏降级 | ✅（`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 258/258；B 级 2–5 待用户重启验证） |
+| S3 | 权限确认 + 会话持久化 + 上下文压缩 | 🔄（S3-1、S3-2、S3-3 完成，下一 S3-4） |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
 
 已知边界（v0.1）：
