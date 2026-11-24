@@ -17,6 +17,9 @@ import path from "node:path";
 import process from "node:process";
 import { test } from "node:test";
 
+/** 测试用的“用户配置目录”：指向不存在的路径，避免读到开发者本机 `~/.mewcode/config.json`。 */
+const TEST_HOME_DIR = path.join(tmpdir(), `mewagent-test-home-${process.pid}`);
+
 import {
   CliError,
   DEFAULT_BASE_URL,
@@ -119,11 +122,11 @@ async function runCli(argv: string[], options: RunOptions = {}): Promise<RunResu
   let out = "";
   let err = "";
   const code = await main(argv, {
-    env: options.env ?? {},
+    env: { MEWCODE_HOME: TEST_HOME_DIR, ...(options.env ?? {}) },
     cwd: options.cwd,
     stdinIsTTY: options.stdinIsTTY ?? false,
     stdoutIsTTY: options.stdoutIsTTY ?? false,
-    readStdin: options.readStdin,
+    readStdin: options.readStdin ?? (() => ""),
     loadDotEnv:
       options.loadDotEnv ??
       (() => {

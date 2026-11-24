@@ -24,6 +24,9 @@ function makeTempDir(): string {
   return mkdtempSync(path.join(tmpdir(), "mewagent-wizard-"));
 }
 
+/** 测试用的“用户配置目录”：指向不存在的路径，避免读到开发者本机 `~/.mewcode/config.json`。 */
+const TEST_HOME_DIR = path.join(tmpdir(), `mewagent-wizard-home-${process.pid}`);
+
 function removeTempDir(dir: string): void {
   rmSync(dir, { recursive: true, force: true });
 }
@@ -44,10 +47,11 @@ async function runMain(
   let out = "";
   let err = "";
   const code = await main(argv, {
-    env: options.env ?? {},
+    env: { MEWCODE_HOME: TEST_HOME_DIR, ...(options.env ?? {}) },
     cwd: options.cwd,
     stdinIsTTY: options.stdinIsTTY ?? false,
     stdoutIsTTY: options.stdoutIsTTY ?? false,
+    readStdin: () => "",
     loadDotEnv: () => {},
     write: (text: string) => {
       out += text;
