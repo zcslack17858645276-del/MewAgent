@@ -575,6 +575,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 | 8 | 真实 API `--print hello` | ✅ exit 0（457B 中文；headless 无工具属预期） |
 
 - 完整记录：`spikes/.out/s2-8-acceptance.txt`、`s2-8-readme.txt`（gitignored）。
+- CI（gh 只读）：`45316372561`（task/s2-8-acceptance, `d7c2445`）、`45316383746`（main, `f5c5d6f`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 204 / # pass 204 / # fail 0`。
 - **真实模型 README 验收（S2-8 核心）**：`spikes/.out/readme-acceptance.ts` 用真实 API + 真 `runAgent`/`createDefaultRegistry`，模型自主 `read_file README.md` → `glob **/README*` → 如实总结"README 只有一行标题、无实质内容"；`stopReason=stop steps=3 toolCalls=2`，输出 `README ACCEPTANCE OK`。
 - **回归**：§4 S2 回归清单六项按 `docs/checklist.md` 更新（含用户 TUI 实测 glob/grep/bash、中文输出、B 级全通过）。
 - **tag**：`v0.1-s2`（annotated，S2 收尾提交，已 push 远端；见 HANDOFF §5.3 与 §7 会话 22）。

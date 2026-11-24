@@ -449,8 +449,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收数据（2026-11-24，本地 Node v26.7.0）**：`npm run typecheck` exit 0；全量 `npm test` **204/204（fail 0）**；`--help` 8 参数；`--version` = `0.1.0`；`--mock --print hello` 连跑两次完全一致；`npm run build` exit 0 且 `dist` 与 dev 输出一致；`src/` `\bany\b` 0 匹配；TUI 假终端冒烟 `SMOKE OK`；6 工具 loop 演示 `ALL TOOLS OK`；真实 API `node --import tsx src/index.ts --print hello` exit 0（457B 中文；headless 无工具属预期）；真实模型 README 任务 `README ACCEPTANCE OK`（2 工具 3 步）。证据：`spikes/.out/s2-8-acceptance.txt`、`s2-8-readme.txt`（gitignored）。
 - **B 级**：S2 全部手工项（S2-1 #3/#4、S2-3 #3–#5、S2-4 #2–#4、S2-5 #2–#5、S2-6 #3–#5、S2-7 #1–#4）已由用户 2026-11-24 实测通过（会话 A/B）；A 组补验之外 A3（`MEWCODE_DEBUG=1` 工具可用）已在 S2-7 后复验。
 - **文档**：`docs/tasks.md` S2-8 done、焦点 S3-1；`docs/testing.md` S2 各行 B 级标用户已验 + 新增「S2 B 级复核」段 + S2-8 已完成小节 + 附录 D；`docs/spec.md` line 3 状态、line 83 十八个测试文件、§13 S2-8 ✅ 与 S2 ✅；`docs/checklist.md` S2 末项 `[x]`、§3 6 工具 ✅、§4 回归补 S2-8、§5 tag 记录；`HANDOFF.md` line 5/§1/§5.3/§6。
-- **提交**：分支 `task/s2-8-acceptance` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`；tag `v0.1-s2` 打在 docs 哈希回填提交上（annotated，已 push）。
-- **CI**：`<待回填>`（task 分支）、`<待回填>`（main）全部 success，日志 `# tests 204 / # pass 204 / # fail 0`。
+- **提交**：分支 `task/s2-8-acceptance` 提交 `d7c2445`（已 push，远端保留）→ squash 合并 main `f5c5d6f`；tag `v0.1-s2` 打在 docs 哈希回填提交上（annotated，已 push）。
+- **CI**：`45316372561`（task 分支, `d7c2445`）、`45316383746`（main, `f5c5d6f`）全部 success，日志 `# tests 204 / # pass 204 / # fail 0`。
 - **坑**：PS 5.1 下 `npm test` 输出以 `ℹ tests N` 呈现（grep 计数兼容两种）；`spikes/.out/` 全部 gitignored；tag 用 annotated（`-a`）并单独 push。
 - **下次第一步**：S3-1（`src/safety/danger.ts` 危险命令识别 + 单测）；先读 `docs/testing.md` S3-1 与方案 §4/§6.7。
 
