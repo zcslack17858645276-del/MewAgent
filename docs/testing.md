@@ -746,6 +746,8 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 - 实测：typecheck 0；全量 `npm test` **303/303**（27 个测试文件）；`npm run build` 0；`npm pack --dry-run` 77 项 / 230KB / 解包 650KB，含 `dist/`、README、docs，不含 `tests/`、`spikes/`；`npm link` 后 `mewagent --version` → `0.1.0`、`--help` 首行 `mewagent 0.1.0 — 终端里的 AI 编程助手（v0.1）`，在 `%TEMP%\mewagent-link-check` 与 `%TEMP%\mew agent 中文 目录` 下 `--mock --print "你好"` 均 exit 0；`npx . --mock --print hello` exit 0（两轮 mock 完整）；`npm unlink -g mewagent` 后 `Get-Command mewagent` 为空、全局 `node_modules/mewagent` junction 已删除。
 - 证据：`spikes/.out/s4-3-typecheck2.txt`、`s4-3-full2.txt`、`s4-3-build2.txt`、`s4-3-pack.json`、`s4-3-link.txt`、`s4-3-global-help.txt`、`s4-3-plain-path-mock.txt`、`s4-3-cn-path-mock.txt`、`s4-3-npx.txt`、`s4-3-unlink.txt`（均 gitignored）。
 
+**CI（2026-11-24）**：task 分支 run `45347359933`（`9344f87`）与 main run `45347379012`（`62e9377`）均 success，日志 `# tests 303 / # pass 303 / # fail 0`。
+
 **B 级复核（待用户）**：①`npm link` 后在任意目录 `mewagent --help`；②`npx . --mock --print "你好"`（可先 `npm run build`，`prepack` 也会自动构建）；③从含空格/中文的路径启动一次；④`npm unlink -g mewagent` 确认清理干净。
 #### S4-4 十条成功标准 + demo
 

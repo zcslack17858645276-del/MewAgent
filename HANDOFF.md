@@ -561,8 +561,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **做了什么**：`package.json` 增 `bin.mewagent=./dist/index.js`、`prepack`（发布前自动构建）、`files` 白名单；`src/index.ts` 首行加 shebang，直跑判断由「`argv[1]` 与 `import.meta.url` 字面比较」改为 realpath 比较（修复 `npm link`/`npx` 经 junction/symlink 启动时 `isDirectRun=false` → 静默 exit 0 无输出）；新增 `tests/packaging.test.ts` 5 例（bin/prepack/files/shebang/engines）；README 增「全局命令（`npm link` / `npx`）」小节并更新测试计数 27 文件/303 例。
 - **验收**：typecheck 0；全量 **303/303**（27 文件）；build 0；`npm pack --dry-run` 77 项/230,182 B（含 dist+README+docs，不含 tests/spikes）；`npm link` 后任意目录 `mewagent --version`=0.1.0、`--help` banner v0.1、`--mock --print "你好"` exit 0（`model: mock`）、含空格+中文路径目录同样通过；`npx . --mock --print hello` exit 0；`npm unlink -g mewagent` 后命令与全局 junction 均删除。B 级 4 条待用户。
 - **文档**：`docs/tasks.md`（S4-3 done、焦点 S4-4、S4-2 B 级已通过）、`docs/testing.md`（L7/L128 进度、S4-3 小节、速查表、附录 D、S4 回归）、`docs/spec.md`（L3、成功标准 #9、§12/§13）、`docs/checklist.md`（打包项、#9/#10）。
-- **提交**：<待回填：分支 task/s4-3-packaging 提交 xxx → squash main xxx>
-- **CI**：<待回填：run id + 303/303>
+- **提交**：分支 `task/s4-3-packaging` 提交 **`9344f87`**（9 files +169/−39，已 push，远端保留）→ squash 合并 main **`62e9377`**（同标题）。
+- **CI**：task 分支 run `45347359933`（`9344f87`）与 main run `45347379012`（`62e9377`）均 success，日志 `# tests 303 / # pass 303 / # fail 0`。
 - **坑**：①`npm link`/`npx` 通过链接路径执行 dist 入口，字面比较 `argv[1]` 会失败，必须 realpath 比较；②PowerShell 函数名/别名陷阱：`Rd` 命中内置别名 `rd`（= `Remove-Item`）误删 `docs/tasks.md`，用 `git show HEAD:docs/tasks.md > docs\tasks.md` 恢复（`git restore` 被 cc-safety-net 按 `git.restore-unstaged` 拦截）；③非 BOM 的 PS 脚本用 `powershell -File` 会按 ANSI 读导致中文乱码，改用 `Get-Content -Encoding UTF8 -Raw | Invoke-Expression`；④编辑文档用 `[System.IO.File]::ReadAllText/WriteAllText` + 正则整段替换，避免 CRLF here-string MISS。
 - **下次第一步**：S4-4（10 条成功标准逐项验收 + 3 分钟 demo + tag `v0.1.0`），依据 `docs/testing.md` S4-4 与 `docs/checklist.md` §5。
 
