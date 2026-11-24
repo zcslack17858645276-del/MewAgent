@@ -121,6 +121,32 @@ npm start                      # 交互 TUI（dist 版本）
 
 > Windows PowerShell 5.1 的 `>` 重定向会写成 UTF-16LE；需要保存输出时建议用 `cmd /c "... > out.txt"`，或直接看终端。
 
+### 6. 全局命令（`npm link` / `npx`）
+
+本仓库已在 `package.json` 配置 `bin`（`mewagent` → `dist/index.js`）。在仓库根目录执行：
+
+```bash
+npm link              # 构建 dist 并把 mewagent 链接到全局（Windows 默认 %APPDATA%\npm，无需管理员）
+
+mewagent --help       # 任意目录可用
+mewagent --mock --print "你好"
+```
+
+不想装全局时，可以直接让 npm 从本目录打包运行（`prepack` 会自动构建）：
+
+```bash
+npx . --mock --print "你好"   # 从仓库根目录执行
+npx .                          # 交互 TUI（--mock 离线）
+```
+
+卸载全局链接：
+
+```bash
+npm unlink -g mewagent
+```
+
+> 如果 `mewagent` 提示找不到命令，确认 `%APPDATA%\npm`（或 `npm prefix -g` 的输出）在 `PATH` 中；重新打开终端即可刷新。
+
 ## 配置
 
 配置优先级：**命令行参数 > 环境变量 > `.env` 文件 > 内置默认值**。`.env` 已在 `.gitignore` 中，别提交真实 key。
@@ -258,7 +284,7 @@ MewAgent/
 │   ├── session/store.ts    会话持久化与恢复
 │   ├── context/            token 估算 + 按轮压缩
 │   └── ui/                 Ink TUI（App、输入框、历史、审批、diff 渲染）
-├── tests/                  node:test 单元/集成测试（26 个文件，296 例）
+├── tests/                  node:test 单元/集成测试（27 个文件，303 例）
 ├── docs/                   spec / tasks / testing / checklist
 ├── .github/workflows/ci.yml
 ├── HANDOFF.md              交接文档（阶段状态、决策、会话记录）
@@ -412,7 +438,7 @@ npm run dev -- --mock --print "用 hello 工具向 Ada 问好"
 
 ```bash
 npm run typecheck     # tsc --noEmit（strict）
-npm test              # node:test，26 个测试文件 / 296 个用例
+npm test              # node:test，27 个测试文件 / 303 个用例
 npm run build         # 输出 dist/
 ```
 

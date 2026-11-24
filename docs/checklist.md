@@ -75,6 +75,7 @@
 ### S4 打磨与交付（目标：tag `v0.1.0`）
 
 - [x] README 快速开始（复制即跑）与 README 重写（S4-2，2026-11-24）。README 覆盖安装、配置（`.env.example` + 环境变量表 + 代理）、快速开始（mock/TUI/真实 API/workspace/build）、命令参数、架构图 + 数据流、目录结构、6 工具表、3 步加工具教程（`ToolDefinition` 代码 + 注册 + 测试）、权限与安全、会话与压缩、错误展示、测试与 CI、Windows 注意、已知限制/Roadmap；`--help` banner 改「（v0.1）」。A 级：仓库克隆到临时目录仅照 README 跑通 `npm install`（52 包/4s）→ `npm run typecheck` 0 → `npm test` **296/296** → `npm run dev -- --mock --print "你好"` 0 → `npm run build` 0 → `node dist/index.js --mock --print "你好"` 0。3 分钟演示视频/脚本待 S4-4。
+- [x] 打包与启动（S4-3，2026-11-24）。`package.json` 增 `bin.mewagent=./dist/index.js`、`prepack` 构建、`files` 白名单；入口 shebang + realpath 直跑判断（修复 junction 下静默退出）；`tests/packaging.test.ts` 5 例。A 级：`npm link` 后任意目录 `mewagent --version/--help/--mock --print` 均 0（含空格+中文路径）、`npx . --mock --print hello` 0、`npm unlink -g mewagent` 无残留、`npm pack` 产物仅含 dist+README+docs（77 项/230KB），全量 **303/303**。B 级 4 条待用户。
 - [x] diff 与错误展示（S4-1，2026-11-24）。
   - 证据：`edit_file` 输出行级 unified diff（`src/tools/diff.ts`，`--- a/`/`+++ b/`/`@@`/4 位行号）→ TUI 解析为红删/绿增/青 hunk 历史条目（`src/ui/diff-view.ts` + `HistoryItem`，最多 80 行）；HTTP（401/403/404/429/5xx）、网络（含代理提示）、中断、工具失败、权限拒绝、超步数统一由 `src/errors.ts` 产出「发生了什么 + 下一步」，TUI 与 headless 共用；`formatTurnEndNote` 的 max_steps 也带下一步。
   - 测试：`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例，ui/fs/tool-display 断言同步更新，全量 **296/296**（26 个测试文件）；`npm run typecheck` 0、`build` 0、TUI 冒烟 `SMOKE OK`、`src/` 无 `any`；B 级 3 条已由用户 2026-11-24 实测通过（`docs/testing.md` S4-1 小节）。
@@ -93,8 +94,8 @@
 | 6 | 连续 50 轮不爆上下文 | 脚本灌 50 轮后继续提问 | token 统计 | ✅（S3-4 代码 + S3-5 集成：`spikes/.out/s3-5-integration.ts` 50 轮全部 `stopReason=stop`、内存历史 101 条完整、压缩 50 次 `maxDropped=41`、末次请求 18 条且 system 首位、tool 配对完整；用户 2026-11-24 50 轮 mock B 级通过） |
 | 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | ✅（S3-3：`session/store.ts` 每轮保存/启动恢复/`--new`/损坏降级 + `tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；B 级 2–5 已由用户 2026-11-24 实测通过；S3-5 集成脚本复验 2→4 条消息、createdAt 保留） |
 | 8 | WT 中文输入输出不乱码 | Windows Terminal 输入中文提问 | S0-1 已验输入；S1 验输出 | 🚧 |
-| 9 | 一条命令启动 | 新目录 `npm install && npm run dev` | 截图 | ✅ `npm run dev` |
-| 10 | README + 测试 + 3 分钟演示 | 照 README 从零复现 | README 链接、演示文件 | 🔄（README ✅ 2026-11-24，A 级克隆验证通过；测试 296/296 ✅；3 分钟演示待 S4-4） |
+| 9 | 一条命令启动 | 新目录 `npm install && npm run dev` | 截图 | ✅ `npm run dev`；S4-3 起全局 `mewagent`（`npm link`）与 `npx .` 也已实测（任意目录、含空格/中文路径） |
+| 10 | README + 测试 + 3 分钟演示 | 照 README 从零复现 | README 链接、演示文件 | 🔄（README ✅ 2026-11-24，A 级克隆验证通过；测试 303/303 ✅；3 分钟演示待 S4-4） |
 
 ## 4. 阶段回归清单（每个阶段完成后跑一遍）
 
