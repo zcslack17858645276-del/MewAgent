@@ -494,6 +494,7 @@ git status --short        # 确认没有把测试产物提交
 - 覆盖点：基本命令（stdout/退出码/stderr 分段）、中文输出 UTF-8 不乱码、stderr 单独捕获、非 0 退出码（exit 3）→ `ok:false` 带 stdout/stderr + 下一步、**超时 kill**（1000ms 超时 ~1.5s 返回并提示）、**30KB 截断**（200KB 输出 → ≤上限 + 提示用 read_file）、截断不切断多字节字符、cwd 固定工作区、command 缺失/空/类型错误、timeout_ms 越界、`MEWCODE_SHELL` 指向不存在文件 → 可读错误；`resolveShell` 优先级（MEWCODE_SHELL > Git Bash > cmd）、`decodeOutput` UTF-8→GBK 回退、`truncateUtf8` 代理对安全、readOnly=false + 注册表集成
 - 手工演示（`spikes/.out/bash-manual-driver.ts`，gitignored）：中文命令输出正常；`ping -n 4` + `timeout_ms=1000` → `ok=false elapsed=1544ms`，输出含"命令超时（1000 毫秒），已被终止"+ 孙进程提示；60000 字符输出被截断
 - 完整记录：`spikes/.out/s2-5-typecheck.txt`、`s2-5-bash.txt`、`s2-5-full.txt`（均 gitignored）
+- CI（gh 只读）：`45304592450`（task/s2-5-bash, `a075f72`）、`45304612323`（main, `32f43e6`）全部 success；job `typecheck + test (Node 22)` 的 Checkout / Setup Node.js / Install dependencies / Typecheck / Test 步骤全 success，日志 `# tests 167 / # pass 167 / # fail 0`。
 
 **结果**：行 1 ✅（14 例）；行 2–5 ⏳ 需模型真正调用 bash（loop/TUI 接线后，S2-6/S2-7 后验）；行 6 ✅ 已记录 Windows 孙进程限制（`child.kill` 只杀直接子进程，输出里有提示，超时场景 500ms 兜底返回）。
 

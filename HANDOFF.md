@@ -412,8 +412,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收（A 级，P0 全过）**：`npm run typecheck` exit 0；`node --import tsx --test tests/bash.test.ts` → **tests 14 / pass 14 / fail 0（4661ms）**；全量 `npm test` → **tests 167 / pass 167 / fail 0（4793ms）**；`src/tools/bash.ts` 无 `any`。证据：`spikes/.out/s2-5-typecheck.txt`、`s2-5-bash.txt`、`s2-5-full.txt`（均 gitignored）。
 - **B 级（待后续）**：testing.md S2-5 第 2–5 行（自然语言"运行 npm test 并总结"/10 秒命令超时/大文件截断/中文命令）需要工具接进 loop/TUI（S2-6/S2-7）后验；第 6 行（孙进程残留）已记录为已知限制。
 - **文档**：`docs/tasks.md` S2-5 done、焦点 S2-6、最后更新 2026-11-24；`docs/testing.md` L7/L128 进度、S2-5 小节已完成（6 行表 + 结果列 + A 级证据 + 实现要点 + 已知限制）、附录 C/D；`docs/spec.md` line 3 状态、line 83 测试文件十五个、§13 新增 S2-5 ✅ 行；`docs/checklist.md` 6 工具项与失败路径项 `[x]`；`HANDOFF.md` line 5、§4「命令执行（S2-5）」决策行、§6 状态。
-- **提交**：分支 `task/s2-5-bash` 提交 `<待回填>`（已 push，远端保留原始提交）→ squash 合并 main `<待回填>`；本条哈希回填提交并 push。
-- **CI**：`<待回填>`。
+- **提交**：分支 `task/s2-5-bash` 提交 `a075f72`（已 push，远端保留原始提交）→ squash 合并 main `32f43e6`；本条哈希回填提交并 push。
+- **CI**：`45304592450`（task/s2-5-bash, `a075f72`）、`45304612323`（main, `32f43e6`）全部 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 167 / # pass 167 / # fail 0`。
 - **坑**：①`cmd.exe /d /s /c` 默认 Node 参数转义会把含 `;`/`(` 的命令拆坏（`node -e "…; process.exit(3)"` 变成 Unterminated string、`console.log(process.cwd())` 输出为空、大输出 0 字节）→ 必须 `windowsVerbatimArguments: true`（已用探针 `spikes/.out/probe-cmd-quoting2.ts` 验证）；②本机未装 Git Bash，`bash -lc` 分支只靠单测的假 `exists` 覆盖，未真机验证（CI 走 sh `-c`）；③超时 kill 后孙进程可能占用管道使 `close` 不来 → 500ms 兜底 resolve，测试 `after()` 用 20×250ms 重试删临时目录规避 EPERM；④PS 5.1 下 `;` 在双引号里传给 cmd 的语义与 bash 不同，测试命令用 `node -e` 单表达式避免歧义。
 - **下次第一步**：S2-6（`src/agent/loop.ts`：`AgentEvent` 流、多工具连续调用、`maxSteps`、`turn_end` 原因；先读 `docs/testing.md` S2-6 与方案 §4/§6.7）。
 
