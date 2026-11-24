@@ -21,6 +21,8 @@ import {
   usage,
 } from "./config.js";
 import type { AppConfig } from "./config.js";
+import type { CompressResult } from "./context/compress.js";
+import { DEFAULT_CONTEXT_TOKENS } from "./context/tokens.js";
 import { createMockLlmClient } from "./llm/mock.js";
 import { createOpenAiLlmClient, LlmHttpError } from "./llm/openai.js";
 import type { FetchLike } from "./llm/openai.js";
@@ -148,6 +150,41 @@ function readDebugEnabled(env: NodeJS.ProcessEnv): boolean {
   return value === "1" || value === "true" || value === "yes";
 }
 
+/**
+ * 读取上下文窗口大小（token）。默认 {@link DEFAULT_CONTEXT_TOKENS}；
+ * `MEWCODE_CONTEXT_TOKENS` 可覆盖（小窗口便于手工观察压缩，S3-4 B 级验收）。
+ */
+function readContextTokens(env: NodeJS.ProcessEnv): number {
+  const raw = env["MEWCODE_CONTEXT_TOKENS"];
+  if (raw === undefined || raw.trim() === "") return DEFAULT_CONTEXT_TOKENS;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : DEFAULT_CONTEXT_TOKENS;
+}
+
+/**
+ * 压缩统计回调：只在 `MEWCODE_DEBUG=1` 时输出，且只报告"真的发生了压缩"的情况，
+ * 满足 S3-4 B 级第 3 项「观察压缩前后 token 估算」。
+ */
+function createCompressionReporter(
+  debug: boolean,
+  writeError: (text: string) => void,
+): ((info: CompressResult) => void) | undefined {
+  if (!debug) {
+    return undefined;
+  }
+  return (info) => {
+    if (info.droppedTurns === 0 && !info.truncated) {
+      return;
+    }
+    const note = info.truncated ? "（截断最新轮）" : "";
+    writeError(
+      `[压缩] 丢弃 ${info.droppedTurns} 轮，tokens ${info.beforeTokens} → ${info.afterTokens}${note}\n`,
+    );
+  };
+}
+
 /** 把 HTTP 状态码翻译成"下一步怎么做"，避免用户只看到一串英文。 */
 function describeHttpFailure(status: number): string {
   if (status === 401 || status === 403) {
@@ -192,6 +229,8 @@ async function runRealHeadless(
   env: NodeJS.ProcessEnv,
 ): Promise<number> {
   const debug = readDebugEnabled(env);
+  const contextTokens = readContextTokens(env);
+  const onCompress = createCompressionReporter(debug, writeError);
   const client = createOpenAiLlmClient({
     baseUrl: config.baseUrl,
     apiKey: config.apiKey,
@@ -227,6 +266,8 @@ async function runRealHeadless(
     messages: [{ role: "user", content: prompt }],
     systemPrompt,
     gate: permissions.gate,
+    contextTokens,
+    onCompress,
     emit: (event) => {
       if (event.type === "assistant_text") {
         streamed += event.delta;
@@ -356,6 +397,8 @@ export async function main(
         signal,
         emit,
         gate: permissions.gate,
+        contextTokens: readContextTokens(env),
+        onCompress: createCompressionReporter(readDebugEnabled(env), writeError),
       });
     // S3-3：启动时恢复上次会话（`--new` 跳过）；损坏时按新会话启动并提示原因。
     const session = loadSession(config.workspace, { forceNew: config.newSession });

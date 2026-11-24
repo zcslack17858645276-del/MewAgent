@@ -26,6 +26,8 @@ import type {
   ToolRunContext,
 } from "../types.js";
 import type { ToolRegistry } from "../tools/registry.js";
+import { compressMessages } from "../context/compress.js";
+import type { CompressResult } from "../context/compress.js";
 import { withSystemPrompt } from "./prompt.js";
 
 /** 默认最大步数（§4：单 Agent startLoop maxSteps=30）。 */
@@ -52,6 +54,13 @@ export interface AgentLoopOptions {
   readonly maxSteps?: number;
   /** Esc 中断：透传给 LLM，并在工具执行前后检查。 */
   readonly signal?: AbortSignal;
+  /**
+   * 上下文预算（token）；设置后每次请求 LLM 前按轮压缩（S3-4）。
+   * 压缩只作用于发给模型的副本，返回值 `messages` 仍是完整历史（供会话持久化）。
+   */
+  readonly contextTokens?: number;
+  /** 每次压缩后的统计回调（调试/提示用）；未设置则不回调。 */
+  readonly onCompress?: (info: CompressResult) => void;
 }
 
 /** `runAgent` 的返回值：消息历史 + 结束原因，便于调用方持久化/展示。 */
@@ -165,10 +174,19 @@ export async function runAgent(options: AgentLoopOptions): Promise<AgentLoopResu
       };
     }
 
+    // S3-4：请求前按轮压缩（§3 架构流 L238）。只把压缩副本发给模型，
+    // `messages` 保持完整历史——返回给调用方后用于会话持久化/UI 展示。
+    let requestMessages: Message[] = messages;
+    if (options.contextTokens !== undefined) {
+      const compressed = compressMessages(messages, { contextTokens: options.contextTokens });
+      requestMessages = compressed.messages;
+      options.onCompress?.(compressed);
+    }
+
     let streamed = "";
     let response: LlmChatResult;
     try {
-      response = await options.llm.chat(messages, options.tools.specs(), {
+      response = await options.llm.chat(requestMessages, options.tools.specs(), {
         signal: options.signal,
         onText: (delta) => {
           streamed += delta;

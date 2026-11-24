@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258），下一任务 S3-4（上下文压缩）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 已完成并打 tag `v0.1-s2`（6 工具 + 注册表 + Agent Loop + TUI 工具事件；全量 204/204，真实模型自主读 README 验收通过）；S3 进行中：S3-1 已完成（权限三道闸 + headless 只读；全量 232/232）、S3-2 已完成（交互审批 UI；全量 241/241，B 级 4 条已由用户实测通过）、S3-3 已完成（会话持久化 `<workspace>/.mewcode/session.json`：每轮保存 / 启动恢复 / `--new` / 损坏降级；全量 258/258）、S3-4 已完成（`context/tokens.ts` + `context/compress.ts` 按轮压缩：system 常驻、最新轮保留、旧轮整轮丢弃、最新轮超预算截断；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 277/277），下一任务 S3-5（S3 集成验收 + tag `v0.1-s3`）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions/approval/session 二十二个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash/loop/tool-display/stream-lines/danger/permissions/approval/session/compress 二十三个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -190,6 +190,7 @@ finish: stop
 - 压缩策略：按**用户轮次**淘汰最旧的历史，保留 system + 最近轮次；触发阈值按估算 token（§6.3）。
 - 压缩后不可丢失当前轮次的工具调用/结果配对。
 - 会话文件：`<workspace>/.mewcode/session.json`（已 gitignore）；`--new` 强制新会话；启动时默认恢复最近会话。
+- S3-4 已实现（2026-11-24）：`src/context/tokens.ts` 提供 `estimateTextTokens` / `estimateMessageTokens` / `estimateMessagesTokens` / `computeBudgetTokens`（CJK ≈1.1 token/字、其他 ≈1/4、每条消息 +8，预算 = `contextTokens × 0.7`）；`src/context/compress.ts` 的 `compressMessages` 按 user 轮分组：system 常驻、最新轮必留、从新到旧累加到预算、旧轮**整轮**丢弃（保住 assistant.toolCalls 与 tool 结果配对）、最新轮自身超预算时截断 tool 到 2000 字符 / assistant 到 4000 字符、结果不以 tool 开头；`src/agent/loop.ts` 增 `contextTokens`/`onCompress`，**只压缩发给模型的副本**，返回的 `messages` 仍是完整历史（供会话持久化与 UI）；`src/index.ts` 读 `MEWCODE_CONTEXT_TOKENS`（默认 128000），`MEWCODE_DEBUG=1` 时把 `[压缩] 丢弃 N 轮，tokens X → Y` 打到 stderr。
 
 ## 9. TUI（S1）
 
@@ -249,8 +250,9 @@ finish: stop
 | S2 | 6 工具 + 工具注册表 + Agent Loop | ✅（tag `v0.1-s2` 已 push） |
 | S3-1 | `src/safety/danger.ts` + `src/safety/permissions.ts`：危险命令识别（13 类 + 包装器剥壳）+ 权限三道闸（路径边界 → readOnly → 危险 → 白名单 → 审批）+ headless 只读规则 | ✅（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例，全量 232/232；B 级 5/6/8 已由用户 2026-11-24 实测通过） |
 | S3-2 | `src/ui/approval.ts` + `src/ui/ApprovalPrompt.tsx`：y/a/n/Esc 交互审批、会话白名单、`awaiting_approval` 展示态 | ✅（`tests/approval.test.ts` 9 例，全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 实测通过） |
-| S3-3 | `src/session/store.ts`：`.mewcode/session.json` 每轮保存 / 启动恢复 / `--new` / 损坏降级 | ✅（`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 258/258；B 级 2–5 待用户重启验证） |
-| S3 | 权限确认 + 会话持久化 + 上下文压缩 | 🔄（S3-1、S3-2、S3-3 完成，下一 S3-4） |
+| S3-3 | `src/session/store.ts`：`.mewcode/session.json` 每轮保存 / 启动恢复 / `--new` / 损坏降级 | ✅（`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 258/258；B 级 2–5 已由用户 2026-11-24 实测通过） |
+| S3-4 | `src/context/tokens.ts` + `src/context/compress.ts`：token 估算（CJK 1.1/字、其他 1/4、每条 +8、预算 ×0.7）+ 按轮压缩（system 常驻 / 最新轮必留 / 旧轮整轮丢弃 / 最新轮超预算截断 tool 2000·assistant 4000 / 去掉开头悬空 tool）；loop 增 `contextTokens`/`onCompress`，`MEWCODE_CONTEXT_TOKENS` 调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` | ✅（`tests/compress.test.ts` 17 例 + `tests/loop.test.ts` 压缩接线 2 例，全量 277/277；B 级 2–4 待用户） |
+| S3 | 权限确认 + 会话持久化 + 上下文压缩 | 🔄（S3-1、S3-2、S3-3、S3-4 完成，下一 S3-5 集成验收 + tag `v0.1-s3`） |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
 
 已知边界（v0.1）：
