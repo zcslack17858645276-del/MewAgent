@@ -788,6 +788,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
   - #4 写文件审批：询问 1 次、拒绝原因已回填模型、文件未创建、最终 stop。
 - **中文输出**：headless 真实 API 输出 7 个中文字、无 `�`（`s4-4-chinese.txt`）；真实任务 transcript 中文 3 行概括正常（`s4-4-demo-transcript.txt`，其中 bash 在 headless 只读模式下被拒绝并回填下一步——安全语义符合预期）。
 - **S3-5 集成回归**：`spikes/.out/s4-4-integration.txt` → 50 轮压缩 / 会话恢复 2→4 / 审批拒绝后继续 / `rm -rf /` 硬拦（asked=0）全部 PASS，`INTEGRATION OK`。
+- **CI（2026-11-24）**：task 分支 run `45371773050`（`b87027a`）与 main run `45371818804`（`b49ecb4`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 - 60 秒演示资源：[`docs/demo.md`](demo.md)（4 段，已在 README §7 与文档索引链接）。
 
 **B 级复核（待用户，演示时顺手做）**
@@ -836,12 +837,12 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 ### S4 回归
 
-- [ ] S3 全部
-- [ ] clone 到新目录按 README 跑通（S4-2 已在克隆副本验证：install 4s / typecheck 0 / 296/296 / `--mock` 0 / build 0 / dist 0；S4-4 时再按用户视角走一遍）
+- [x] S3 全部
+- [x] clone 到新目录按 README 跑通（S4-2 克隆副本：install 4s / typecheck 0 / 296/296 / `--mock` 0 / build 0 / dist 0；用户另一台机器已实测通过）
 - [x] 全局命令 + `npx .` 各 1 次（S4-3：`npm link` 后任意目录 `mewagent --version/--help/--mock --print` 均 0；`npx . --mock --print hello` 0；`npm unlink -g mewagent` 后无残留）
-- [ ] 10 条成功标准全勾
-- [ ] 3 分钟演示成功
-- [ ] tag 0.1.0 已推送
+- [x] 10 条成功标准全勾（S4-4：`docs/spec.md` §3 全部 ✅，证据见本文件 S4-4 与 `docs/checklist.md` §3）
+- [x] 3 分钟演示成功（S4-4：`docs/demo.md` 四段脚本 + README §7 链接）
+- [x] tag `v0.1.0` 已推送（2026-11-24，打在 S4-4 收尾提交）
 
 ---
 

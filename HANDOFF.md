@@ -594,8 +594,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 - **做了什么**：S4-4 全量验收：全量回归（typecheck 0 / tests **330/330**（1 skip）/ build 0 / `--help`+`--version` / `--mock` 幂等 / dist 一致 / any 0 / 冒烟 `SMOKE OK`+`APPROVAL SMOKE OK`+`ALL TOOLS OK`）；修复测试 hermeticity（用户已生成真实 `~/.mewcode/config.json`，`tests/config.test.ts` 与 `tests/setup-wizard.test.ts` 默认 `env:{}` 会读到 ambient 用户配置，`--print` 无 prompt 时走真实 stdin 在 `node --test` 子进程永久阻塞 → 注入临时 `MEWCODE_HOME` + `readStdin: () => ""`）；真实 API 验收脚本 `spikes/.out/s4-4-acceptance.ts`（#1 首字 **1314ms**、#3 3 次工具调用（read_file/grep/bash）+ 4 轮 LLM、#4 审批拒绝原因回填且文件未创建）；中文输出（`--print` 7 字无乱码）与真实任务记录；`INTEGRATION OK` 复跑；新增 `docs/demo.md` 3 分钟演示；README 测试计数与 §7 演示链接；文档更新 `docs/spec.md` §3/§13、`docs/testing.md` S4-4、`docs/tasks.md` S4-4 done、`docs/checklist.md` §2/§3/§4/§5、`HANDOFF.md` L5/§1/§2/§4/§5.3/§6/§7。
 - **验收**：十条标准全部 ✅（证据 `docs/spec.md` §3）；330/330（1 skip）；真实 API 首字 1314ms（<2s）、3 次工具调用/4 轮 LLM、审批拒绝回填；`docs/demo.md` 可复现（无 key 用 `--mock`）；tag `v0.1.0` 已 push。
-- **提交**：<待回填：task 分支哈希 → main squash 哈希 → 本文档哈希回填提交>
-- **CI**：<待回填：run id 与 330/330 日志>
+- **提交**：分支 `task/s4-4-release` 提交 **`b87027a`**（9 files +204/−52，已 push，远端保留）→ squash 合并 main **`b49ecb4`**（同标题，已 push）；本回填提交即 tag `v0.1.0` 指向的提交。
+- **CI**：task 分支 run `45371773050`（`b87027a`）与 main run `45371818804`（`b49ecb4`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 - **坑**：①ambient 用户 `config.json` 会污染测试（已修：测试注入临时 `MEWCODE_HOME`）；②PowerShell 双引号内含中文弯引号会被当字符串定界符 → 大段文本用 edit 工具；③Ink `useInput` 组件非 TTY 不能 `renderToString`，向导交互只测纯逻辑；④提交前统一 LF（`core.autocrlf=true`）避免整文件 diff。
 - **下次第一步**：v0.1.0 已发布；下一阶段规划（v0.2 候选见 §1）待用户指定。
 
