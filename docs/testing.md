@@ -655,6 +655,8 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/compress.test.ts` **17/17**；定向 `tests/loop.test.ts`+`tests/compress.test.ts` **38/38**；全量 `npm test` **277/277**（`spikes/.out/s3-4-full2.txt`）；`npm run build` exit 0（`s3-4-build2.txt`）；`src/context/*.ts` `\bany\b` 0 匹配。记录文件 `spikes/.out/s3-4-typecheck2.txt`、`s3-4-compress.txt`、`s3-4-targeted.txt`、`s3-4-full2.txt`、`s3-4-build2.txt`（gitignored）。
 
+**CI 证据（2026-11-24）**：`45326578269`（task/s3-4-context, `01f28ba`）与 `45326599856`（main, `80a8b82`）均 success；job `typecheck + test (Node 22)` 步骤全 success，日志 `# tests 277 / # pass 277 / # fail 0`。
+
 **实现要点**：`src/context/tokens.ts` 导出 `estimateTextTokens` / `estimateMessageTokens` / `estimateMessagesTokens` / `computeBudgetTokens`，常量 `DEFAULT_CONTEXT_TOKENS=128000`、`DEFAULT_BUDGET_RATIO=0.7`、`MESSAGE_OVERHEAD_TOKENS=8`（CJK 1.1/字、其他 1/4、tool_calls 的 id/name/arguments 计入）；`src/context/compress.ts` 导出 `groupIntoTurns`（system 单列、每条 user 起一轮）与 `compressMessages`（最新轮必留、从新到旧累加到 `contextTokens×0.7`、旧轮**整轮**丢弃、最新轮超预算时截断 tool 到 2000 字符 / assistant 到 4000 字符、结果不以 tool 开头；返回 `{messages, droppedTurns, keptTurns, beforeTokens, afterTokens, truncated}`）；`src/agent/loop.ts` 增 `contextTokens` / `onCompress`，**只在请求前替换发给模型的副本**，返回的 `messages` 仍完整（供会话持久化/UI 展示）；`src/index.ts` 从 `MEWCODE_CONTEXT_TOKENS` 读窗口（默认 128000），`MEWCODE_DEBUG=1` 时通过 `onCompress` 把 `[压缩]` 统计打到 stderr；`.env.example` / `--help` 补充该变量。
 
 **已知限制**：估算是字符级"保险丝"（非真实分词，CJK 1.1/字为经验值，不做精确计费）；被丢弃的旧轮**不会生成摘要**，模型会真的不记得早期细节（只保留 system 与最近若干轮）；工具输出已由工具层截到 30KB，压缩层再对最新轮 tool 截 2000 字符；预算不含 tools schema 的 token（靠 30% 余量吸收）；`MEWCODE_CONTEXT_TOKENS` 只影响压缩阈值，不改变模型真实窗口。

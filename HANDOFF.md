@@ -502,8 +502,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收**：`npm run typecheck` exit 0；`tests/compress.test.ts` 17/17；定向 loop+compress 38/38；全量 `npm test` **277/277**；`npm run build` exit 0；`src/context/*` 无 `any`。证据 `spikes/.out/s3-4-{typecheck,typecheck2,compress,targeted,full2,build2}.txt`（gitignored）。
 - **B 级**：2–4 待用户（50 轮长对话不报上下文超限；`MEWCODE_CONTEXT_TOKENS=300` + `MEWCODE_DEBUG=1` 观察 `[压缩]`；压缩后追问早期信息）。S3-3 第 2–5 行已于本轮确认由用户通过。
 - **文档**：`docs/tasks.md` S3-4 done、焦点 S3-5；`docs/testing.md` L7/L128 + S3-4 已完成小节 + 附录 D；`docs/spec.md` L3/L83/§8/§13；`docs/checklist.md` context 项 + 标准 #6/#7 + §4 回归；本节。
-- **提交**：分支 `task/s3-4-context` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`。
-- **CI**：`<待回填>` success，日志 `# tests 277 / # pass 277 / # fail 0`。
+- **提交**：分支 `task/s3-4-context` 提交 `01f28ba`（已 push，远端保留）→ squash 合并 main `80a8b82`。
+- **CI**：`45326578269`（task 分支, `01f28ba`）、`45326599856`（main, `80a8b82`）success，日志 `# tests 277 / # pass 277 / # fail 0`。
 - **坑**：①`tokens.ts` 初版漏 `import type { Message }`（TS2304，2 处）；②`compress.test.ts` 首跑 2 红：assistant toolCalls token 期望值算错（21→18）、「3 轮超预算」预算太大（`contextTokens` 500→300）；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
 - **下次第一步**：S3-5（集成验收：50 轮不爆上下文、重启恢复、审批拒绝后继续 + 打 tag `v0.1-s3`），依据 `docs/testing.md` S3-5 与方案 §4。
 
