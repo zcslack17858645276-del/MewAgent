@@ -42,7 +42,7 @@
 | S2-4 | `tools/search.ts`：glob / grep（条数上限、跳过 .git/node_modules） | 3h | done | 大仓库不卡死（glob 200 条 / grep 100 条上限；200k 行 grep 2s 内；证据见 HANDOFF §7 会话 18） |
 | S2-5 | `tools/bash.ts`：shell 选择、超时 kill、30KB 截断、UTF-8/GBK | 4h | done | 超时能杀；中文输出不乱码（tests/bash.test.ts 14 例；全量 167/167；证据见 HANDOFF §7 会话 19） |
 | S2-6 | `agent/loop.ts`：AgentEvent、多轮工具、maxSteps | 4h | done | mock：工具→文本；事件顺序正确（`tests/loop.test.ts` 19 例；全量 186/186；证据见 HANDOFF §7 会话 20） |
-| S2-7 | UI 接线工具事件（tool_start / tool_end / 错误） | 3h | done | 工具调用可见、失败可读（`tests/tool-display.test.ts` 9 例；全量 195/195；假 stdin 冒烟 4 条工具历史 + Esc 中断；证据见 HANDOFF §7 会话 21；B 级 4 条手工项待用户） |
+| S2-7 | UI 接线工具事件（tool_start / tool_end / 错误） | 3h | done | 工具调用可见、失败可读（`tests/tool-display.test.ts` 9 例；全量 195/195；假 stdin 冒烟 4 条工具历史 + Esc 中断；证据见 HANDOFF §7 会话 21；B 级 4 条手工项待用户；补丁 2026-11-24：流式文本按行提交 Static + 动态区尾巴上限，修复长输出滚动叠字，`tests/stream-lines.test.ts` 9 例，全量 204/204） |
 | S2-8 | 手工验收 + 打 tag `v0.1-s2` | 1h | todo | 能自主读 README 并总结 |
 
 ## S3 · 权限 + 会话 + 上下文压缩（2–3 天）

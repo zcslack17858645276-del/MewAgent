@@ -54,7 +54,7 @@
 - [x] 6 个工具（read/write/edit/glob/grep/bash）参数校验、截断 30KB、`glob` ≤200 条。✅ 2026-11-24：read/write/edit（`tests/fs.test.ts` 15 例）、glob/grep（`tests/search.test.ts` 11 例）、bash（`tests/bash.test.ts` 14 例：shell 选择/超时 kill/30KB 截断/UTF-8→GBK/GBK 回退/cwd 固定工作区）；全量 `npm test` 167/167。
 - [x] `tools/registry.ts` + `agent/loop.ts`：多工具连续调用、`maxSteps=30`、`turn_end` 原因正确。✅ 2026-11-24：loop 19 例（工具→文本事件顺序、多工具配对、maxSteps 默认 30、abort 三种时机、未知工具/坏 JSON/ok:false 回填、gate 拒绝/抛异常、system prompt 归一、非流式补发、signal 与 specs 透传、`createDefaultRegistry` 6 工具）；全量 186/186。B 级真实模型多工具任务随 S2-7 UI 接线后验。
 - [x] 失败路径：bash 超时/kill（`tests/bash.test.ts` 超时用例，1000ms 超时约 1.5s 返回）、edit 多处匹配（`tests/fs.test.ts`）、读不存在文件（fs/search）、越界路径拒绝（`tests/paths.test.ts`）；审批级"无权限"交互随 S3-2 Gate 接线后验。
-- [x] `ui/App.tsx` 事件接线（S2-7，2026-11-24）：`runTurn` 注入 + `AgentEvent` 消费（`assistant_text`/`tool_start`/`tool_end`/`turn_end`）；工具历史 `✅/❌ <name> {参数摘要} · 耗时[ · Error: 首行]`；`tool_running` 状态行；`src/ui/tool-display.ts` 纯函数 9 例；全量 `npm test` 195/195；假 stdin 冒烟 `SMOKE OK`。B 级 4 条（工具可见/失败可读/连发 3 工具/长参数截断）待用户。
+- [x] `ui/App.tsx` 事件接线（S2-7，2026-11-24）：`runTurn` 注入 + `AgentEvent` 消费（`assistant_text`/`tool_start`/`tool_end`/`turn_end`）；工具历史 `✅/❌ <name> {参数摘要} · 耗时[ · Error: 首行]`；`tool_running` 状态行；`src/ui/tool-display.ts` 纯函数 9 例；全量 `npm test` 195/195；假 stdin 冒烟 `SMOKE OK`。B 级 4 条（工具可见/失败可读/连发 3 工具/长参数截断）待用户。补丁（2026-11-24）：`src/ui/stream-lines.ts` 完整行提交 Static + 动态区尾巴 ≤800 码点，修复长输出滚动叠字，`tests/stream-lines.test.ts` 9 例、全量 204/204、冒烟 `SMOKE OK`（长输出每行只出现一次）。
 - [ ] mock 端到端 + 真实模型三步任务验收；更新文档、打 tag。
 
 ### S3 权限 + 会话 + 压缩（目标：tag `v0.1-s3`）

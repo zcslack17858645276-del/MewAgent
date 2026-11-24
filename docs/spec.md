@@ -195,6 +195,7 @@ finish: stop
 - S1-4 实现：`src/ui/App.tsx`（输入框 + Static 历史 + 流式动态区 + 错误行 + 排队）、`src/ui/InputBox.tsx`（自研受控多行输入，纯逻辑在 `src/ui/input-text.ts`）、`src/ui/throttle.ts`（可注入时钟的 50ms 合并）、`src/ui/HistoryItem.tsx`、`src/ui/start-tui.tsx`、`src/ui/width.ts`（中英混排列宽）；S2-7 起改为注入 `runTurn`（`(messages, {signal, emit}) => runAgent(...)`），UI 只消费 `AgentEvent`；`exitOnCtrlC:false`，生成中 Ctrl+C 只 abort、空闲退出。
 - 工具事件（S2-7）：`tool_start` → 动态区状态行 `⚙ 工具运行中：<name> {参数摘要}…（Esc 中断）`；`tool_end` → 历史项 `✅/❌ <name> {参数摘要} · <耗时>[ · Error: 首行]`（参数摘要截断 120 码点、错误首行截断 160，`src/ui/tool-display.ts` 纯函数）；`turn_end` 的 `aborted`/`max_steps` 追加提示；`runTurn` 抛非中断错误 → 错误行 + 输入框下方"下一步"提示。
 - 输入框（S1-4 补丁）：Enter 发送、**Shift+Enter 换行**（Kitty 键盘协议；终端不支持时 **Ctrl+J** 兜底）、粘贴多行保留换行、方向键/Home/End 编辑；中文 IME 判定 A（可输入、退格整字删除，候选框位置略偏可接受）。`ink-text-input` 已被替换（依赖暂留）。
+- 流式渲染（2026-11-24 修复）：完整行立即提交 `<Static>`（渲染一次、永不重绘），动态区只渲染未完成尾行（≤800 码点，超出显示 `…` 前缀；CRLF 的 `\r` 不显示）；实现见 `src/ui/stream-lines.ts`。原因：长输出整段留在动态区时，动态区高度超过终端后旧帧无法擦除、残留 scrollback，用户滚动时表现为同一段输出反复叠加。
 - mock 慢速流式（S1-4 补丁）：`MEWCODE_MOCK_DELAY_MS` 控制块间延迟，便于手工观察流式/Esc/中断；默认 0 与真实行为一致。
 - 终端要求 Windows Terminal；conhost 不做保证。
 
