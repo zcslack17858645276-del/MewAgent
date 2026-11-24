@@ -75,6 +75,9 @@
 ### S4 打磨与交付（目标：tag `v0.1.0`）
 
 - [ ] README 快速开始（复制即跑）、3 分钟演示视频/脚本。
+- [x] diff 与错误展示（S4-1，2026-11-24）。
+  - 证据：`edit_file` 输出行级 unified diff（`src/tools/diff.ts`，`--- a/`/`+++ b/`/`@@`/4 位行号）→ TUI 解析为红删/绿增/青 hunk 历史条目（`src/ui/diff-view.ts` + `HistoryItem`，最多 80 行）；HTTP（401/403/404/429/5xx）、网络（含代理提示）、中断、工具失败、权限拒绝、超步数统一由 `src/errors.ts` 产出「发生了什么 + 下一步」，TUI 与 headless 共用；`formatTurnEndNote` 的 max_steps 也带下一步。
+  - 测试：`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例，ui/fs/tool-display 断言同步更新，全量 **296/296**（26 个测试文件）；`npm run typecheck` 0、`build` 0、TUI 冒烟 `SMOKE OK`、`src/` 无 `any`；B 级 3 条手工项待用户（`docs/testing.md` S4-1 小节）。
 - [ ] 全量回归 + 十条成功标准逐条证据。
 - [ ] 发布清单通过，打 tag `v0.1.0` 并 push。
 
@@ -95,7 +98,7 @@
 
 ## 4. 阶段回归清单（每个阶段完成后跑一遍）
 
-- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**；S3-4：typecheck exit 0、tests **277/277**；S3-5 复跑同 277/277）
+- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**；S3-4：typecheck exit 0、tests **277/277**；S3-5 复跑同 277/277；S4-1：typecheck 0、tests **296/296**、build 0）
 - [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0；S2-8 同；S3-5 复跑同）
 - [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等；S2-8：两次输出一致；S3-5 复跑一致）
 - [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致；S2-8 同；S3-5 复跑一致）

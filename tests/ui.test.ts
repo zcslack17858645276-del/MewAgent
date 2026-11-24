@@ -10,7 +10,8 @@ import { test } from "node:test";
 import { renderToString } from "ink";
 import { createElement } from "react";
 
-import { HistoryItem, createHistoryEntry } from "../src/ui/HistoryItem.js";
+import { HistoryItem, createDiffEntry, createHistoryEntry } from "../src/ui/HistoryItem.js";
+import { parseEditDiffOutput } from "../src/ui/diff-view.js";
 import { ThrottledEmitter } from "../src/ui/throttle.js";
 import type { ThrottleClock } from "../src/ui/throttle.js";
 import { displayWidth } from "../src/ui/width.js";
@@ -169,4 +170,31 @@ test("HistoryItem：用户/助手/信息/错误条目都能渲染出中文原文
     }),
   );
   assert.match(error, /请求失败：401/);
+});
+
+test("HistoryItem：diff 条目渲染标题与带行号的改动行（S4-1）", () => {
+  const parsed = parseEditDiffOutput(
+    [
+      "已替换 1 处（src/a.ts）：",
+      "--- a/src/a.ts",
+      "+++ b/src/a.ts",
+      "@@ -1,2 +1,2 @@",
+      "    1│ keep",
+      "-   2│ old",
+      "+   2│ new",
+    ].join("\n"),
+  );
+  assert.ok(parsed !== null);
+
+  const rendered = renderToString(
+    createElement(HistoryItem, {
+      entry: createDiffEntry(5, "✅ edit_file · 3ms +1 −1", parsed),
+    }),
+  );
+  assert.match(rendered, /edit_file/);
+  assert.match(rendered, /--- a\/src\/a\.ts/);
+  assert.match(rendered, /@@ -1,2 \+1,2 @@/);
+  assert.match(rendered, /-   2│ old/);
+  assert.match(rendered, /\+   2│ new/);
+  assert.match(rendered, /    1│ keep/);
 });

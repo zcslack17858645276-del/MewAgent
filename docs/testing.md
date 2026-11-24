@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-24 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）；S2-7 补丁：流式输出滚动叠字修复（`src/ui/stream-lines.ts` 完整行按行提交 Static + 动态区尾巴上限，`tests/stream-lines.test.ts` 9 例，全量 204/204）；S3-1（`safety/danger.ts` 危险命令识别 + `safety/permissions.ts` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → 审批/headless；`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 拒绝写工具端到端 1 例，全量 232/232；B 级 5/6/8 已由用户 2026-11-24 实测通过）、S3-2（`src/ui/approval.ts` 审批桥 + `src/ui/ApprovalPrompt.tsx` 审批弹窗：y/a/n/Esc、a 加白名单、Esc=拒绝、审批时输入框失焦、`awaiting_approval` 展示态；`tests/approval.test.ts` 9 例 + 假 stdin 审批冒烟 `APPROVAL SMOKE OK`，全量 241/241）；S3-3（`src/session/store.ts` 会话持久化：`<workspace>/.mewcode/session.json` 原子写、加载校验与损坏降级、`--new` 跳过恢复；`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 **258/258**）；S3-4（`src/context/tokens.ts` token 估算：CJK 1.1/字、其他 1/4、每条 +8、预算 = contextTokens×0.7；`src/context/compress.ts` 按 user 轮分组压缩：system 常驻、从最新往前累加到预算、旧轮整轮丢弃、最新轮超预算时截断 tool 2000 字符/assistant 4000 字符、结果不以 tool 开头；`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例（请求前压缩、历史完整保留）；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 **277/277**；下一任务 S3-5）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167；S2-6（`agent/loop.ts` Agent Loop：`AgentEvent` 事件流、多轮工具、`maxSteps=30`、`turn_end` 原因、Gate 预留 + `tests/loop.test.ts` 19 例）已完成，全量 186/186；S2-7（UI 接线 `AgentEvent`：工具历史 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、mock 也走真 loop + `tests/tool-display.test.ts` 9 例）已完成，全量 195/195，下一任务 S2-8（S2 收尾 + tag `v0.1-s2`）；S2-7 补丁：流式输出滚动叠字修复（`src/ui/stream-lines.ts` 完整行按行提交 Static + 动态区尾巴上限，`tests/stream-lines.test.ts` 9 例，全量 204/204）；S3-1（`safety/danger.ts` 危险命令识别 + `safety/permissions.ts` 权限三道闸：路径边界 → readOnly → 危险命令 → 会话白名单 → 审批/headless；`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 拒绝写工具端到端 1 例，全量 232/232；B 级 5/6/8 已由用户 2026-11-24 实测通过）、S3-2（`src/ui/approval.ts` 审批桥 + `src/ui/ApprovalPrompt.tsx` 审批弹窗：y/a/n/Esc、a 加白名单、Esc=拒绝、审批时输入框失焦、`awaiting_approval` 展示态；`tests/approval.test.ts` 9 例 + 假 stdin 审批冒烟 `APPROVAL SMOKE OK`，全量 241/241）；S3-3（`src/session/store.ts` 会话持久化：`<workspace>/.mewcode/session.json` 原子写、加载校验与损坏降级、`--new` 跳过恢复；`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例启动/恢复/损坏/`--new` 端到端，全量 **258/258**）；S3-4（`src/context/tokens.ts` token 估算：CJK 1.1/字、其他 1/4、每条 +8、预算 = contextTokens×0.7；`src/context/compress.ts` 按 user 轮分组压缩：system 常驻、从最新往前累加到预算、旧轮整轮丢弃、最新轮超预算时截断 tool 2000 字符/assistant 4000 字符、结果不以 tool 开头；`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例（请求前压缩、历史完整保留）；`MEWCODE_CONTEXT_TOKENS` 可调窗口、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；全量 **277/277**；下一任务 S3-5）；S3-5（S3 集成验收脚本 4 场景 25 断言全过 + 全量 277/277 + tag `v0.1-s3` 已推送）、S4-1（edit diff 红绿展示 + 统一错误展示：`src/tools/diff.ts`、`src/errors.ts`、`src/ui/diff-view.ts`；A 级 296/296；B 级 3 条待用户）已完成，下一任务 S4-2**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 5/6/8 已由用户 2026-11-24 通过，2–4/7 随 S3-2 验）｜ ✅ S3-2（`tests/approval.test.ts` 9 例；全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 通过）｜ ✅ S3-3（`tests/session.test.ts` 14 例 + config 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 通过）｜ ✅ S3-4（`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例；全量 277/277；B 级 2–4 待用户）｜ 🔄 S3-5（当前）｜ ⬜ S4-1 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ ✅ S2-6（`tests/loop.test.ts` 19 例；全量 186/186；B 级 3–5 待 S2-7 UI 接线后验）｜ ✅ S2-7（`tests/tool-display.test.ts` 9 例；全量 195/195；B 级 4 条待用户；补丁 stream-lines 9 例、全量 204/204）｜ ✅ S2-8（tag `v0.1-s2` 已推送）｜ ✅ S3-1（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例；全量 232/232；B 级 5/6/8 已由用户 2026-11-24 通过，2–4/7 随 S3-2 验）｜ ✅ S3-2（`tests/approval.test.ts` 9 例；全量 241/241；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；B 级 4 条已由用户 2026-11-24 通过）｜ ✅ S3-3（`tests/session.test.ts` 14 例 + config 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 通过）｜ ✅ S3-4（`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例；全量 277/277；B 级 2–4 待用户）｜ ✅ S3-5（集成脚本 4 场景 25 断言 + 全量 277/277 + tag `v0.1-s3` 已推送）｜ ✅ S4-1（`tests/diff.test.ts` 9 例 + `tests/errors.test.ts` 4 例 + `tests/diff-view.test.ts` 5 例 + ui/fs 断言更新；全量 296/296；B 级 3 条待用户）｜ 🔄 S4-2（当前）｜ ⬜ S4-3 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -690,13 +690,31 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 ### S4 · 打磨与交付
 
-#### S4-1 diff 与错误展示
+#### S4-1 diff 与错误展示（已完成 2026-11-24）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | B | 触发一次 edit | 显示带行号的红绿 diff | P0 |
-| 2 | B | 错误场景逐个触发：错 key、断网、工具异常、权限拒绝、maxSteps | 每种都有"发生了什么 + 下一步怎么办" | P0 |
-| 3 | B | 错误后继续对话 | 进程不崩，UI 可继续使用 | P0 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | B | 触发一次 edit | 显示带行号的红绿 diff | P0 | ⏳ 待用户（A 级：`tests/fs.test.ts` 断言 diff 文本、`tests/diff-view.test.ts` 解析、`tests/ui.test.ts` 渲染红绿行） |
+| 2 | B | 错误场景逐个触发：错 key、断网、工具异常、权限拒绝、maxSteps | 每种都有"发生了什么 + 下一步怎么办" | P0 | ⏳ 待用户（A 级：`tests/errors.test.ts` 覆盖 HTTP 401/403/404/429/5xx、网络、中断、通用；工具失败提取「下一步」；`formatTurnEndNote` max_steps 带下一步） |
+| 3 | B | 错误后继续对话 | 进程不崩，UI 可继续使用 | P0 | ⏳ 待用户（A 级：工具失败/权限拒绝/LlmHttpError 均只产生历史项与提示行，loop/App 不抛异常） |
+
+**A 级自动化证据**（2026-11-24）：
+- `npm run typecheck` exit 0；全量 `npm test` → **tests 296 / pass 296 / fail 0**（26 个测试文件；S3-5 的 277 例 + 新增 19 例）
+- 新增 `tests/diff.test.ts` 9 例：单行替换 hunk 行号与计数、插入/删除单侧计数、远距离拆分/近距离合并 hunk、CRLF 按行处理、末尾换行不算改动、空文件/清空、maxHunks 截断提示、超大改动粗略 diff 不崩、`formatDiffLine` 行号列
+- 新增 `tests/errors.test.ts` 4 例：HTTP 状态映射、`isNetworkFailure` 边界、`describeFailure`（HTTP/网络/中断/通用）、`describeToolFailure` 提取首行与下一步
+- 新增 `tests/diff-view.test.ts` 5 例：edit 输出解析为可着色行、非 diff 返回 null、截断提示识别、渲染行数裁剪、`+N −M` 格式化
+- `tests/fs.test.ts` edit_file 断言改为 diff 格式（`已替换 1 处（edit.txt）：` + `--- a/` + `@@ -1,7 +1,7 @@` + `-   4│ line four` / `+   4│ LINE FOUR`）；`tests/tool-display.test.ts` 更新 `formatTurnEndNote`；`tests/ui.test.ts` 新增 diff 条目渲染
+- 冒烟：`spikes/.out/tui-smoke.tsx` → `SMOKE OK`；`npm run build` exit 0、`node dist/index.js --mock --print "你好"` 正常；`src/` 无 `any` 匹配
+
+**实现要点**：
+- `src/tools/diff.ts`：行级 unified diff 生成器（剥公共前后缀 → LCS，超 25 万格退化为整段替换；hunk ±3 行、`maxHunks=8`、`maxLines=240` 截断；格式 `--- a/` / `+++ b/` / `@@ -o,n +o,n @@` / `<标记><4 位行号>│ 内容`）
+- `src/tools/fs.ts`：`edit_file` 输出改为"头行 + diff"，仍受 30KB 工具输出上限约束（`clampBytes`）
+- `src/ui/diff-view.ts` + `HistoryItem` 的 `diff` 条目：解析后按 red/green/cyan/dim 渲染，最多渲染 80 行
+- `src/errors.ts`：`describeHttpStatus` / `isNetworkFailure` / `describeFailure` / `describeToolFailure`；`App.tsx` 与 `index.ts`（headless）共用，所有失败都带「下一步」
+- `formatTurnEndNote`：`max_steps` 提示追加下一步（"回复'继续'…或把任务拆小后重发"）
+
+**B 级复核（用户，待做）**：按上表 3 条在 Windows Terminal 里实测；触发方式可用真实模型让它 edit 一个文件（或 `--mock` 无 edit，需真实模型），错误场景可用错 key（改 `.env`）、断网（关代理/断网）、`--print` 下让模型调不存在的工具、交互模式拒绝一次写审批、把 `maxSteps` 调到 1（临时修改或用超长任务）。
+
 
 #### S4-2 README 与文档
 
@@ -909,8 +927,9 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S3-1 ✅ | typecheck + `tests/danger.test.ts`（9 例）+ `tests/permissions.test.ts`（18 例）+ `tests/config.test.ts` headless 端到端 1 例（全量 232/232）；B 级 5/6/8 可先验，2–4/7 待 S3-2 审批 UI |
 | S3-2 ✅ | 手工审批（y/a/n/Esc）+ `tests/approval.test.ts`（9 用例）+ 假 stdin 豁免 `APPROVAL SMOKE OK` |
 | S3-3 ✅ | typecheck + `tests/session.test.ts`（14 例）+ `tests/config.test.ts`（3 例启动恢复/损坏/`--new` 端到端；全量 258/258；B 级 2–5 待用户重启验证） |
-| S3-4 | `tests/compress.test.ts` + 50 轮 |
-| S4-1 | 手工 diff/错误 |
+| S3-4 ✅ | `tests/compress.test.ts`（17 例）+ loop 压缩接线 2 例 + 50 轮 B 级（用户已验） |
+| S3-5 ✅ | 集成脚本 4 场景 25 断言 + 全量回归 277/277 + tag `v0.1-s3` 已推送 |
+| S4-1 ✅ | 手工 diff/错误 + `tests/diff.test.ts`（9 例）/`tests/errors.test.ts`（4 例）/`tests/diff-view.test.ts`（5 例）+ ui/fs/tool-display 断言更新（全量 296/296）；B 级 3 条待用户 |
 | S4-2 | 新目录按 README 跑 |
 | S4-3 | `npm link` / `npx .` |
 | S4-4 | 10 条标准 + demo |
@@ -943,3 +962,5 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-24 | S3-2 完成：新增 `src/ui/approval.ts`（审批桥：挂起 Promise/订阅/单 pending）与 `src/ui/ApprovalPrompt.tsx`（y/a/n/Esc，Esc=拒绝，其它键忽略）；`src/ui/App.tsx` 增 `pendingApproval` 展示态（审批时输入框失焦、App useInput 让位、光标隐藏、状态行提示、动态区渲染审批框），`start-tui`/`index.ts` 透传 controller 给 gate `ask`；新增 `tests/approval.test.ts` 9 例 + 假 stdin 审批冒烟 `APPROVAL SMOKE OK`（全量 241/241）；S3-2 章节改为已完成并附证据，S3-1 的 B 级 5/6/8 行标用户已验，进度切到 S3-3 |
 | 2026-11-24 | S3-3 完成：新增 `src/session/store.ts`（`<workspace>/.mewcode/session.json`：原子写 tmp→rename、加载校验与损坏降级、`--new` 跳过恢复、只存 user/assistant/tool）+ `tests/session.test.ts` 14 例；`src/index.ts` 交互分支启动加载并注入 `initialMessages`/`restoredMessageCount`/`sessionNotice`，每轮结束 `persistMessages` 落盘（失败仅警告）；`App` 顶部恢复提示 + `tests/config.test.ts` 3 例端到端（恢复/损坏/`--new`）；全量 258/258；S3-3 章节改为已完成并附证据，进度切到 S3-4 |
 | 2026-11-24 | S3-4 完成：新增 `src/context/tokens.ts`（CJK 1.1/字、其他 1/4、每条 +8、预算 ×0.7）与 `src/context/compress.ts`（按 user 分轮、system 常驻、最新轮必留、旧轮整轮丢弃、最新轮超预算截断 tool 2000/assistant 4000、去掉开头悬空 tool）；`src/agent/loop.ts` 增 `contextTokens`/`onCompress`（请求前压缩副本、历史保持完整）；`src/index.ts` 读 `MEWCODE_CONTEXT_TOKENS`（默认 128000），`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；`.env.example`/`--help` 补变量；新增 `tests/compress.test.ts` 17 例 + `tests/loop.test.ts` 2 例（全量 277/277）；S3-4 章节改为已完成并附证据、B 级 2–4 行标待用户，进度切到 S3-5 |
+| 2026-11-24 | S3-5 完成：新增脚本化集成 `spikes/.out/s3-5-integration.ts`（4 场景 25 断言：50 轮压缩全部 stop/历史 101 条/maxDropped=41；会话恢复 2→4；审批拒绝后继续；`rm -rf /` 硬拦不询问）→ `INTEGRATION OK`；全量回归 typecheck 0 / 277/277 / `--help` / `--version` / mock 幂等 / build+dist / any 0 / `SMOKE OK`+`APPROVAL SMOKE OK`+`ALL TOOLS OK`；文档更新、打 tag `v0.1-s3` 并 push（CI 277/277）；S3-5 章节改为已完成并附证据，进度切到 S4-1 |
+| 2026-11-24 | S4-1 完成：新增 `src/tools/diff.ts`（行级 unified diff：LCS + ±3 行 hunk + maxHunks/maxLines 截断 + 4 位行号列）、`src/errors.ts`（`describeHttpStatus`/`isNetworkFailure`/`describeFailure`/`describeToolFailure`，所有失败带「下一步」）、`src/ui/diff-view.ts`（解析 edit 输出为可着色行 + 渲染裁剪 + `+N −M`）；`edit_file` 输出改 diff 格式（头行 + `--- a/`/`+++ b/`/`@@`/带行号红绿行）；`HistoryItem` 新增 `diff` 条目（红删/绿增/青 hunk/暗 context，最多 80 行）；`App` 的 `tool_end` 成功 edit 追加 diff、失败附「下一步」，catch 统一 `describeFailure`；`formatTurnEndNote` 的 max_steps 带下一步；headless `index.ts` 复用 `errors.ts`；新增 `tests/diff.test.ts` 9 例、`tests/errors.test.ts` 4 例、`tests/diff-view.test.ts` 5 例，更新 ui/fs/tool-display 断言（全量 **296/296**，26 个测试文件）；S4-1 章节改为已完成并附证据、B 级 3 条标待用户，进度切到 S4-2 |

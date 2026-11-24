@@ -32,7 +32,8 @@ import type { ApprovalChoice, ApprovalRequest } from "../safety/permissions.js";
 import type { AgentEvent, Message } from "../types.js";
 import type { ApprovalController } from "./approval.js";
 import { ApprovalPrompt } from "./ApprovalPrompt.js";
-import { HistoryItem, createHistoryEntry } from "./HistoryItem.js";
+import { formatDiffCounts, parseEditDiffOutput, type ParsedDiff } from "./diff-view.js";
+import { HistoryItem, createDiffEntry, createHistoryEntry } from "./HistoryItem.js";
 import type { HistoryEntry, HistoryEntryKind } from "./HistoryItem.js";
 import { InputBox } from "./InputBox.js";
 import {
@@ -41,6 +42,7 @@ import {
   lineAndColumn,
   splitLines,
 } from "./input-text.js";
+import { describeFailure, describeToolFailure } from "../errors.js";
 import { clampDynamicTail, splitCompletedLines } from "./stream-lines.js";
 import {
   formatToolCall,
@@ -165,10 +167,17 @@ export function App({
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputBoxRef = useRef<DOMElement | null>(null);
 
-  const appendEntry = useCallback((kind: HistoryEntryKind, text: string) => {
+  const appendEntry = useCallback((kind: Exclude<HistoryEntryKind, "diff">, text: string) => {
     const id = nextIdRef.current;
     nextIdRef.current += 1;
     setEntries((previous) => [...previous, createHistoryEntry(id, kind, text)]);
+  }, []);
+
+  /** S4-1：edit_file 成功后，按红绿 diff 提交历史（标题 + 解析后的行）。 */
+  const appendDiffEntry = useCallback((text: string, diff: ParsedDiff) => {
+    const id = nextIdRef.current;
+    nextIdRef.current += 1;
+    setEntries((previous) => [...previous, createDiffEntry(id, text, diff)]);
   }, []);
 
   // 流式文本按「整行」批量提交进 Static：一次 setState 追加多行，避免逐行 setState。
@@ -269,10 +278,25 @@ export function App({
                 break;
               }
               case "tool_end": {
-                appendEntry(
-                  event.result.ok ? "info" : "error",
-                  formatToolEnd(event.call, event.result, event.durationMs),
-                );
+                const summary = formatToolEnd(event.call, event.result, event.durationMs);
+                if (event.result.ok) {
+                  // S4-1：edit_file 的 diff 单独渲染（带行号、红绿）；其它成功结果仍是一行摘要。
+                  const diff =
+                    event.call.name === "edit_file" ? parseEditDiffOutput(event.result.output) : null;
+                  if (diff !== null) {
+                    const counts = formatDiffCounts(diff.addedCount, diff.removedCount);
+                    appendDiffEntry(counts === "" ? summary : `${summary} ${counts}`, diff);
+                  } else {
+                    appendEntry("info", summary);
+                  }
+                } else {
+                  // S4-1：工具失败在历史区多给一行"下一步"，而不是只留一句错误。
+                  const failure = describeToolFailure(event.result.output);
+                  appendEntry(
+                    "error",
+                    failure.next === null ? summary : `${summary}\n下一步：${failure.next}`,
+                  );
+                }
                 setToolStatus(null);
                 setPhase("streaming");
                 break;
@@ -300,11 +324,10 @@ export function App({
             appendEntry("info", "（生成已中断，没有输出）");
           }
         } else {
-          const detail = error instanceof Error ? error.message : String(error);
-          appendEntry("error", `请求失败：${detail}`);
-          setErrorText(
-            `请求失败：${detail}\n下一步：检查网络与 API key（.env 的 MEWCODE_API_KEY）后重试；按 Esc 可清空本行提示。`,
-          );
+          // S4-1：统一走 errors.ts —— 每种失败都带"发生了什么 + 下一步"。
+          const failure = describeFailure(error);
+          appendEntry("error", `${failure.what}\n下一步：${failure.next}`);
+          setErrorText(`${failure.what}\n下一步：${failure.next}\n（按 Esc 清空本行提示）`);
         }
       } finally {
         clearFlushTimer();
@@ -316,7 +339,7 @@ export function App({
         persistMessages?.(messagesRef.current);
       }
     },
-    [appendEntry, appendStreamLines, commitMessages, persistMessages, runTurn, streamThrottleMs],
+    [appendDiffEntry, appendEntry, appendStreamLines, commitMessages, persistMessages, runTurn, streamThrottleMs],
   );
 
   // 队列驱动：空闲且有排队消息时自动发送下一条。
