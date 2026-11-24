@@ -6,7 +6,7 @@
 import { Box, Text } from "ink";
 import type { ReactElement } from "react";
 
-export type HistoryEntryKind = "user" | "assistant" | "info" | "error";
+export type HistoryEntryKind = "user" | "assistant" | "stream" | "info" | "error";
 
 export interface HistoryEntry {
   readonly id: number;
@@ -24,6 +24,8 @@ export function createHistoryEntry(
     case "user":
       return { id, kind, text };
     case "assistant":
+      return { id, kind, text };
+    case "stream":
       return { id, kind, text };
     case "info":
       return { id, kind, text };
@@ -49,6 +51,13 @@ export function HistoryItem({ entry }: HistoryItemProps): ReactElement {
       return (
         <Box marginTop={1}>
           <Text>{entry.text}</Text>
+        </Box>
+      );
+    case "stream":
+      // 流式文本按行提交：行与行之间不额外留空，空行用单个空格占位以保留原始排版。
+      return (
+        <Box>
+          <Text>{entry.text === "" ? " " : entry.text}</Text>
         </Box>
       );
     case "error":

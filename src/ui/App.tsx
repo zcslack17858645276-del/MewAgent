@@ -5,7 +5,10 @@
 //
 // 关键行为（方案 §6.9）：
 // - 已提交的历史用 <Static> 一次性渲染，动态区只重绘流式文本/工具状态/输入框，避免闪屏；
-// - 流式文本 50ms 节流（ThrottledEmitter），不是每个 token setState；
+// - 流式文本按「整行」提交进 Static（动态区只留最后一行未写完的尾巴，且尾巴有长度上限）：
+//   Ink 只能擦除屏幕内的行，动态区一旦高于终端就会把旧帧留在 scrollback 里，用户滚动时
+//   表现为同一段输出反复叠加；按行提交后已提交内容永不重绘，从结构上消除该问题；
+// - 未成行的尾巴按 50ms 合并刷新，不是每个 token setState；
 // - 工具结束立刻提交为历史项（✅/❌ + 参数摘要 + 耗时），事件顺序即历史顺序；
 // - 生成/工具运行中 Esc / Ctrl+C 只 abort；空闲时 Ctrl+C 退出；
 // - 生成中仍可输入，回车把消息排队，上一轮结束后自动发送（不丢消息、不串轮）；
@@ -35,7 +38,7 @@ import {
   lineAndColumn,
   splitLines,
 } from "./input-text.js";
-import { ThrottledEmitter } from "./throttle.js";
+import { clampDynamicTail, splitCompletedLines } from "./stream-lines.js";
 import {
   formatToolCall,
   formatToolEnd,
@@ -114,14 +117,25 @@ export function App({
   const [cursorPosition, setCursorState] = useState<CursorPosition | undefined>(undefined);
 
   const abortRef = useRef<AbortController | null>(null);
-  const emitterRef = useRef<ThrottledEmitter | null>(null);
-  const streamingTextRef = useRef("");
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputBoxRef = useRef<DOMElement | null>(null);
 
   const appendEntry = useCallback((kind: HistoryEntryKind, text: string) => {
     const id = nextIdRef.current;
     nextIdRef.current += 1;
     setEntries((previous) => [...previous, createHistoryEntry(id, kind, text)]);
+  }, []);
+
+  // 流式文本按「整行」批量提交进 Static：一次 setState 追加多行，避免逐行 setState。
+  const appendStreamLines = useCallback((lines: readonly string[]) => {
+    if (lines.length === 0) {
+      return;
+    }
+
+    const firstId = nextIdRef.current;
+    nextIdRef.current += lines.length;
+    const appended = lines.map((text, index) => createHistoryEntry(firstId + index, "stream", text));
+    setEntries((previous) => [...previous, ...appended]);
   }, []);
 
   const commitMessages = useCallback((next: Message[]) => {
@@ -138,30 +152,53 @@ export function App({
       setErrorText(null);
       setStreaming("");
       setToolStatus(null);
-      streamingTextRef.current = "";
       setPhase("streaming");
 
       const controller = new AbortController();
       abortRef.current = controller;
-      const emitter = new ThrottledEmitter({
-        delayMs: streamThrottleMs,
-        emit: (text) => {
-          setStreaming(text);
-        },
-      });
-      emitterRef.current = emitter;
 
-      // 当前步骤的文本；tool_start 时把它提交为一条 assistant 历史项并清空。
-      let partial = "";
+      // 未提交的流式尾巴（最后一个 \n 之后的部分）；已完成的行会立刻交给 Static。
+      let buffer = "";
+      let hadText = false;
 
-      const commitPartial = (): void => {
-        if (partial === "") {
+      const clearFlushTimer = (): void => {
+        if (flushTimerRef.current !== null) {
+          clearTimeout(flushTimerRef.current);
+          flushTimerRef.current = null;
+        }
+      };
+
+      /** 提交完整行；final=true 时把尾巴也作为最后一行提交并清空动态区。 */
+      const flushStream = (final: boolean): void => {
+        clearFlushTimer();
+        const { lines, tail } = splitCompletedLines(buffer);
+        buffer = tail;
+        appendStreamLines(lines);
+
+        if (final) {
+          if (buffer !== "") {
+            appendStreamLines([buffer]);
+            buffer = "";
+          }
+          setStreaming("");
           return;
         }
 
-        appendEntry("assistant", partial);
-        partial = "";
-        streamingTextRef.current = "";
+        // 尾巴末尾若是还没等到 \n 的 \r（CRLF 被拆开），显示时先剥掉，避免光标跑回行首。
+        const displayBuffer = buffer.endsWith("\r") ? buffer.slice(0, -1) : buffer;
+        const clamped = clampDynamicTail(displayBuffer);
+        setStreaming(clamped.hiddenChars > 0 ? `…${clamped.text}` : clamped.text);
+      };
+
+      const scheduleFlush = (): void => {
+        if (flushTimerRef.current !== null) {
+          return;
+        }
+
+        flushTimerRef.current = setTimeout(() => {
+          flushTimerRef.current = null;
+          flushStream(false);
+        }, streamThrottleMs);
       };
 
       try {
@@ -170,15 +207,18 @@ export function App({
           emit: (event) => {
             switch (event.type) {
               case "assistant_text": {
-                partial += event.delta;
-                streamingTextRef.current = partial;
-                emitter.push(event.delta);
+                buffer += event.delta;
+                hadText = true;
+                if (buffer.includes("\n")) {
+                  // 有完整行就立即提交：动态区只留尾巴，长输出不会把动态区撑出屏幕。
+                  flushStream(false);
+                } else {
+                  scheduleFlush();
+                }
                 break;
               }
               case "tool_start": {
-                emitter.flush();
-                commitPartial();
-                setStreaming("");
+                flushStream(true);
                 setToolStatus(formatToolCall(event.call));
                 setPhase("tool_running");
                 break;
@@ -198,8 +238,7 @@ export function App({
             }
           },
         });
-        emitter.flush();
-        commitPartial();
+        flushStream(true);
         commitMessages(result.messages.filter((message) => message.role !== "system"));
 
         const note = formatTurnEndNote(result.stopReason);
@@ -207,14 +246,13 @@ export function App({
           appendEntry("info", note);
         }
       } catch (error) {
-        emitter.cancel();
+        clearFlushTimer();
+        flushStream(true);
         if (isAbortError(error)) {
-          const partialText = partial;
-          commitPartial();
-          if (partialText === "") {
-            appendEntry("info", "（生成已中断，没有输出）");
-          } else {
+          if (hadText) {
             appendEntry("info", "（已中断）");
+          } else {
+            appendEntry("info", "（生成已中断，没有输出）");
           }
         } else {
           const detail = error instanceof Error ? error.message : String(error);
@@ -224,15 +262,14 @@ export function App({
           );
         }
       } finally {
-        emitterRef.current = null;
+        clearFlushTimer();
         abortRef.current = null;
-        streamingTextRef.current = "";
         setStreaming("");
         setToolStatus(null);
         setPhase("idle");
       }
     },
-    [appendEntry, commitMessages, runTurn, streamThrottleMs],
+    [appendEntry, appendStreamLines, commitMessages, runTurn, streamThrottleMs],
   );
 
   // 队列驱动：空闲且有排队消息时自动发送下一条。
@@ -289,7 +326,10 @@ export function App({
   // 卸载时清掉定时器与未完成的请求，避免进程挂着不走。
   useEffect(() => {
     return () => {
-      emitterRef.current?.cancel();
+      if (flushTimerRef.current !== null) {
+        clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
       abortRef.current?.abort();
     };
   }, []);
