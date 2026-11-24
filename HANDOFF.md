@@ -513,9 +513,9 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **验收**：`npm run typecheck` exit 0；全量 `npm test` **277/277**；`INTEGRATION OK`；TUI 冒烟 `SMOKE OK`、审批冒烟 `APPROVAL SMOKE OK`、6 工具 `ALL TOOLS OK`；`npm run build` exit 0 且 dist 输出与 dev 一致；`src/**` `\bany\b` 0。证据 `spikes/.out/s3-5-*.txt`（gitignored）。
 - **B 级**：S3 各任务 B 级均已由用户实测通过（S3-1 第 2/3/4/7、S3-2 4 条、S3-3 2–5、S3-4 2–4）；用户可按方案 §4 S3 手工清单在 TUI 里再过一遍（可选）。
 - **文档**：`docs/tasks.md` S3-5 done、焦点 S4-1；`docs/testing.md` S3-5 已完成小节（8 行结果表 + 证据 + B 级 + tag）；`docs/spec.md` L3 状态、§13 新增 S3-5 ✅ 行 + S3 行 ✅；`docs/checklist.md` S3 全项 `[x]`、标准 #6/#7、§4 回归、§5 tag 行；`HANDOFF.md` L5/§1/§5.3/§6/§7（本节）。
-- **提交**：分支 `task/s3-5-acceptance` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`。
-- **CI**：`<待回填>` success，日志 `# tests 277 / # pass 277 / # fail 0`。
-- **tag**：`v0.1-s3`（annotated）打在 S3 收尾提交 `<待回填>`，已 push。
+- **提交**：分支 `task/s3-5-acceptance` 提交 `fab49a5`（5 files +61/−30，已 push，远端保留）→ squash 合并 main `0440c19`。
+- **CI**：main run `45328300984`（`0440c19`）success，task 分支 run `45328290294`（`fab49a5`）success，日志均为 `# tests 277 / # pass 277 / # fail 0`。
+- **tag**：`v0.1-s3`（annotated）打在 S3 收尾提交（本条目回填提交；`git rev-list -n 1 v0.1-s3` 可查），已 push。
 - **坑**：①集成脚本首版 3 个断言写错（50 轮末次请求长度阈值过严——实际压缩到 18 条属正常；会话恢复用例漏加"第二轮 user 消息"导致计数 3≠4）→ 修正断言后 25/25 PASS；②`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
 - **下次第一步**：S4-1（diff 与错误展示），依据 `docs/tasks.md` S4-1、`docs/testing.md` S4-1 与方案 §4。
 

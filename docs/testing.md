@@ -682,6 +682,8 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **B 级**：S3 各任务 B 级已由用户实测通过（S3-1 第 2/3/4/7、S3-2 4 条、S3-3 2–5、S3-4 2–4）；用户还可按方案 §4 S3 手工清单在 TUI 里再过一遍（删文件弹审批、n 不硬来、a 后同类不再问、`rm -rf /` 直接拦、连续 50 轮、退出重进恢复）。
 
+**CI**：main run `45328300984`（`0440c19`）与 task 分支 run `45328290294`（`fab49a5`）均 success，日志均为 `# tests 277 / # pass 277 / # fail 0`。
+
 **tag**：`v0.1-s3`（annotated，打在 S3 收尾提交，已 push）。
 
 ---
@@ -753,13 +755,13 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 ### S3 回归
 
-- [ ] S2 全部
-- [ ] 写审批 y / n / a 各 1 次
-- [ ] 危险命令硬拦（rm -rf / del /f / format）
-- [ ] 退出重进恢复；`--new` 不恢复
-- [ ] 50 轮不爆上下文（mock 或真实）
-- [ ] headless 写拒绝 1 次
-- [ ] `git status` 无 `.env`/`.mewcode/`
+- [x] S2 全部（S2-8 验收已覆盖：多工具真实任务、越界拒绝、大输出截断、工具失败不崩；S3-5 再做全量回归 + `ALL TOOLS OK` 复验）
+- [x] 写审批 y / n / a 各 1 次（S3-2 B 级用户实测通过）
+- [x] 危险命令硬拦（rm -rf / del /f / format）（S3-1 B 级 + S3-5 集成脚本 `rm -rf /` 硬拦断言）
+- [x] 退出重进恢复；`--new` 不恢复（S3-3 B 级用户实测通过；S3-5 集成脚本复验 2→4 条）
+- [x] 50 轮不爆上下文（mock 或真实）（S3-5 集成脚本：50 轮全部 stop、历史 101 条、maxDropped=41；S3-4 B 级用户 mock 50 轮）
+- [x] headless 写拒绝 1 次（S3-1 A 级 `tests/permissions.test.ts` + headless 端到端用例）
+- [x] `git status` 无 `.env`/`.mewcode/`（S3-5 提交前工作树仅文档改动；`.env`、`.mewcode/` 均 gitignored）
 
 ### S4 回归
 
