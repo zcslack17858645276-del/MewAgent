@@ -527,8 +527,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **做了什么**：①新增 `src/tools/diff.ts` 行级 unified diff（剥公共前后缀 → LCS，超 25 万格退化整段替换；hunk ±3 行、`maxHunks=8`/`maxLines=240` 截断；`--- a/`/`+++ b/`/`@@ -o,n +o,n @@`/`<标记><4 位行号>│ 内容`）；②`edit_file` 输出改为「已替换 N 处（path）：+ diff」并用 `clampBytes` 守住 30KB 工具输出上限；③新增 `src/errors.ts`（`describeHttpStatus`/`isNetworkFailure`/`describeFailure`/`describeToolFailure`，所有失败带「下一步」）；④新增 `src/ui/diff-view.ts` 把 edit 输出解析为可着色行，`HistoryItem` 新增 `diff` 条目（删除红/新增绿/hunk 青/文件头暗/上下文默认，最多 80 行）；⑤`App` 的 `tool_end` 成功 edit 追加 diff 条目、失败附「下一步」，catch 改用 `describeFailure`；headless `index.ts` 复用 `errors.ts`（工具失败、max_steps、HTTP、网络、内部错误均带下一步）；⑥`formatTurnEndNote` 的 max_steps 追加"回复'继续'让我接着做，或把任务拆小后重发"。
 - **验收**：`npm run typecheck` exit 0；全量 `npm test` **296/296**（S3-5 的 277 + 新增 19；26 个测试文件）；定向 5 文件 40/40；`--help`/`--version`/`build`/`node dist/index.js --mock --print "你好"` 均 exit 0；`src/` 无 `any` 匹配；TUI 冒烟 `SMOKE OK`（输出已含新中断文案）。证据 `spikes/.out/s4-1-*.txt`（gitignored）。
 - **文档**：`docs/tasks.md` S4-1 done、焦点 S4-2；`docs/testing.md` L7/L128 进度、S4-1 已完成小节、附录 D 与速查表；`docs/spec.md` L3/L83/§9 diff 与错误展示/§11/§13；`docs/checklist.md` S4 项 + §4 回归；`HANDOFF.md` L5/§1/§2/§4/§6/§7（本节）。
-- **提交**：分支 `task/s4-1-diff-errors` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`。
-- **CI**：main run `<待回填>`（`<待回填>`）success，日志 `# tests 296 / # pass 296 / # fail 0`。
+- **提交**：分支 `task/s4-1-diff-errors` 提交 `2a7316b`（已 push，远端保留）→ squash 合并 main `8e8109a`（同标题）。
+- **CI**：task 分支 run `45338908280`（`2a7316b`）与 main run `45338929774`（`8e8109a`）均 success，日志均为 `# tests 296 / # pass 296 / # fail 0`；本条目中的提交哈希与 CI 由紧随其后的 docs 回填提交记录。
 - **坑**：①`diff-view` 解析器最初丢弃 `--- a/` 行导致 UI 测试失败 → 改为把 `--- a/` 与 `+++ b/` 都收进 lines；②`splitLines("")` 最初返回 `[""]` 使空文件 diff 计数错误 → 空字符串返回 `[]`；③`HistoryEntryKind` 扩 `diff` 后 `createHistoryEntry` 参数要收窄为 `Exclude<…, "diff">`；④`noUncheckedIndexedAccess` 下 LCS dp 取值需 `?? 0`。
 - **下次第一步**：S4-2（README 与文档），依据 `docs/tasks.md` S4-2、`docs/testing.md` S4-2 与方案 §4。
 

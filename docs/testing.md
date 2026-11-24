@@ -705,6 +705,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 - 新增 `tests/diff-view.test.ts` 5 例：edit 输出解析为可着色行、非 diff 返回 null、截断提示识别、渲染行数裁剪、`+N −M` 格式化
 - `tests/fs.test.ts` edit_file 断言改为 diff 格式（`已替换 1 处（edit.txt）：` + `--- a/` + `@@ -1,7 +1,7 @@` + `-   4│ line four` / `+   4│ LINE FOUR`）；`tests/tool-display.test.ts` 更新 `formatTurnEndNote`；`tests/ui.test.ts` 新增 diff 条目渲染
 - 冒烟：`spikes/.out/tui-smoke.tsx` → `SMOKE OK`；`npm run build` exit 0、`node dist/index.js --mock --print "你好"` 正常；`src/` 无 `any` 匹配
+- **CI**：task 分支 run `45338908280`（`2a7316b`）与 main run `45338929774`（`8e8109a`）均 success，日志均为 `# tests 296 / # pass 296 / # fail 0`
 
 **实现要点**：
 - `src/tools/diff.ts`：行级 unified diff 生成器（剥公共前后缀 → LCS，超 25 万格退化为整段替换；hunk ±3 行、`maxHunks=8`、`maxLines=240` 截断；格式 `--- a/` / `+++ b/` / `@@ -o,n +o,n @@` / `<标记><4 位行号>│ 内容`）
