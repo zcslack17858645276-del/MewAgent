@@ -4,7 +4,7 @@
 > 用途：每个 task 完成后，AI 先跑自动化测试，**用户按本文件对应小节逐条复验**。
 > 原则：模型自测只能证明"代码跑通"，交互手感、中文输入、视觉、真实模型效果、破坏性操作必须由人验。
 > 最后更新：2026-11-23 ｜ 对应任务数：29（S0-1 … S4-4）
-> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153，下一任务 S2-5（`tools/bash.ts`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
+> **当前进度**：**S0 阶段已完成（tag `v0.1-s0` 已推送）；S1 阶段已完成（tag `v0.1-s1` 已推送）——S1-1（SSE 逐行解析）、S1-2（流式客户端 + `tool_calls` 聚合）、S1-3（system prompt + 消息转换）、S1-4（Ink TUI + 多行输入补丁，8 条 B 级已由用户验收通过）、S1-5（`--print` 接真实 API：headless 真实链路 + `MEWCODE_DEBUG=1` + 401/网络错误可读提示，A 级真机复验已通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成；S2-1（`tools/paths.ts` 工作区边界校验 + `tests/paths.test.ts` 10 例）、S2-2（`tools/registry.ts` 工具注册表 + `tests/registry.test.ts` 13 例：未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩）已完成；S2-3（`tools/fs.ts` 文件工具 + `tests/fs.test.ts` 15 例：read 行号/截断/续读不跳行、write 建目录、edit 唯一性 + CRLF 兼容）已完成（B 级 6/7 条已由用户实测通过，3–5 条随 loop/TUI/审批后验）；S2-4（`tools/search.ts` glob/grep + `tests/search.test.ts` 11 例：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条 + 大文件不卡死）已完成，全量 153/153；S2-5（`tools/bash.ts`：shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区 + `tests/bash.test.ts` 14 例）已完成，全量 167/167，下一任务 S2-6（`agent/loop.ts`）**。CI 在 GitHub Actions 全绿（agent 用 `gh` CLI 独立复核）；S1-6 全量验收证据见下方 S1-6 小节与 HANDOFF §7 会话 14，S2-1/S2-2 见下方对应小节与 HANDOFF §7 会话 15/16。本手册从 S0-2 起用于每个 task 的"完成前验收"；已完成章节保留为复验/回归用途。
 
 ---
 
@@ -125,7 +125,7 @@ git status --short        # 确认没有把测试产物提交
 
 > 约定：`npm test` 跑全部用例；单文件用 `node --import tsx --test tests/<file>.test.ts`。
 > 测试文件名是实现时定的，本表列"预期文件"；若实际不同，以 `tests/` 目录和 `package.json` 为准。
-> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ 🔄 S2-5（当前）｜ ⬜ S2-6 … S4-4。
+> 进度：✅ S0-1 ｜ ✅ S0-2 ｜ ✅ S0-3 ｜ ✅ S0-4 ｜ ✅ S0-5 ｜ ✅ S0-6（tag `v0.1-s0` 已推送）｜ ✅ S1-1 ｜ ✅ S1-2 ｜ ✅ S1-3 ｜ ✅ S1-4（实现 + A 级冒烟 + 补丁；8 条 B 级已由用户验收通过）｜ ✅ S1-5（headless 真实 API，A 级真机复验通过）｜ ✅ S1-6（tag `v0.1-s1` 已推送）｜ ✅ S2-1（`tests/paths.test.ts` 10 例；全量 114/114；B 级 TUI 两项随 S2-6/S2-7 接线后验）｜ ✅ S2-2（`tests/registry.test.ts` 13 例；全量 127/127；specs 格式已验、"6 工具齐全"随 S2-3~S2-5）｜ ✅ S2-3（`tests/fs.test.ts` 15 例；全量 142/142；B 级 6/7 已由用户实测通过、3–5 随接线后验）｜ ✅ S2-4（`tests/search.test.ts` 11 例；全量 153/153；B 级 2–4 待 loop/TUI 接线后验）｜ ✅ S2-5（`tests/bash.test.ts` 14 例；全量 167/167；B 级 2–6 待 loop/TUI 接线后验）｜ 🔄 S2-6（当前）｜ ⬜ S2-7 … S4-4。
 
 ### S0 · 骨架与契约
 
@@ -477,16 +477,29 @@ git status --short        # 确认没有把测试产物提交
 
 **已知限制**：v0.1 不做"替换式 grep"（找到后由 `edit_file` 修改）；glob 不支持 `{}` 展开与 `!` 排除；grep 是逐行匹配、不支持多行；只给匹配行、不给上下文（需上下文用 `read_file`）；尚未接入 loop/TUI（S2-6/S2-7 接线，B 级 2–4 条届时再验）。
 
-#### S2-5 bash 工具
+#### S2-5 bash 工具（已完成 2026-11-24）
 
-| # | 类型 | 步骤 | 预期 | 级别 |
-|---|---|---|---|---|
-| 1 | A | `tests/bash.test.ts`：超时 kill、输出 >30KB 截断、非 0 退出码、中文输出 | 通过 | P0 |
-| 2 | B | "运行 npm test 并总结结果" | 有输出摘要，不是原样倒 500 行 | P0 |
-| 3 | B | "运行一个 10 秒不结束的命令"（如 `ping -n 10 127.0.0.1`） | 到超时被终止，提示超时 | P0 |
-| 4 | B | "输出 big.log 的内容" | 截断到 30KB 左右并有提示，上下文没爆 | P0 |
-| 5 | B | 中文命令/输出（`echo 你好`） | 不乱码 | P1 |
-| 6 | B | 检查子进程是否残留（任务管理器看 node/ping） | 无大量残留；已知 Windows 孙进程限制要记录 | P2 |
+| # | 类型 | 步骤 | 预期 | 级别 | 结果 |
+|---|---|---|---|---|---|
+| 1 | A | `tests/bash.test.ts`：超时 kill、输出 >30KB 截断、非 0 退出码、中文输出 | 通过 | P0 | ✅ 14 例 |
+| 2 | B | "运行 npm test 并总结结果" | 有输出摘要，不是原样倒 500 行 | P0 | ⏳ 待 loop/TUI（S2-6/S2-7） |
+| 3 | B | "运行一个 10 秒不结束的命令"（如 `ping -n 10 127.0.0.1`） | 到超时被终止，提示超时 | P0 | ⏳ 待 loop/TUI；A 级已验 kill |
+| 4 | B | "输出 big.log 的内容" | 截断到 30KB 左右并有提示，上下文没爆 | P0 | ⏳ 待 loop/TUI；A 级已验截断 |
+| 5 | B | 中文命令/输出（`echo 你好`） | 不乱码 | P1 | ⏳ 待 loop/TUI；A 级已验 UTF-8 |
+| 6 | B | 检查子进程是否残留（任务管理器看 node/ping） | 无大量残留；已知 Windows 孙进程限制要记录 | P2 | ✅ 已记录限制（见下）+ 超时 500ms 兜底 |
+
+**A 级证据（2026-11-24，本地 Node v26.7.0；本机未安装 Git Bash，走 cmd 分支）**：
+
+- `npm run typecheck` → exit 0；`node --import tsx --test tests/bash.test.ts` → **tests 14 / pass 14 / fail 0（约 4.7s）**；全量 `npm test` → **tests 167 / pass 167 / fail 0（4793ms；原 153 + 新增 14）**
+- 覆盖点：基本命令（stdout/退出码/stderr 分段）、中文输出 UTF-8 不乱码、stderr 单独捕获、非 0 退出码（exit 3）→ `ok:false` 带 stdout/stderr + 下一步、**超时 kill**（1000ms 超时 ~1.5s 返回并提示）、**30KB 截断**（200KB 输出 → ≤上限 + 提示用 read_file）、截断不切断多字节字符、cwd 固定工作区、command 缺失/空/类型错误、timeout_ms 越界、`MEWCODE_SHELL` 指向不存在文件 → 可读错误；`resolveShell` 优先级（MEWCODE_SHELL > Git Bash > cmd）、`decodeOutput` UTF-8→GBK 回退、`truncateUtf8` 代理对安全、readOnly=false + 注册表集成
+- 手工演示（`spikes/.out/bash-manual-driver.ts`，gitignored）：中文命令输出正常；`ping -n 4` + `timeout_ms=1000` → `ok=false elapsed=1544ms`，输出含"命令超时（1000 毫秒），已被终止"+ 孙进程提示；60000 字符输出被截断
+- 完整记录：`spikes/.out/s2-5-typecheck.txt`、`s2-5-bash.txt`、`s2-5-full.txt`（均 gitignored）
+
+**结果**：行 1 ✅（14 例）；行 2–5 ⏳ 需模型真正调用 bash（loop/TUI 接线后，S2-6/S2-7 后验）；行 6 ✅ 已记录 Windows 孙进程限制（`child.kill` 只杀直接子进程，输出里有提示，超时场景 500ms 兜底返回）。
+
+**实现要点**：`resolveShell(platform, env, exists)` 返回 `{command,args,label,prependChcp,verbatim}`——`MEWCODE_SHELL` 覆盖 > Windows Git Bash（`C:\Program Files\Git\bin\bash.exe`，`-lc`）> `cmd.exe /d /s /c`（带 `chcp 65001 >nul &&` 前缀）；**cmd 分支必须 `windowsVerbatimArguments:true`**（否则含 `;`/`(` 的命令会被 cmd 拆坏，开发中实测踩坑）。输出先 UTF-8 解码，出现 U+FFFD 再试 GBK。超时 `child.kill()` 后 500ms 兜底 resolve，避免孙进程占管道导致卡死；stdout/stderr 各 4MB 采集上限，合并输出按 UTF-8 字节安全截断到 30KB。
+
+**已知限制**：Windows 上 `child.kill` 不杀孙进程（v0.1 接受，方案 §6.10；v0.2 改 `taskkill /T /F`）；`bash -lc` 分支本机未安装 Git Bash、未真机验证（CI 为 Linux `sh -c`，已覆盖 `-c` 分支）；尚未接入 loop/TUI（B 级 2–5 条届时再验）。
 
 #### S2-6 Agent Loop
 
@@ -777,7 +790,7 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | S2-2 ✅ | typecheck + `tests/registry.test.ts`（13 用例；全量 127/127；"6 工具齐全"随 S2-3~S2-5 后验） |
 | S2-3 ✅ | typecheck + `tests/fs.test.ts`（14 用例；全量 141/141；testbed 手工 B 级 3–5 条随 loop/TUI/审批接线后验） |
 | S2-4 ✅ | typecheck + `tests/search.test.ts`（11 用例；全量 153/153；B 级 2–4 随 loop/TUI 接线后验） |
-| S2-5 | `tests/bash.test.ts` + 手工 |
+| S2-5 ✅ | typecheck + `tests/bash.test.ts`（14 用例；全量 167/167；B 级 2–5 随 loop/TUI 接线后验） |
 | S2-6 | `tests/loop.test.ts` + 多工具任务 |
 | S2-7 | 手工 UI |
 | S3-1 | `tests/permissions.test.ts` + 故意使坏 |
@@ -807,3 +820,4 @@ S0-1 已把脚本提交进仓库，**不要另建 scratch 文件**：
 | 2026-11-23 | S2-3 完成：新增 `src/tools/fs.ts`（`read_file` 行号/offset/limit/30KB 截断 + CRLF 标注；`write_file` 自动建父目录、空文件；`edit_file` 唯一性 + `replace_all` + CRLF 兼容 + ±3 行上下文；失败统一 `Error:` + 下一步）+ `tests/fs.test.ts` 14 用例（全量 141/141）；S2-3 章节改为已完成并附证据，进度切到 S2-4 |
 | 2026-11-23 | S2-3 补丁：`read_file` 字节截断时续读 offset 改为按实际渲染行数（不跳行），`tests/fs.test.ts` 增 1 例（全量 142/142）；用户实测 #6（CRLF 保真）/#7（大文件截断）通过，S2-3 第 6/7 行结果更新并加 B 级段 |
 | 2026-11-23 | S2-4 完成：新增 `src/tools/search.ts`（`glob` 星号/双星/问号/字符类 + 200 条与 30KB 截断；`grep` 正则逐行 + 100 条上限，跳过 .git/node_modules/二进制/5MB）+ `tests/search.test.ts` 11 用例（全量 153/153）；S2-4 章节改为已完成并附证据，进度切到 S2-5 |
+| 2026-11-24 | S2-5 完成：新增 `src/tools/bash.ts`（`resolveShell`：`MEWCODE_SHELL` > Git Bash > cmd；cmd 用 `/d /s /c` + `chcp 65001` + `windowsVerbatimArguments`；超时 kill + 500ms 兜底；30KB UTF-8 安全截断；UTF-8→GBK 回退；cwd 固定工作区）+ `tests/bash.test.ts` 14 用例（全量 167/167）；S2-5 章节改为已完成并附证据，进度切到 S2-6 |

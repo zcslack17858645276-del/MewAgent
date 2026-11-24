@@ -1,6 +1,6 @@
 # MewAgent v0.1 规格说明（spec）
 
-> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 进行中（S2-1~S2-4 完成，当前 S2-5 工具系统收尾）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
+> 状态：**S0 已完成并打 tag `v0.1-s0`；S1 已完成并打 tag `v0.1-s1`（SSE、流式客户端、prompt 与消息转换、Ink TUI + 多行输入、`--print` headless 真实 API 全部完成）；S2 进行中（S2-1~S2-5 完成，当前 S2-6 Agent Loop）**。CI 在 GitHub Actions 全绿，agent 用 `gh` CLI 独立复核。
 > 来源：`MewCode-TS实施方案.md`（施工图纸）与已落地代码。契约以方案 §3.3 与 `src/types.ts` 为准；本文件与代码冲突时，以代码为准并回填本文件。
 > 维护方式：每个阶段完成后，在「§13 阶段状态」与对应章节追加该阶段实际交付的「要什么 / 不要什么 / 验收 / 已知边界」。
 
@@ -80,7 +80,7 @@ src/
     App.tsx           # TUI 根组件（S1）
     HistoryItem.tsx   # 历史条目（S1）
     ApprovalPrompt.tsx# 确认框（S3）
-tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search 十四个文件
+tests/                # node:test；当前 core/types/config/mock/sse/openai/messages/prompt/ui/input-text/paths/registry/fs/search/bash 十五个文件
 docs/                 # tasks / testing / spec / checklist
 .github/workflows/ci.yml
 spikes/               # 一次性验证脚本与证据（.out/ 已 gitignore）
@@ -237,6 +237,7 @@ finish: stop
 | S2-2 | `src/tools/registry.ts`：工具注册表 + OpenAI tools 声明 + arguments 解析 + 异常兜底 | ✅（`tests/registry.test.ts` 13 例，全量 127/127；未知工具/坏 JSON/非对象/抛异常全部转 `ok:false` 不崩；"6 工具齐全"待 S2-3~S2-5 工具接入后验） |
 | S2-3 | `src/tools/fs.ts`：`read_file`（行号/offset/limit/30KB 截断）/ `write_file`（自动建目录）/ `edit_file`（唯一性 + `replace_all` + CRLF 兼容） | ✅（`tests/fs.test.ts` 15 例，全量 142/142；B 级 6/7 已由用户实测通过，3–5 随 loop/TUI/审批接线后验） |
 | S2-4 | `src/tools/search.ts`：`glob`（`*`/`?`/`**`/字符类，200 条 + 30KB 截断）/ `grep`（正则逐行，100 条，跳过 .git/node_modules/二进制/5MB） | ✅（`tests/search.test.ts` 11 例，全量 153/153；B 级 2–4 待 loop/TUI 接线后验） |
+| S2-5 | `src/tools/bash.ts`：shell 选择（`MEWCODE_SHELL` > Git Bash > cmd）/ 超时 kill + 兜底 / 30KB 截断 / UTF-8→GBK / cwd 固定工作区 | ✅（`tests/bash.test.ts` 14 例，全量 167/167；B 级 2–5 待 loop/TUI 接线后验） |
 | S2 | 6 工具 + 工具注册表 + Agent Loop | 🔄 |
 | S3 | 权限确认 + 会话持久化 + 上下文压缩 | ⬜ |
 | S4 | 打磨、文档、演示、发布 v0.1.0 | ⬜ |
