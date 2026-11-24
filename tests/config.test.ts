@@ -12,7 +12,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { test } from "node:test";
@@ -27,6 +27,9 @@ import {
   parseArgs,
   readPackageVersion,
   resolveConfig,
+  resolveEnvFilePaths,
+  resolveUserConfigDir,
+  resolveUserEnvPath,
   usage,
 } from "../src/config.js";
 import { main } from "../src/index.js";
@@ -95,6 +98,8 @@ interface RunOptions {
   startTui?: (options: StartTuiOptions) => Promise<void>;
   /** 注入真实 API 的 fetch：测试用假 SSE 流，避免联网。 */
   fetchImpl?: FetchLike;
+  /** 覆盖 `.env` 加载钩子（默认空实现，测试不读真实 .env）。 */
+  loadDotEnv?: (envPath: string) => void;
 }
 
 interface RunResult {
@@ -113,9 +118,11 @@ async function runCli(argv: string[], options: RunOptions = {}): Promise<RunResu
     stdinIsTTY: options.stdinIsTTY ?? false,
     stdoutIsTTY: options.stdoutIsTTY ?? false,
     readStdin: options.readStdin,
-    loadDotEnv: () => {
-      // 测试要完全确定：不读真实 .env。
-    },
+    loadDotEnv:
+      options.loadDotEnv ??
+      (() => {
+        // 测试要完全确定：不读真实 .env。
+      }),
     write: (text: string) => {
       out += text;
     },
@@ -411,6 +418,55 @@ test("applyEnvContent：格式非法时报行号与下一步，且不回显值",
   );
 });
 
+test("resolveUserEnvPath / resolveEnvFilePaths：用户级 ~/.mewcode/.env 在前，项目 .env 在后", () => {
+  const home = makeTempDir();
+  const cwd = makeTempDir();
+  try {
+    assert.equal(resolveUserConfigDir({}), path.join(homedir(), ".mewcode"));
+    assert.equal(
+      resolveUserEnvPath({}),
+      path.join(homedir(), ".mewcode", ".env"),
+    );
+    assert.equal(resolveUserConfigDir({ MEWCODE_HOME: home }), path.resolve(home));
+    assert.equal(
+      resolveUserEnvPath({ MEWCODE_HOME: home }),
+      path.join(path.resolve(home), ".env"),
+    );
+    assert.deepEqual(resolveEnvFilePaths(cwd, { MEWCODE_HOME: home }), [
+      path.join(path.resolve(home), ".env"),
+      path.join(cwd, ".env"),
+    ]);
+    // 项目目录就是用户级目录时去重
+    assert.deepEqual(resolveEnvFilePaths(home, { MEWCODE_HOME: home }), [
+      path.join(path.resolve(home), ".env"),
+    ]);
+  } finally {
+    removeTempDir(home);
+    removeTempDir(cwd);
+  }
+});
+
+test("main：依次加载用户级 .env 与项目 .env（用户级在前，项目优先）", async () => {
+  const cwd = makeTempDir();
+  const home = makeTempDir();
+  try {
+    const loaded: string[] = [];
+    const result = await runCli(["--mock", "--print", "你好"], {
+      cwd,
+      env: { MEWCODE_HOME: home },
+      loadDotEnv: (envPath) => loaded.push(envPath),
+    });
+    assert.equal(result.code, 0);
+    assert.deepEqual(loaded, [
+      path.join(path.resolve(home), ".env"),
+      path.join(cwd, ".env"),
+    ]);
+  } finally {
+    removeTempDir(cwd);
+    removeTempDir(home);
+  }
+});
+
 test("readPackageVersion：与 package.json 的 version 一致", () => {
   const packageJson = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -437,6 +493,7 @@ test("usage：列出全部 CLI 参数与环境变量", () => {
     "MEWCODE_API_KEY",
     "MEWCODE_BASE_URL",
     "MEWCODE_MODEL",
+    "MEWCODE_HOME",
     "MEWCODE_SHELL",
   ]) {
     assert.ok(text.includes(envKey), `usage 缺少 ${envKey}`);

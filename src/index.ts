@@ -19,6 +19,7 @@ import {
   parseArgs,
   readPackageVersion,
   resolveConfig,
+  resolveEnvFilePaths,
   usage,
 } from "./config.js";
 import type { AppConfig } from "./config.js";
@@ -316,8 +317,12 @@ export async function main(
       return 0;
     }
 
+    // 加载两处 .env：用户级（默认 ~/.mewcode/.env，供全局安装跨目录使用）在前，
+    // 项目根目录 .env 在后；加载器不覆盖已存在的环境变量，因此项目配置优先。
     const loadEnv = deps.loadDotEnv ?? loadDotEnv;
-    loadEnv(path.join(cwd, ".env"));
+    for (const envPath of resolveEnvFilePaths(cwd, env)) {
+      loadEnv(envPath);
+    }
 
     const config = resolveConfig(options, env, cwd);
     const version = readPackageVersion();

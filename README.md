@@ -149,10 +149,36 @@ npm unlink -g mewagent
 
 ## 配置
 
-配置优先级：**命令行参数 > 环境变量 > `.env` 文件 > 内置默认值**。`.env` 已在 `.gitignore` 中，别提交真实 key。
+配置优先级：**命令行参数 > 环境变量 > 项目 `.env` > 用户级 `.env` > 内置默认值**。两处 `.env` 都会被加载（加载时不会覆盖已存在的环境变量），`.env` 已在 `.gitignore` 中，别提交真实 key。
+
+**项目级**（适合单个项目内使用）：
 
 ```bash
 copy .env.example .env
+```
+
+**用户级 / 全局**（推荐给全局安装：配一次，任何目录都能用真实模型）：
+
+- Windows：`%USERPROFILE%\.mewcode\.env`
+- macOS / Linux：`~/.mewcode/.env`
+
+文件格式与 `.env.example` 一致，至少写 `MEWCODE_API_KEY` 与 `MEWCODE_MODEL`。配置后可在任意目录直接运行（不必在仓库目录）：
+
+```bash
+mewagent --print "你好"
+```
+
+项目目录里的 `.env` 仍会覆盖用户级配置；想换用户级配置目录可设 `MEWCODE_HOME`（如 `MEWCODE_HOME=D:\my-config` → 读取 `D:\my-config\.env`）。
+
+Windows PowerShell 创建示例：
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.mewcode" | Out-Null
+@"
+MEWCODE_API_KEY=sk-你的密钥
+MEWCODE_BASE_URL=https://api.deepseek.com
+MEWCODE_MODEL=deepseek-flash
+"@ | Set-Content -Encoding UTF8 "$env:USERPROFILE\.mewcode\.env"
 ```
 
 | 环境变量 | 必填 | 默认值 | 说明 |
@@ -164,6 +190,7 @@ copy .env.example .env
 | `MEWCODE_MOCK_DELAY_MS` | 否 | `0` | mock 慢速流式块间延迟（毫秒），用于观察流式/中断 |
 | `MEWCODE_CONTEXT_TOKENS` | 否 | `128000` | 上下文预算（token）× 0.7 为压缩阈值；调小（如 `300`）可观察压缩行为 |
 | `MEWCODE_SHELL` | 否 | 自动 | 覆盖 `bash` 工具使用的 shell（Windows 默认 Git Bash，其次 `ComSpec`） |
+| `MEWCODE_HOME` | 否 | `~/.mewcode` | 用户级配置目录；程序读取其中的 `.env`（全局安装后跨目录共用配置，见上） |
 
 国内网络提示：安装依赖如遇 `registry.npmjs.org` 超时，可先设置代理（开发机使用 Clash mixed-port）：
 
@@ -466,6 +493,7 @@ npm run build         # 输出 dist/
 - 工具单次输出上限 30KB、glob 200 条、grep 100 条；
 - 主要在 Windows 上开发与验收，macOS/Linux 仅保证 CI 单测通过；
 - Node < 20.12 时没有 `process.loadEnvFile`，程序会自动改用内置 `.env` 解析（已模拟验证）；其他 Node 22 相关差异未逐一适配。
+- `.env` 只在两处查找：**当前工作目录**与用户级配置目录（`~/.mewcode/.env`，可用 `MEWCODE_HOME` 改）；从项目子目录启动时不会自动向上查找仓库根目录的 `.env`（可改用 `--workspace` 或用户级配置）。
 
 v0.2 候选（尚未排期）：
 
