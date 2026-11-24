@@ -8,6 +8,7 @@ import { render } from "ink";
 import type { AppConfig } from "../config.js";
 import { App } from "./App.js";
 import type { RunAgentTurn } from "./App.js";
+import type { ApprovalController } from "./approval.js";
 
 export interface StartTuiOptions {
   readonly version: string;
@@ -16,6 +17,8 @@ export interface StartTuiOptions {
   readonly runTurn: RunAgentTurn;
   /** 已注册工具名，仅用于启动横幅。 */
   readonly toolNames: readonly string[];
+  /** 审批桥（S3-2）：权限闸需要人工确认时，由 App 渲染审批弹窗。 */
+  readonly approvals?: ApprovalController | undefined;
 }
 
 /** 读取 Kitty 键盘协议的开关（`MEWCODE_KITTY_KEYBOARD=0/off` 可关闭）。 */
@@ -35,7 +38,7 @@ function readKittyKeyboardMode(): "auto" | "disabled" {
 
 /** 启动交互式 TUI，直到用户 Ctrl+C（空闲态）或进程被信号终止。 */
 export async function startTui(options: StartTuiOptions): Promise<void> {
-  const { version, config, runTurn, toolNames } = options;
+  const { version, config, runTurn, toolNames, approvals } = options;
   const instance = render(
     <App
       version={version}
@@ -44,6 +47,7 @@ export async function startTui(options: StartTuiOptions): Promise<void> {
       mock={config.mock}
       toolNames={toolNames}
       runTurn={runTurn}
+      approvals={approvals}
     />,
     {
       // Ctrl+C 由 App 自己的 useInput 处理（生成中只中断，空闲才退出）。

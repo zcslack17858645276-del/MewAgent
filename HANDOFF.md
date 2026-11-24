@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-24 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 已完成（tag `v0.1-s2` 已推送，S2-1~S2-8 全部完成，含流式叠字修复）｜ 下一任务：S3-2（交互审批 UI；S3-1 权限三道闸已完成）
+> 最后更新：2026-11-24 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 已完成（tag `v0.1-s2` 已推送，S2-1~S2-8 全部完成，含流式叠字修复）；S3 进行中（S3-1 权限三道闸、S3-2 交互审批 UI 已完成）｜ 下一任务：S3-3（`session/store.ts` 会话持久化）
 
 ---
 
@@ -13,7 +13,7 @@
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
 - **当前状态**：S0/S1/S2 三个阶段全部完成并分别打 tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2`（均已 push）——S2-1~S2-8 依次交付：路径边界校验、工具注册表、文件工具（read/write/edit）、搜索工具（glob/grep）、bash、Agent Loop、TUI 工具事件（含流式叠字修复）、S2 全量验收；全量 `npm test` **204/204**、CI 全绿；6 个工具在真实模型 TUI 与假 LLM loop 演示中均可用，真实模型可自主读 README 并总结（`README ACCEPTANCE OK`）。S2 全部 B 级手工项已由用户 2026-11-24 验收通过。
-- **下一步**：按 `docs/tasks.md` 做 S3-1（`src/safety/danger.ts` 危险命令识别 + `tests/danger.test.ts`），依据 `docs/testing.md` S3-1 八行验收与方案 §4/§6.7；先做纯函数 + 单测，再接 `permissions.ts` 与 loop 的 `gate`。
+- **下一步**：按 `docs/tasks.md` 做 S3-3（`src/session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`、损坏文件降级），依据 `docs/testing.md` S3-3 五行与方案 §4/§6.8；先做纯函数 + 单测，再接 TUI 启动恢复。
 
 ---
 
@@ -124,6 +124,7 @@ npm run build
 | Agent Loop（S2-6） | `src/agent/loop.ts` 导出 `runAgent(options): Promise<AgentLoopResult>`、`DEFAULT_MAX_STEPS=30`、`AgentStopReason`、`AgentLoopOptions`/`AgentLoopResult`。输入 `llm/tools/workspace/emit?/systemPrompt?/messages?/gate?/maxSteps?/signal?`；流程严格按 §6.3：每轮 chat → 追加 assistant（含 toolCalls）→ 无 toolCalls 则发 `turn_end(finishReason)` 返回 → 否则逐个 `tool_start`（args 解析失败为 null）→ gate（缺省放行）→ `tools.run` → 追加 tool 消息（失败保证单个 `Error:` 前缀）→ `tool_end`。事件顺序：`assistant_text*` → `(tool_start → tool_end)*` → 下一轮；结束 `turn_end`。与 §6.3 伪代码的两处有意偏差：①`maxSteps` 用尽发 `turn_end("max_steps")` 后正常返回（不抛异常，UI/headless 需保留上下文）；②AbortSignal 收敛为 `turn_end("aborted")`（启动前 / 工具执行中 / LLM 抛 AbortError 三处检查，工具阶段回填中断 Error 保证配对）；非中断 LLM 错误仍向上抛。另新增 `src/tools/index.ts`：`defaultTools` + `createDefaultRegistry()`（fs+search+bash 共 6 工具） |
 | TUI 事件接线（S2-7） | `src/ui/App.tsx` 改为注入 `runTurn: RunAgentTurn = (messages, { signal, emit }) => Promise<AgentLoopResult>`（不再注入 `send`），UI 只消费 `AgentEvent`：`assistant_text` 累加并 50ms 节流；`tool_start` → 先提交已流式文本、动态区状态行 `⚙ 工具运行中：<name> {参数摘要}…（Esc 中断）`、phase=`tool_running`；`tool_end` → 历史项 `✅/❌ <name> {参数摘要} · <耗时>[ · Error: 首行]`；`turn_end(aborted|max_steps)` 追加 `（已中断）`/`（已达到最大步数 30，已停止）`。参数摘要/错误摘要/耗时格式化抽在 `src/ui/tool-display.ts`（纯函数：`formatToolCall`/`formatToolEnd`/`formatDuration`/`formatTurnEndNote`/`truncateForDisplay`，参数 ≤120 码点、错误首行 ≤160 字符）。`StartTuiOptions{version, config, runTurn, toolNames}`；`src/index.ts` 交互分支建 `createDefaultRegistry()` + 带工具名的 `buildSystemPrompt` + `runAgent` 闭包，删除 S1 临时 `createRealSend`/`createMockSend`（mock 也走真 loop、真工具真执行）；状态机现为 `idle|streaming|tool_running`（`awaiting_approval`/`error` 随 S3-2） |
 | 权限三道闸（S3-1） | `src/safety/danger.ts` 用规则表识别危险命令（rm -rf / powershell Remove-Item -Recurse -Force / del /f /s /q / format / shutdown / diskpart / dd / bcdedit / 写系统目录 / fork 炸弹）；先按 `;`/`&&`/`||`/`|`/换行切段，再剥 `sudo`/`env`/`nohup`/`time`/`command` 与 `sh|bash|powershell|cmd` 包装（最多 4 层，`powershell` 无 `-Command` 时把余下参数当内层命令），命中返回 `{dangerous:true, ruleId, reason}`。`src/safety/permissions.ts` 的 `createPermissionGate` 按 §6.6 顺序：arguments 解析 → 未知工具 → 路径边界（`PATH_TOOLS` 五个先查）→ readOnly 放行 → bash 危险命令硬拦 → headless 拒绝写 → 会话白名单（按工具名，选 `a` 才加入）→ `ask` y/a/n（异常/无 UI 按拒绝）；拒绝统一 `Error: 权限被拒绝：<原因>\n下一步：…`。`src/index.ts` 交互分支已接 gate（当前无审批 UI → 写操作拒绝并提示 S3-2，只读放行）；`runRealHeadless` 升级为 Agent Loop + 只读工具 + headless 闸（stdout 只放文本，`[工具]`/`[工具结果]` 走 stderr）。不变量：拒绝/异常同一条回填路径、tool 配对不破坏；白名单只影响本次会话 |
+| 交互审批（S3-2） | `src/ui/approval.ts` 导出 `createApprovalController(): ApprovalController`（`ask` 返回挂起 Promise、`subscribe`/`current`/`respond`；同一时刻仅一个 pending，重叠 `ask` 抛错；`respond` 先通知再 resolve）。`src/ui/ApprovalPrompt.tsx` 只接受单字符 `y`/`a`/`n`，`Esc` = 拒绝，其它键忽略；渲染「⚠ 需要审批：<toolName>（只读/写操作）」+ summary + 可选 reason + 四个选项提示。`src/ui/App.tsx` 增 `approvals?` prop 与 `pendingApproval` 展示态（`awaiting_approval`）：审批时 InputBox `active=false`（失焦、按键不进输入框）、App `useInput` 让位（仅 Ctrl+C 中断整轮）、光标隐藏、状态行「等待审批：y 允许 · a 本会话总是允许 · n/Esc 拒绝」、动态区改为渲染审批框；`src/ui/start-tui.tsx` 的 `StartTuiOptions` 增 `approvals`；`src/index.ts` 交互分支先建 controller 再 `createPermissionGate({ ask: approvals.ask })`。headless 不变（无 ask，写操作直接拒绝）。审批摘要：路径工具只显示路径、bash 显示 `$ command`，整体 ≤161 字符 |
 
 ---
 
@@ -205,6 +206,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 ## 6. 任务看板
 
 以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 15 单测）已完成，全量 `npm test` **142/142**、CI 全绿；S2-4（`src/tools/search.ts` glob/grep：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条，`tests/search.test.ts` 11 单测）已完成，全量 `npm test` **153/153**、CI 全绿；S2-5（`src/tools/bash.ts` shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区，`tests/bash.test.ts` 14 单测）已完成，全量 `npm test` **167/167**、CI 全绿；S2-6（`src/agent/loop.ts` Agent Loop：`AgentEvent` 事件流 + 多轮工具 + `maxSteps=30` + `turn_end` 原因 + Gate 预留，`src/tools/index.ts` 默认注册表，`tests/loop.test.ts` 19 单测）已完成，全量 `npm test` **186/186**、CI 全绿；S2-7（`src/ui/App.tsx` 消费 `AgentEvent`：`tool_start`/`tool_end` 历史项 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、`src/ui/tool-display.ts` 纯函数、mock 也走真 loop，`tests/tool-display.test.ts` 9 单测 + 假 stdin 冒烟）已完成，全量 `npm test` **195/195**、CI 全绿（补丁 2026-11-24：流式叠字修复 + `tests/stream-lines.test.ts` 9 例，全量 **204/204**）；**S2 已完成并打 tag `v0.1-s2`（已 push）**——S2-8 全量验收通过（typecheck 0 / tests 204/204 / `--help` 8 参数 / `--version` 0.1.0 / `--mock --print` 幂等 / build 与 dist 一致 / any 0 / TUI 冒烟 `SMOKE OK` / 6 工具 loop 演示 `ALL TOOLS OK` / 真实 API exit 0）+ 真实模型 README 任务 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项用户 2026-11-24 通过。S3-1 已完成（2026-11-24：`src/safety/danger.ts` 9 例 + `src/safety/permissions.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例，全量 232/232；交互审批 UI 待 S3-2）。下一步 S3-2（交互审批 UI：`ui/ApprovalPrompt.tsx` y/a/n/Esc）。
+**S3 进度（2026-11-24）**：S3-1（权限三道闸：`src/safety/danger.ts` 9 例 + `src/safety/permissions.ts` 18 例 + headless 端到端 1 例，全量 **232/232**；B 级 5/6/8 已由用户实测通过）与 S3-2（交互审批：`src/ui/approval.ts` + `src/ui/ApprovalPrompt.tsx`，`tests/approval.test.ts` 9 例 + 假 stdin 冒烟 `APPROVAL SMOKE OK`，全量 **241/241**；B 级 4 条待用户）已完成；下一任务 S3-3（会话持久化）。
+
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
 ---
@@ -459,11 +462,22 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 - **做了什么**：新增 `src/safety/danger.ts`（13 条危险规则 + `TOKEN_WRAPPERS`/`SHELL_WRAPPERS`/`unwrapSegments` 剥壳，最多 4 层，`powershell` 无 `-Command` 时把余下参数当内层命令）与 `src/safety/permissions.ts`（`createPermissionGate`/`summarizeToolCall`：arguments 解析 → 未知工具 → 路径边界 → readOnly → 危险命令 → headless → 会话白名单 → `ask` y/a/n；异常按拒绝；拒绝文案带原因+下一步）；`src/index.ts` 交互分支接 gate（暂无审批 UI → 写操作拒绝并提示 S3-2，只读放行），`runRealHeadless` 升级为 Agent Loop + 只读工具 + headless 闸（`[工具]`/`[工具结果]` 走 stderr）；新增 `tests/danger.test.ts` 9 例、`tests/permissions.test.ts` 18 例、`tests/config.test.ts` headless 端到端 1 例。
 - **验收**：`npm run typecheck` exit 0；danger 9/9、permissions 18/18；定向 config+mock+danger+permissions 68/68（994.6ms）；全量 `npm test` **232/232**（4056.4ms）；证据 `spikes/.out/s3-1-typecheck4.txt`、`s3-1-targeted.txt`、`s3-1-full2.txt`（gitignored）。
-- **B 级**：第 5/6/8 行可由用户先在 TUI / `--print` 验（危险命令硬拦、headless 拒写）；第 2/3/4/7 行待 S3-2 审批 UI 后验。
+- **B 级**：第 5/6/8 行已由用户 2026-11-24 实测通过（危险命令硬拦、headless 拒写）；第 2/3/4/7 行待 S3-2 审批 UI 后验。
 - **文档**：`docs/tasks.md` S3-1 done、焦点 S3-2；`docs/testing.md` S3-1 已完成小节 + 附录 C/D + L7/L128 进度；`docs/spec.md` L3/L83/§7/§13；`docs/checklist.md` S3 前两项 `[x]` 与标准 #5 更新；本节。
 - **提交**：`ca805bf` "feat(safety): 权限三道闸与 headless 只读规则"（分支 `task/s3-1-permissions`，已 push）→ squash main `a3d6fd4`；CI 首轮在 ubuntu 上红（`45318767001`/`45318782732`：`tests/permissions.test.ts` 写死反斜杠路径，POSIX 下反斜杠是合法文件名 → 越界读取未被判越界）→ 修复 `d198123` "fix(safety): 权限越界读取测试兼容 POSIX"（`fix/s3-1-ci-posix`）→ squash main `899a60b`；修复后 CI `45318939161`（fix 分支）/`45318945962`（main, 899a60b）success，日志 `# tests 232 / # pass 232 / # fail 0`。
 - **坑**：①`sudo`/`powershell -Command` 等包装需剥壳才能识别（首版 3 个单测红）；②`summarizeToolCall` 需整体截断（含 `$ ` 前缀，163 > 161 字符）；③`PermissionGate` 是对象不是函数，`runAgent` 要传 `permissions.gate`（TS2322）；④跨平台反斜杠：测试里写死 `..\\x` 在 POSIX 会被当成合法文件名（与 S2-1 同一个坑，改用 `path.join("..", …)`）。
 - **下次第一步**：S3-2 `ui/ApprovalPrompt.tsx`（y / a / n / Esc；TUI 增加 `awaiting_approval` 阶段，审批时输入框失焦；接 `PermissionGate.ask`，完成后复验 S3-1 第 2/3/4/7 行）。
+
+### 2026-11-24 · 会话 24（S3-2：交互审批 UI）
+
+- **做了什么**：新增 `src/ui/approval.ts`（`createApprovalController`：`ask` 挂起 Promise、`subscribe`/`current`/`respond`、单 pending、重叠抛错、先通知再 resolve）与 `src/ui/ApprovalPrompt.tsx`（只认单字符 y/a/n，Esc=拒绝，其它键忽略；渲染工具名/摘要/readOnly/reason/四选项）；`src/ui/App.tsx` 增 `approvals?` prop 与 `pendingApproval` 展示态（审批时 InputBox 失焦、App `useInput` 让位仅 Ctrl+C、光标隐藏、状态行「等待审批…」、动态区渲染审批框）；`start-tui` 增 `approvals`；`src/index.ts` 交互分支建 controller 并作为 `gate.ask`；新增 `tests/approval.test.ts` 9 例（controller/白名单/拒绝原因/弹窗渲染），扩展假 stdin 审批冒烟 `spikes/.out/approval-smoke.tsx`。
+- **验收**：`npm run typecheck` exit 0；`tests/approval.test.ts` 9/9；全量 `npm test` **241/241**（4130.6ms；原 232 + 9）；假 stdin 冒烟 `APPROVAL SMOKE OK`（y 放行 / a 后同类不问 / Esc 拒绝且文件未改 / 非 y·a·n 键被忽略 / Ctrl+C 退出）。证据 `spikes/.out/s3-2-{typecheck3,full,smoke3}.txt`（gitignored）。
+- **B 级**：4 条待用户（审批时输入框失焦、Esc=拒绝、其它键被忽略、长参数摘要可读）；S3-1 第 2/3/4/7 行可随本轮审批 UI 复验。
+- **文档**：`docs/tasks.md` S3-2 done、焦点 S3-3；`docs/testing.md` S3-1 第 5/6/8 行标用户已验 + B 级段 + S3-2 已完成小节 + 附录 C/D；`docs/spec.md` L3/L83/§7/§9/§13；`docs/checklist.md` permissions 证据补审批 UI、标准 #5 更新；本节。
+- **提交**：分支 `task/s3-2-approval` 提交 `<待回填>`（已 push，远端保留）→ squash main `<待回填>`；docs 哈希回填提交 `<待回填>`。
+- **CI**：`<待回填>`（task 分支 / main / docs）success，日志 `# tests 241 / # pass 241 / # fail 0`。
+- **坑**：①审批冒烟先用 write_file 测拒绝，但 write_file 已被 `a` 加入白名单 → 改用 edit_file；②「用户拒绝了 edit_file」断言被 Ink 折行拆断 → 拆成「用户拒绝了」+「权限被拒绝」两个断言；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
+- **下次第一步**：S3-3（`src/session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`、损坏文件降级），依据 `docs/testing.md` S3-3 与方案 §4/§6.8。
 
 
 ```text
