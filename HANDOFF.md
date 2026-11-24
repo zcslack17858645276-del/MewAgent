@@ -2,7 +2,7 @@
 
 > **每个新会话的第一件事**：读本文件。
 > **每个会话结束前**：更新 §7 交接记录，并同步 `docs/tasks.md` 的任务状态。
-> 最后更新：2026-11-24 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 已完成（tag `v0.1-s2` 已推送，S2-1~S2-8 全部完成，含流式叠字修复）；S3 进行中（S3-1 权限三道闸、S3-2 交互审批 UI、S3-3 会话持久化、S3-4 上下文压缩 已完成）｜ 下一任务：S3-5（S3 集成验收 + tag `v0.1-s3`）
+> 最后更新：2026-11-24 ｜ 当前阶段：S0 已完成（tag `v0.1-s0` 已推送）；S1 已完成（tag `v0.1-s1` 已推送）；S2 已完成（tag `v0.1-s2` 已推送，S2-1~S2-8 全部完成，含流式叠字修复）；S3 已完成（tag `v0.1-s3` 已推送）｜ 下一任务：S4-1（diff 与错误展示）
 
 ---
 
@@ -12,8 +12,8 @@
 - **仓库**：<https://github.com/zcslack17858645276-del/MewAgent>（私有，默认分支 `main`）
 - **本地工作区**：`D:\workplace\AIAgent\MewCode`（目录名仍是 MewCode，仓库名是 MewAgent，暂不强行统一）
 - **默认技术栈**：TypeScript + Node ≥22 + Ink 8 + React 19；原生 `fetch` 手写 SSE；6 个工具；单 Agent Loop。v0.1 不做 MCP / SubAgent / GUI。
-- **当前状态**：S0/S1/S2 三个阶段全部完成并分别打 tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2`（均已 push）——S2-1~S2-8 依次交付：路径边界校验、工具注册表、文件工具（read/write/edit）、搜索工具（glob/grep）、bash、Agent Loop、TUI 工具事件（含流式叠字修复）、S2 全量验收；全量 `npm test` **204/204**、CI 全绿；6 个工具在真实模型 TUI 与假 LLM loop 演示中均可用，真实模型可自主读 README 并总结（`README ACCEPTANCE OK`）。S2 全部 B 级手工项已由用户 2026-11-24 验收通过。**S3 进行中**：S3-1（权限三道闸 + headless 只读，232/232）、S3-2（交互审批 UI，241/241，B 级 4 条已由用户实测通过）、S3-3（会话持久化 `.mewcode/session.json` 每轮保存/启动恢复/`--new`/损坏降级，`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端，全量 **258/258**）已完成；S3-1 第 2/3/4/7 行、S3-2 全部 4 条 B 级已由用户验收通过。S3-4（上下文压缩：`src/context/tokens.ts` + `compress.ts`，`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例，全量 **277/277**；B 级 2–4 待用户）已完成。
-- **下一步**：按 `docs/tasks.md` 做 S3-5（S3 集成验收：连续 50 轮不爆上下文、重启恢复会话、审批拒绝后继续，最后打 tag `v0.1-s3`），依据 `docs/testing.md` S3-5 小节与方案 §4。
+- **当前状态**：S0/S1/S2 三个阶段全部完成并分别打 tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2`（均已 push）——S2-1~S2-8 依次交付：路径边界校验、工具注册表、文件工具（read/write/edit）、搜索工具（glob/grep）、bash、Agent Loop、TUI 工具事件（含流式叠字修复）、S2 全量验收；全量 `npm test` **204/204**、CI 全绿；6 个工具在真实模型 TUI 与假 LLM loop 演示中均可用，真实模型可自主读 README 并总结（`README ACCEPTANCE OK`）。S2 全部 B 级手工项已由用户 2026-11-24 验收通过。**S3 已完成并打 tag `v0.1-s3`**：S3-1（权限三道闸 + headless 只读，232/232）、S3-2（交互审批 UI，241/241）、S3-3（会话持久化 `.mewcode/session.json` 每轮保存/启动恢复/`--new`/损坏降级，258/258）、S3-4（上下文压缩 `src/context/tokens.ts` + `compress.ts`，`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例，277/277）、S3-5（S3 集成验收：全量回归 277/277 + 脚本化集成 `INTEGRATION OK` + tag `v0.1-s3` 已 push）全部完成；S3 各任务 B 级均已由用户 2026-11-24 实测通过（S3-1 第 2/3/4/7、S3-2 4 条、S3-3 2–5、S3-4 2–4）。
+- **下一步**：按 `docs/tasks.md` 做 S4-1（diff 与错误展示：diff 红绿行号、错误「发生了什么 + 下一步」、错误后继续对话），依据 `docs/testing.md` S4-1 小节与方案 §4。
 
 ---
 
@@ -41,8 +41,8 @@
 ```text
 项目：D:\workplace\AIAgent\MewCode（MewAgent，TypeScript + Ink 的 CLI Coding Agent）。
 开工前按顺序读：HANDOFF.md（§1/§4/§5/§6/§7）、AGENTS.md、docs/tasks.md、docs/testing.md 的本次 task 小节、MewCode-TS实施方案.md 的 §3/§4。
-先核对：git status 干净、main 与 origin/main 同步、tag v0.1-s0 / v0.1-s1 存在。
-本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S2-1：`tools/paths.ts` 工作区边界校验 + 测试）。
+先核对：git status 干净、main 与 origin/main 同步、tag v0.1-s0 / v0.1-s1 / v0.1-s2 / v0.1-s3 存在。
+本次会话只做 task <ID>：<一句话描述>（当前下一任务是 S4-1：diff 与错误展示）。
 要求：
 1) 先给实现计划，等我确认后再写代码；
 2) 只改与本 task 相关的文件；不改契约（src/types.ts），确需改先停下说明理由；
@@ -174,7 +174,7 @@ git push origin v0.1-s0
 
 Tag 计划：`v0.1-s0` → `v0.1-s1` → `v0.1-s2` → `v0.1-s3` → `v0.1.0`（S4 完成）。
 
-已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）；`v0.1-s2` —— 2026-11-24，S2 收尾提交（annotated tag，已 push；S2 全量验收见 §7 会话 22）。
+已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）；`v0.1-s2` —— 2026-11-24，S2 收尾提交（annotated tag，已 push；S2 全量验收见 §7 会话 22）；`v0.1-s3` —— 2026-11-24，S3 收尾提交（annotated tag，已 push；S3 全量验收见 §7 会话 27）。
 
 ### 5.4 回滚
 
@@ -210,7 +210,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 ## 6. 任务看板
 
 以 [`docs/tasks.md`](docs/tasks.md) 为唯一看板。当前状态：**S0 阶段已完成并打 tag `v0.1-s0`（已 push）；S1 阶段已完成并打 tag `v0.1-s1`（已 push）**——S1-1（SSE 解析，13 单测）、S1-2（OpenAI 流式客户端 + `tool_calls` 聚合，13 单测）、S1-3（`src/agent/prompt.ts` + `messages.ts`，12 单测）、S1-4（Ink TUI + `tests/ui.test.ts` 6 单测 + 假终端冒烟，补丁：多行输入 `ui/InputBox.tsx` + `MEWCODE_MOCK_DELAY_MS` 慢速流式，`tests/input-text.test.ts` 13 单测；8 条 B 级已由用户验收通过）、S1-5（`--print` headless 真实 API + `MEWCODE_DEBUG` 请求体 + 401/网络错误提示，假 fetch 单测 5 个，真实 API A 级复验通过）、S1-6（S1 全量验收 + tag `v0.1-s1`）全部完成，全量 `npm test` **104/104**、CI 全绿；**S2 进行中**：S2-1（`src/tools/paths.ts` 工作区边界校验：词法 + realpath 两层，拒绝 `..`/越界绝对路径/盘符相对/`%VAR%`/`~`/symlink-junction 逃逸，`tests/paths.test.ts` 10 单测）已完成，全量 `npm test` **114/114**；S2-2（`src/tools/registry.ts` 工具注册表：`specs()` OpenAI tools 格式 + `run()` 解析 arguments、未知工具/坏 JSON/非对象/抛异常全部收敛为 `ok:false`，`tests/registry.test.ts` 13 单测）已完成，全量 `npm test` **127/127**、CI 全绿；S2-3（`src/tools/fs.ts` 文件读写与精确替换：`read_file` 行号/offset/limit/30KB 截断、`write_file` 自动建目录、`edit_file` 唯一性 + `replace_all` + CRLF 兼容，`tests/fs.test.ts` 15 单测）已完成，全量 `npm test` **142/142**、CI 全绿；S2-4（`src/tools/search.ts` glob/grep：`*`/`?`/`**`/字符类、跳过 .git/node_modules/二进制/5MB、glob 200 条 + 30KB 截断、grep 100 条，`tests/search.test.ts` 11 单测）已完成，全量 `npm test` **153/153**、CI 全绿；S2-5（`src/tools/bash.ts` shell 选择 `MEWCODE_SHELL` > Git Bash > cmd、超时 kill + 500ms 兜底、30KB 截断、UTF-8→GBK 回退、cwd 固定工作区，`tests/bash.test.ts` 14 单测）已完成，全量 `npm test` **167/167**、CI 全绿；S2-6（`src/agent/loop.ts` Agent Loop：`AgentEvent` 事件流 + 多轮工具 + `maxSteps=30` + `turn_end` 原因 + Gate 预留，`src/tools/index.ts` 默认注册表，`tests/loop.test.ts` 19 单测）已完成，全量 `npm test` **186/186**、CI 全绿；S2-7（`src/ui/App.tsx` 消费 `AgentEvent`：`tool_start`/`tool_end` 历史项 `✅/❌` + 参数摘要 + 耗时、`tool_running` 状态行、`runTurn` 注入、`src/ui/tool-display.ts` 纯函数、mock 也走真 loop，`tests/tool-display.test.ts` 9 单测 + 假 stdin 冒烟）已完成，全量 `npm test` **195/195**、CI 全绿（补丁 2026-11-24：流式叠字修复 + `tests/stream-lines.test.ts` 9 例，全量 **204/204**）；**S2 已完成并打 tag `v0.1-s2`（已 push）**——S2-8 全量验收通过（typecheck 0 / tests 204/204 / `--help` 8 参数 / `--version` 0.1.0 / `--mock --print` 幂等 / build 与 dist 一致 / any 0 / TUI 冒烟 `SMOKE OK` / 6 工具 loop 演示 `ALL TOOLS OK` / 真实 API exit 0）+ 真实模型 README 任务 `README ACCEPTANCE OK`（2 工具 3 步）；S2 全部 B 级手工项用户 2026-11-24 通过。S3-1 已完成（2026-11-24：`src/safety/danger.ts` 9 例 + `src/safety/permissions.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例，全量 232/232；交互审批 UI 待 S3-2）。下一步 S3-2（交互审批 UI：`ui/ApprovalPrompt.tsx` y/a/n/Esc）。
-**S3 进度（2026-11-24）**：S3-1（权限三道闸：`src/safety/danger.ts` 9 例 + `src/safety/permissions.ts` 18 例 + headless 端到端 1 例，全量 **232/232**；B 级 5/6/8 已由用户实测通过）、S3-2（交互审批：`src/ui/approval.ts` + `src/ui/ApprovalPrompt.tsx`，`tests/approval.test.ts` 9 例 + 假 stdin 冒烟 `APPROVAL SMOKE OK`，全量 **241/241**；B 级 4 条已由用户实测通过）与 S3-3（会话持久化：`src/session/store.ts`，`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端，全量 **258/258**；B 级 2–5 已由用户实测通过）与 S3-4（上下文压缩：`src/context/tokens.ts` + `compress.ts`，`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例，全量 **277/277**；50 轮真实对话 B 级随 S3-5）已完成；下一任务 S3-5（S3 集成验收 + tag `v0.1-s3`）。
+**S3 进度（2026-11-24）**：S3-1（权限三道闸：`src/safety/danger.ts` 9 例 + `src/safety/permissions.ts` 18 例 + headless 端到端 1 例，全量 **232/232**；B 级 5/6/8 已由用户实测通过）、S3-2（交互审批：`src/ui/approval.ts` + `src/ui/ApprovalPrompt.tsx`，`tests/approval.test.ts` 9 例 + 假 stdin 冒烟 `APPROVAL SMOKE OK`，全量 **241/241**；B 级 4 条已由用户实测通过）与 S3-3（会话持久化：`src/session/store.ts`，`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端，全量 **258/258**；B 级 2–5 已由用户实测通过）与 S3-4（上下文压缩：`src/context/tokens.ts` + `compress.ts`，`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例，全量 **277/277**；B 级 2–4 已由用户实测通过）与 S3-5（S3 集成验收：全量回归 277/277、TUI/审批/全工具冒烟全绿、脚本化集成 25 项断言 `INTEGRATION OK`（50 轮压缩 / 会话重启恢复 / 审批拒绝后继续 / 危险命令硬拦），tag `v0.1-s3` 已 push）全部完成——**S3 阶段已完成**；下一任务 S4-1（diff 与错误展示）。
 
 阶段划分、交付物、验收标准见 `MewCode-TS实施方案.md` §4。
 
@@ -500,12 +500,24 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 
 - **做了什么**：新增 `src/context/tokens.ts`（`estimateTextTokens`：CJK 1.1 tok/字、其他 1/4 字符、向上取整；`estimateMessageTokens` 每条 +8、assistant toolCalls 字段计入；`estimateMessagesTokens`；`computeBudgetTokens(contextTokens, budgetRatio=0.7)`）与 `src/context/compress.ts`（`compressMessages`：按 user 分轮、system 常驻最前、最新轮必留、旧轮整轮丢弃保持 tool 配对、最新轮超预算截断 tool 2000 / assistant 4000、删开头悬空 tool；返回 `{droppedTurns, keptTurns, beforeTokens, afterTokens, truncated}`）；`src/agent/loop.ts` 增 `contextTokens`/`onCompress`（请求前只压缩副本、历史完整保留）；`src/index.ts` 读 `MEWCODE_CONTEXT_TOKENS`（默认 128000）、`MEWCODE_DEBUG=1` 输出 `[压缩]`；`src/config.ts` usage 与 `.env.example` 补变量说明；新增 `tests/compress.test.ts` 17 例 + `tests/loop.test.ts` 压缩接线 2 例。
 - **验收**：`npm run typecheck` exit 0；`tests/compress.test.ts` 17/17；定向 loop+compress 38/38；全量 `npm test` **277/277**；`npm run build` exit 0；`src/context/*` 无 `any`。证据 `spikes/.out/s3-4-{typecheck,typecheck2,compress,targeted,full2,build2}.txt`（gitignored）。
-- **B 级**：2–4 待用户（50 轮长对话不报上下文超限；`MEWCODE_CONTEXT_TOKENS=300` + `MEWCODE_DEBUG=1` 观察 `[压缩]`；压缩后追问早期信息）。S3-3 第 2–5 行已于本轮确认由用户通过。
+- **B 级**：2–4 已由用户 2026-11-24 实测通过（50 轮 mock 长对话无上下文超限；`MEWCODE_CONTEXT_TOKENS=300` + `MEWCODE_DEBUG=1` 看到 `[压缩]` 统计且 system 保留；压缩后追问早期信息模型表示不记得）。S3-3 第 2–5 行已于本轮确认由用户通过。
 - **文档**：`docs/tasks.md` S3-4 done、焦点 S3-5；`docs/testing.md` L7/L128 + S3-4 已完成小节 + 附录 D；`docs/spec.md` L3/L83/§8/§13；`docs/checklist.md` context 项 + 标准 #6/#7 + §4 回归；本节。
 - **提交**：分支 `task/s3-4-context` 提交 `01f28ba`（已 push，远端保留）→ squash 合并 main `80a8b82`。
 - **CI**：`45326578269`（task 分支, `01f28ba`）、`45326599856`（main, `80a8b82`）success，日志 `# tests 277 / # pass 277 / # fail 0`。
 - **坑**：①`tokens.ts` 初版漏 `import type { Message }`（TS2304，2 处）；②`compress.test.ts` 首跑 2 红：assistant toolCalls token 期望值算错（21→18）、「3 轮超预算」预算太大（`contextTokens` 500→300）；③`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
 - **下次第一步**：S3-5（集成验收：50 轮不爆上下文、重启恢复、审批拒绝后继续 + 打 tag `v0.1-s3`），依据 `docs/testing.md` S3-5 与方案 §4。
+
+### 2026-11-24 · 会话 27（S3-5：S3 集成验收 + tag `v0.1-s3`）
+
+- **做了什么**：先按惯例把 S3-4 的 B 级 2–4 结论入库（`docs/testing.md` 行 2–4 改 ✅ 用户实测通过 + B 级段；`docs/tasks.md` S3-4 证据；`docs/checklist.md` context 项；本节）。然后做 S3-5 集成验收：①全量回归（typecheck / `npm test` 277/277 / `--help` 8 参数 / `--version` 0.1.0 / `--mock --print` 两次幂等 / `build`+`dist` 与 dev 一致 / `src/**` 无 `any`）；②TUI/审批/全工具冒烟回归（`SMOKE OK`、`APPROVAL SMOKE OK`、`ALL TOOLS OK`）；③新写脚本化集成 `spikes/.out/s3-5-integration.ts`（gitignored）：50 轮压缩（全部 stop、历史 101 条完整、压缩 50 次 maxDropped=41、末次请求 18 条且 system 首位、tool 配对完整）、会话重启恢复（2→4 条、createdAt 保留）、审批拒绝后继续（询问 1 次、文件未创建、模型收到拒绝并继续）、危险命令硬拦（`rm -rf /` 不弹审批、模型收到危险原因、loop 继续），25 项断言全部 PASS → `INTEGRATION OK`。④文档收尾（tasks.md S3-5 done、焦点 S4-1；testing.md S3-5 已完成表；spec.md L3/§13；checklist.md S3 全项与标准 #6/#7、§4/§5）并打 tag `v0.1-s3`。
+- **验收**：`npm run typecheck` exit 0；全量 `npm test` **277/277**；`INTEGRATION OK`；TUI 冒烟 `SMOKE OK`、审批冒烟 `APPROVAL SMOKE OK`、6 工具 `ALL TOOLS OK`；`npm run build` exit 0 且 dist 输出与 dev 一致；`src/**` `\bany\b` 0。证据 `spikes/.out/s3-5-*.txt`（gitignored）。
+- **B 级**：S3 各任务 B 级均已由用户实测通过（S3-1 第 2/3/4/7、S3-2 4 条、S3-3 2–5、S3-4 2–4）；用户可按方案 §4 S3 手工清单在 TUI 里再过一遍（可选）。
+- **文档**：`docs/tasks.md` S3-5 done、焦点 S4-1；`docs/testing.md` S3-5 已完成小节（8 行结果表 + 证据 + B 级 + tag）；`docs/spec.md` L3 状态、§13 新增 S3-5 ✅ 行 + S3 行 ✅；`docs/checklist.md` S3 全项 `[x]`、标准 #6/#7、§4 回归、§5 tag 行；`HANDOFF.md` L5/§1/§5.3/§6/§7（本节）。
+- **提交**：分支 `task/s3-5-acceptance` 提交 `<待回填>`（已 push，远端保留）→ squash 合并 main `<待回填>`。
+- **CI**：`<待回填>` success，日志 `# tests 277 / # pass 277 / # fail 0`。
+- **tag**：`v0.1-s3`（annotated）打在 S3 收尾提交 `<待回填>`，已 push。
+- **坑**：①集成脚本首版 3 个断言写错（50 轮末次请求长度阈值过严——实际压缩到 18 条属正常；会话恢复用例漏加"第二轮 user 消息"导致计数 3≠4）→ 修正断言后 25/25 PASS；②`git switch` 后 CRLF 规范化会让 `edit` 报 `file changed since it was read`，需先 read 再改。
+- **下次第一步**：S4-1（diff 与错误展示），依据 `docs/tasks.md` S4-1、`docs/testing.md` S4-1 与方案 §4。
 
 ```text
 ### YYYY-MM-DD · 会话 N（<主题>）

@@ -68,8 +68,9 @@
 - [x] `session/store.ts`：`.mewcode/session.json` 保存/恢复/`--new`；损坏文件降级处理。
   - 证据（S3-3，2026-11-24）：`tests/session.test.ts` **14 例**通过（路径、保存→加载往返与 `{version:1,workspace,model,createdAt,updatedAt,messages}` 字段、system 剥离、toolCalls 保留、空历史不落盘、无文件→empty、`--new` 跳过、坏 JSON/未知版本/messages 非数组/单条消息非法→corrupt + 原因、临时文件无残留、保存失败返回 `{ok:false}` 不抛）；`tests/config.test.ts` 新增 3 例端到端（TUI 启动恢复 `restoredMessageCount`/`initialMessages`/`persistMessages` 保留 createdAt、损坏文件提示并按新会话、`--new` 忽略已有会话）；全量 `npm test` **258/258**。B 级 2–5（重启恢复/`--new`/损坏降级/`git status` 不跟踪）待用户重启实测。
 - [x] `context/*`：按用户轮次压缩，50 轮模拟不超限、工具调用/结果配对不破坏。
-  - 证据（S3-4，2026-11-24）：`src/context/tokens.ts`（CJK 1.1/字、其他 1/4、每条 +8、预算 = contextTokens×0.7）+ `src/context/compress.ts`（按 user 分轮、system 常驻、最新轮必留、旧轮整轮丢弃保持 assistant.toolCalls↔tool 配对、最新轮超预算截断 tool 2000/assistant 4000、去掉开头悬空 tool）；`src/agent/loop.ts` 增 `contextTokens`/`onCompress`（请求前压缩副本、历史完整保留）；`src/index.ts` 读 `MEWCODE_CONTEXT_TOKENS`（默认 128000）、`MEWCODE_DEBUG=1` 输出 `[压缩]`；`tests/compress.test.ts` **17 例** + `tests/loop.test.ts` 压缩接线 2 例通过；全量 `npm test` **277/277**；`npm run build` exit 0；`src/context/*` `any` 0。50 轮真实/mock 长对话 B 级随 S3-5 集成验收。
-- [ ] 更新文档、打 tag。
+  - 证据（S3-4，2026-11-24）：`src/context/tokens.ts`（CJK 1.1/字、其他 1/4、每条 +8、预算 = contextTokens×0.7）+ `src/context/compress.ts`（按 user 分轮、system 常驻、最新轮必留、旧轮整轮丢弃保持 assistant.toolCalls↔tool 配对、最新轮超预算截断 tool 2000/assistant 4000、去掉开头悬空 tool）；`src/agent/loop.ts` 增 `contextTokens`/`onCompress`（请求前压缩副本、历史完整保留）；`src/index.ts` 读 `MEWCODE_CONTEXT_TOKENS`（默认 128000）、`MEWCODE_DEBUG=1` 输出 `[压缩]`；`tests/compress.test.ts` **17 例** + `tests/loop.test.ts` 压缩接线 2 例通过；全量 `npm test` **277/277**；`npm run build` exit 0；`src/context/*` `any` 0。B 级 2–4（50 轮不超限、`[压缩]` 统计、压缩后追问）已由用户 2026-11-24 实测通过。
+- [x] 更新文档、打 tag。
+  - 证据（S3-5，2026-11-24）：`docs/tasks.md` S3-5 done/焦点 S4-1、`docs/testing.md` S3-5 已完成小节、`docs/spec.md` §13 S3-5 ✅ 与 S3 行 ✅、本清单 S3 全项 `[x]`、`HANDOFF.md` §7 会话 27；tag `v0.1-s3`（annotated，S3 收尾提交，已 push）。
 
 ### S4 打磨与交付（目标：tag `v0.1.0`）
 
@@ -86,25 +87,25 @@
 | 3 | 多工具自主连续调用（≥3 步） | 让模型完成"读 README → 改一行 → 跑测试" | 会话记录 | ⬜ |
 | 4 | 写/命令前确认，拒绝原因回填 | 拒绝一次 write，观察模型调整 | 会话截图 | ⬜ |
 | 5 | 路径不越界 + 危险命令拦截 | 尝试读 `..\..\Windows`、`rm -rf` | 单测 + 实机 | 🔄（单测 ✅ 2026-11-24：`tests/paths.test.ts` 10 例 / `tests/danger.test.ts` 9 例 / `tests/permissions.test.ts` 18 例；危险命令 `rm -rf`·`del /f /s /q`·`format`·`shutdown` 与 `--print` 写拒绝已由用户实测通过；交互审批 ✅ S3-2，B 级 4 条已由用户 2026-11-24 实测通过） |
-| 6 | 连续 50 轮不爆上下文 | 脚本灌 50 轮后继续提问 | token 统计 | 🔄（代码完成 ✅ S3-4：`context/tokens.ts` + `context/compress.ts` 按轮压缩、`MEWCODE_CONTEXT_TOKENS` 可调、`MEWCODE_DEBUG=1` 输出 `[压缩]` 统计；`tests/compress.test.ts` 17 例 + loop 2 例，全量 277/277；50 轮真实对话验证留 S3-5） |
-| 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | ✅（S3-3：`session/store.ts` 每轮保存/启动恢复/`--new`/损坏降级 + `tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；B 级 2–5 已由用户 2026-11-24 实测通过） |
+| 6 | 连续 50 轮不爆上下文 | 脚本灌 50 轮后继续提问 | token 统计 | ✅（S3-4 代码 + S3-5 集成：`spikes/.out/s3-5-integration.ts` 50 轮全部 `stopReason=stop`、内存历史 101 条完整、压缩 50 次 `maxDropped=41`、末次请求 18 条且 system 首位、tool 配对完整；用户 2026-11-24 50 轮 mock B 级通过） |
+| 7 | 重启恢复会话 | 退出后用 `npm run dev` 继续 | 会话文件 diff | ✅（S3-3：`session/store.ts` 每轮保存/启动恢复/`--new`/损坏降级 + `tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；B 级 2–5 已由用户 2026-11-24 实测通过；S3-5 集成脚本复验 2→4 条消息、createdAt 保留） |
 | 8 | WT 中文输入输出不乱码 | Windows Terminal 输入中文提问 | S0-1 已验输入；S1 验输出 | 🚧 |
 | 9 | 一条命令启动 | 新目录 `npm install && npm run dev` | 截图 | ✅ `npm run dev` |
 | 10 | README + 测试 + 3 分钟演示 | 照 README 从零复现 | README 链接、演示文件 | ⬜ |
 
 ## 4. 阶段回归清单（每个阶段完成后跑一遍）
 
-- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**；S3-4：typecheck exit 0、tests **277/277**）
-- [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0；S2-8 同）
-- [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等；S2-8：两次输出一致）
-- [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致；S2-8 同）
+- [x] `npm ci`（或 `npm install`）+ `npm run typecheck` + `npm test` 全绿。（S0-5 干净副本 `npm ci` 52 packages；S1-6 重跑：typecheck exit 0、tests 104/104；S2-8：typecheck exit 0、tests **204/204**；S3-4：typecheck exit 0、tests **277/277**；S3-5 复跑同 277/277）
+- [x] `npm run dev -- --help` / `--version` 正常，退出码 0。（S1-6：8 参数齐全、`0.1.0` exit 0；S2-8 同；S3-5 复跑同）
+- [x] `npm run dev -- --mock --print "你好"` 两轮正常，退出码 0。（S1-6 连跑两次幂等；S2-8：两次输出一致；S3-5 复跑一致）
+- [x] `npm run build && npm start` 正常。（S1-6：`npm run build` exit 0；`node dist/index.js --mock --print "你好"` 输出与 dev 一致；S2-8 同；S3-5 复跑一致）
 - [x] Windows Terminal 下中文输入/输出一次（人工）。（S0-1 IME spike 在 WT 内完成中文输入与显示，证据 `spikes/.out/r1-03-committed.png`；S1-4 多行输入/Shift+Enter 与 S1-5 真实 API 中文输出均由用户在 WT 验收通过；S2-8 用户 TUI 实测 glob/grep/bash 中文输出正常）
-- [x] `git status` 干净、无敏感文件；远端 main 与本地一致。（S1-6 提交 tag 后核对；S2 收尾后核对：tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2` 均已 push）
+- [x] `git status` 干净、无敏感文件；远端 main 与本地一致。（S1-6 提交 tag 后核对；S2 收尾后核对：tag `v0.1-s0`/`v0.1-s1`/`v0.1-s2` 均已 push；S3-5 收尾后：tag `v0.1-s3` 已 push、main 与远端一致）
 
 ## 5. 发布清单（v0.1.0）
 
 - [ ] `README.md` 快速开始可从零复制运行；包含环境要求、`.env` 说明、常用命令。
 - [ ] `docs/spec.md` §13 阶段状态全部 ✅；§3 十条标准证据齐全。
-- [ ] 全部 tag（`v0.1-s0` … `v0.1-s3`、`v0.1.0`）已 push 到远端。（当前 `v0.1-s0`/`v0.1-s1`/`v0.1-s2` 已 push；`v0.1-s3`、`v0.1.0` 待后续阶段）
+- [ ] 全部 tag（`v0.1-s0` … `v0.1-s3`、`v0.1.0`）已 push 到远端。（当前 `v0.1-s0`/`v0.1-s1`/`v0.1-s2`/`v0.1-s3` 已 push；`v0.1.0` 待 S4）
 - [ ] 3 分钟演示可复现；演示脚本/录屏路径写进 README。
 - [ ] 已知限制清单（spec §11）与 `docs/tasks.md` 遗留项交给用户确认。

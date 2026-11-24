@@ -5,7 +5,7 @@
 > 阶段与验收的完整说明见 [MewCode-TS实施方案.md](../MewCode-TS实施方案.md) §4。
 > 每个 task 的测试步骤（AI 自动化 + 用户手工验收）见 [docs/testing.md](testing.md)，完成前按对应小节留证据。
 
-**当前焦点：S3-5（集成验收：50 轮不爆、恢复、拒绝后继续 + 打 tag `v0.1-s3`）**
+**当前焦点：S4-1（diff 与错误展示）**
 **最后更新：2026-11-24**
 
 ---
@@ -52,8 +52,8 @@
 | S3-1 | `safety/danger.ts` + `permissions.ts`：三道闸、会话白名单、headless 规则 | 4h | done | `rm -rf` 等危险命令硬拦；拒绝原因回填模型并可继续；headless 写/命令直接拒绝并说明限制（`tests/danger.test.ts` 9 例 + `tests/permissions.test.ts` 18 例 + `tests/config.test.ts` headless 端到端 1 例；全量 232/232；交互审批 UI 待 S3-2；证据见 HANDOFF §7 会话 23） |
 | S3-2 | `ui/ApprovalPrompt.tsx`：y / a / n / Esc | 3h | done | 选 a 后同类不再问；Esc 视为拒绝（`tests/approval.test.ts` 9 例：controller/Esc→拒绝/白名单/弹窗渲染；假 stdin 审批冒烟 `APPROVAL SMOKE OK`；全量 241/241；B 级 4 条待用户；证据见 HANDOFF §7 会话 24） |
 | S3-3 | `session/store.ts`：每轮保存、启动恢复、`--new` | 3h | done | 退出重进恢复上下文（`tests/session.test.ts` 14 例 + `tests/config.test.ts` 3 例端到端；全量 258/258；B 级 2–5 已由用户 2026-11-24 实测通过；证据见 HANDOFF §7 会话 25） |
-| S3-4 | `context/tokens.ts` + `compress.ts`：按轮压缩 + 测试 | 4h | done | system 保留、最新轮保留、无悬空 tool（`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例；全量 277/277；`MEWCODE_CONTEXT_TOKENS`/`MEWCODE_DEBUG=1` 可观察压缩；证据见 HANDOFF §7 会话 26） |
-| S3-5 | 集成验收：50 轮不爆、恢复、拒绝后继续 + 打 tag `v0.1-s3` | 1h | todo | 全部通过 |
+| S3-4 | `context/tokens.ts` + `compress.ts`：按轮压缩 + 测试 | 4h | done | system 保留、最新轮保留、无悬空 tool（`tests/compress.test.ts` 17 例 + loop 压缩接线 2 例；全量 277/277；`MEWCODE_CONTEXT_TOKENS`/`MEWCODE_DEBUG=1` 可观察压缩；B 级 2–4 已由用户 2026-11-24 实测通过；证据见 HANDOFF §7 会话 26） |
+| S3-5 | 集成验收：50 轮不爆、恢复、拒绝后继续 + 打 tag `v0.1-s3` | 1h | done | 全部通过（全量回归 typecheck 0 / tests 277/277 / help+version / mock 幂等 / build+dist 一致 / any 0；TUI·审批·全工具冒烟 `SMOKE OK`/`APPROVAL SMOKE OK`/`ALL TOOLS OK`；脚本化集成 `spikes/.out/s3-5-integration.ts` 25 项断言 `INTEGRATION OK`（50 轮压缩 / 会话重启恢复 / 拒绝后继续 / 危险命令硬拦）；tag `v0.1-s3` 已 push；证据见 HANDOFF §7 会话 27） |
 
 ## S4 · 打磨与交付（2 天）
 

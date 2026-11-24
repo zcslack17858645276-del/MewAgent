@@ -649,9 +649,9 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 | # | 类型 | 步骤 | 预期 | 结果 | 级别 |
 |---|---|---|---|---|---|
 | 1 | A | `tests/compress.test.ts`：3 轮超预算；system 保留；最新轮保留；不产生悬空 tool；单轮超长截断 | 全绿 | ✅ 17 例通过（另有 `tests/loop.test.ts` 压缩接线 2 例；全量 277/277） | P0 |
-| 2 | B | mock 长文本连续 50 轮（或真实 15 轮短对话） | 无 400 上下文超限；对话仍连贯 | ⏳ 待用户（随 S3-5 集成验收统一跑：`$env:MEWCODE_CONTEXT_TOKENS="300"; npm run dev -- --mock` 连聊 50 轮） | P0 |
-| 3 | B | `MEWCODE_CONTEXT_TOKENS=300` + `MEWCODE_DEBUG=1` 观察压缩前后 token 估算 | 压缩确实发生，system 未被丢 | ⏳ 待用户（stderr 应出现 `[压缩] 丢弃 N 轮，tokens X → Y`；system 行仍在历史最前） | P1 |
-| 4 | B | 压缩后继续问早期信息 | 模型会说"不记得"，但能基于压缩摘要/最近轮回答 | ⏳ 待用户（P2，非阻塞） | P2 |
+| 2 | B | mock 长文本连续 50 轮（或真实 15 轮短对话） | 无 400 上下文超限；对话仍连贯 | ✅ 用户实测通过（2026-11-24）：50 轮 mock 长对话无上下文超限、对话连贯 | P0 |
+| 3 | B | `MEWCODE_CONTEXT_TOKENS=300` + `MEWCODE_DEBUG=1` 观察压缩前后 token 估算 | 压缩确实发生，system 未被丢 | ✅ 用户实测通过（2026-11-24）：stderr 出现 `[压缩] 丢弃 N 轮，tokens X → Y`，system 行仍在最前 | P1 |
+| 4 | B | 压缩后继续问早期信息 | 模型会说"不记得"，但能基于压缩摘要/最近轮回答 | ✅ 用户实测通过（2026-11-24，P2）：模型表示早期信息已不在上下文中 | P2 |
 
 **A 级证据（2026-11-24）**：`npm run typecheck` exit 0；`tests/compress.test.ts` **17/17**；定向 `tests/loop.test.ts`+`tests/compress.test.ts` **38/38**；全量 `npm test` **277/277**（`spikes/.out/s3-4-full2.txt`）；`npm run build` exit 0（`s3-4-build2.txt`）；`src/context/*.ts` `\bany\b` 0 匹配。记录文件 `spikes/.out/s3-4-typecheck2.txt`、`s3-4-compress.txt`、`s3-4-targeted.txt`、`s3-4-full2.txt`、`s3-4-build2.txt`（gitignored）。
 
@@ -661,11 +661,28 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 
 **已知限制**：估算是字符级"保险丝"（非真实分词，CJK 1.1/字为经验值，不做精确计费）；被丢弃的旧轮**不会生成摘要**，模型会真的不记得早期细节（只保留 system 与最近若干轮）；工具输出已由工具层截到 30KB，压缩层再对最新轮 tool 截 2000 字符；预算不含 tools schema 的 token（靠 30% 余量吸收）；`MEWCODE_CONTEXT_TOKENS` 只影响压缩阈值，不改变模型真实窗口。
 
-**B 级复核**：⏳ 2–4 行待用户（其中第 2 行建议与 S3-5 集成验收的"连续 50 轮"一起做）。
+**B 级复核**：✅ 2–4 行已由用户 2026-11-24 实测通过（50 轮 mock 不超限；`[压缩]` 统计出现且 system 保留；压缩后追问早期信息模型表示不记得）。
 
-#### S3-5 S3 集成验收
+#### S3-5 S3 集成验收（已完成 2026-11-24，tag `v0.1-s3`）
 
-按 §4 S3 回归清单逐项过；tag `v0.1-s3`。
+按 §4 S3 回归清单逐项过。
+
+| # | 检查项 | 结果 |
+|---|---|---|
+| 1 | 全量回归（typecheck / test） | ✅ `npm run typecheck` exit 0；全量 `npm test` **277/277 pass、fail 0** |
+| 2 | CLI 回归（`--help` / `--version` / `--mock --print` ×2 / `build`+`dist`） | ✅ 8 个参数齐全；`0.1.0` exit 0；两次 `--mock --print 你好` 输出完全一致；`npm run build` exit 0 且 `node dist/index.js --mock --print 你好` 与 dev 输出一致 |
+| 3 | 50 轮不爆上下文（脚本化集成） | ✅ `spikes/.out/s3-5-integration.ts`：50 轮全部 `stopReason=stop`；内存历史 101 条完整；压缩发生 50 次、`maxDropped=41`；末次请求 18 条（system 首位、不以 tool 开头）；tool 配对完整 |
+| 4 | 重启恢复会话（脚本化集成） | ✅ 保存 → `loadSession` → 继续一轮 → 再保存：消息 2 → 4 条、`createdAt` 保留、磁盘文件 4 条 |
+| 5 | 审批拒绝后继续（脚本化集成） | ✅ 审批询问 1 次（`write_file:deny.txt`）；文件未创建；`tool_end` 失败；模型收到 `权限被拒绝` 回填并继续给出文本；`stopReason=stop` |
+| 6 | 危险命令硬拦（脚本化集成） | ✅ `rm -rf /` 未弹审批（`asked=0`），模型收到"危险命令"原因，loop 继续 |
+| 7 | TUI / 审批 / 全工具冒烟回归 | ✅ `SMOKE OK`、`APPROVAL SMOKE OK`、`ALL TOOLS OK` |
+| 8 | 源码无 `any` / 工作树干净 | ✅ `src/**` `\bany\b` 0 匹配；提交前 `git status` 仅文档改动 |
+
+**证据**：`spikes/.out/s3-5-integration.txt`（25 项断言以 `INTEGRATION OK` 结束）、`s3-5-typecheck.txt`、`s3-5-full.txt`、`s3-5-help.txt`、`s3-5-version.txt`、`s3-5-mock1.txt`/`s3-5-mock2.txt`、`s3-5-build.txt`、`s3-5-dist.txt`、`s3-5-tui-smoke.txt`、`s3-5-approval-smoke.txt`、`s3-5-all-tools.txt`（均 gitignored）。
+
+**B 级**：S3 各任务 B 级已由用户实测通过（S3-1 第 2/3/4/7、S3-2 4 条、S3-3 2–5、S3-4 2–4）；用户还可按方案 §4 S3 手工清单在 TUI 里再过一遍（删文件弹审批、n 不硬来、a 后同类不再问、`rm -rf /` 直接拦、连续 50 轮、退出重进恢复）。
+
+**tag**：`v0.1-s3`（annotated，打在 S3 收尾提交，已 push）。
 
 ---
 
