@@ -1,4 +1,4 @@
-// S4-3 打包与启动：静态检查 bin / prepack / shebang 是否正确配置。
+// S4-3 打包与启动：静态检查 bin / prepare / shebang 是否正确配置。
 // 真正的 `npm link` / `npx .` 手工验证见 docs/testing.md S4-3（A 级记录在 HANDOFF §7 会话 31）。
 // 这里只做不依赖网络与全局环境的回归：package.json 元数据与入口脚本首行。
 
@@ -30,9 +30,10 @@ test("package.json 暴露 mewagent bin 且指向构建产物", () => {
   assert.equal(manifest.bin?.mewagent, "./dist/index.js");
 });
 
-test("prepack 会先构建，保证 npx/npm pack 的产物含 dist", () => {
+test("prepare 会在安装/打包前构建，保证 git 安装与 npm pack 的产物含 dist", () => {
   const manifest = readManifest();
-  assert.equal(manifest.scripts?.prepack, "npm run build");
+  assert.equal(manifest.scripts?.prepare, "npm run build");
+  assert.equal(manifest.scripts?.prepack, undefined);
   assert.ok(manifest.scripts?.build !== undefined);
 });
 

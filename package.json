@@ -5,6 +5,14 @@
   "description": "MewAgent - 类 Claude Code 的个人版 CLI Coding Agent（TypeScript + Ink）",
   "type": "module",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zcslack17858645276-del/MewAgent.git"
+  },
+  "homepage": "https://github.com/zcslack17858645276-del/MewAgent#readme",
+  "bugs": {
+    "url": "https://github.com/zcslack17858645276-del/MewAgent/issues"
+  },
   "bin": {
     "mewagent": "./dist/index.js"
   },
@@ -22,7 +30,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
-    "prepack": "npm run build",
+    "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --import tsx --test tests/*.test.ts"
   },
