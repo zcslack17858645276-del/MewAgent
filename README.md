@@ -33,19 +33,27 @@ MewAgent 是一个类 Claude Code 的命令行编程助手，用 TypeScript + [I
 | 终端 | **Windows 建议 Windows Terminal**（cmd / 旧版 PowerShell 窗口的 TUI 观感与中文输入体验较差） |
 | 真实 API | 任意 OpenAI 兼容的 `/chat/completions` 端点与 API key |
 | 网络 | 国内环境：npm 可用 npmmirror 镜像；访问 GitHub 通常需要代理 |
-| git | 仅"从 GitHub 一行安装"需要（npm 用它拉取源码）；用源码开发时本来就需要 |
+| git | 仅"从 GitHub 一行安装"需要（脚本用它拉取源码；无 git 时脚本会退回下载 zip/tar.gz）；用源码开发时本来就需要 |
 
 > 中文输入法提示：在 Windows Terminal + 微软拼音下可正常输入中文（候选框位置略有偏移，可接受）。详见 `spikes/RESULT.md`。
 
-## 一键安装（从 GitHub，不需要手动 clone）
+## 一键安装（不需要手动 clone）
 
-如果你只是想用，不打算改代码：
+如果你只是想用，不打算改代码，用一行安装脚本（会检查 Node ≥ 22、下载源码、安装依赖、构建并全局安装）：
 
-```bash
-npm install -g github:zcslack17858645276-del/MewAgent
+**Windows（PowerShell）**
+
+```powershell
+irm https://raw.githubusercontent.com/zcslack17858645276-del/MewAgent/main/scripts/install.ps1 | iex
 ```
 
-安装时 npm 会自动拉取仓库并执行 `npm run build`（依赖 Node ≥ 22 与 git）。装好后任意目录：
+**macOS / Linux**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zcslack17858645276-del/MewAgent/main/scripts/install.sh | bash
+```
+
+脚本最后会打印 `mewagent --version` 供确认。装好后任意目录：
 
 ```bash
 mewagent --version        # 0.1.0
@@ -53,8 +61,13 @@ mewagent                  # 首次运行弹出配置向导：base-url / 模型 /
 mewagent --mock --print "你好"   # 没有 API key 也能先验证安装
 ```
 
-- **升级**：重新执行同一条 `npm install -g github:...` 即可；也可固定版本 `npm install -g github:zcslack17858645276-del/MewAgent#v0.1.0`。
-- **卸载**：`npm uninstall -g mewagent`。
+- **升级**：重新执行同一条安装命令（会重新拉取 main 并构建）；卸载：`npm uninstall -g mewagent`。
+- **固定版本**：`MEWAGENT_REF=v0.1.0`（PowerShell 用 `$env:MEWAGENT_REF='v0.1.0'`，bash 用 `MEWAGENT_REF=v0.1.0`）。
+- **备选（直接用 npm 装 GitHub 仓库）**：
+  ```bash
+  npm install -g --allow-git=all github:zcslack17858645276-del/MewAgent
+  ```
+  npm 12+ 默认禁用 git 依赖，所以需要 `--allow-git=all`；npm 11 及更早版本可省略该参数。它同样会触发 `prepare` 自动构建。
 - 下面的 1~7 节是"从源码开发/调试"的方式；只想使用的话到本节为止就够。
 
 ## 快速开始
@@ -153,7 +166,7 @@ mewagent --help       # 任意目录可用
 mewagent --mock --print "你好"
 ```
 
-不想装全局时，可以直接让 npm 从本目录打包运行（`prepack` 会自动构建）：
+不想装全局时，可以直接让 npm 从本目录打包运行（`prepare` 会在安装/打包前自动构建）：
 
 ```bash
 npx . --mock --print "你好"   # 从仓库根目录执行
