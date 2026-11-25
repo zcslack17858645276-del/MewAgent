@@ -617,8 +617,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **修过的坑**：`npm install -g .` 在 npm 12 建 junction，脚本清理临时目录后全局命令 MODULE_NOT_FOUND（与用户另一台机器同源）→ 改为 `npm pack` 后装 tarball；旧 shim 残留致 EEXIST → 安装前清理 `mewagent`/`mewagent.cmd`/`mewagent.ps1`/`node_modules/mewagent`（重试 3 次）；`install.ps1` 必须 UTF-8 BOM（PS 5.1 按 ANSI 读会语法错误）；`git clone` 不要 `2>&1`（`$ErrorActionPreference='Stop'` 会把正常 stderr 当终止错误）。
 - **验收**：typecheck 0；全量 `npm test` **330/330（329 pass + 1 skip）**；build 0；两脚本对本地仓库分支 `task/hf-2-git-install` 端到端 exit 0（任意目录 `mewagent --version` = 0.1.0、`--mock --print` 正常、全局为真实目录拷贝、临时目录无残留）；`npm pack` 86 项 / 252,448 B。
 - **文档**：`docs/tasks.md`（新增 HF-2 行，S4-3/S4-4/HF-1 的 B 级标记改为已通过）、`docs/testing.md`（进度两处 + HF-2 小节 + 速查表 + 更新记录）、`docs/spec.md`（L3、§12、§13 HF-2 行）、`docs/checklist.md`（S4 新增 HF-2 条目）、`README.md`（一键安装章节 + `prepare` 说明）、本文件 L5/§1/§4/§6/§7。
-- **提交**：<待回填：task 分支 `ab80d72`、main squash、文档哈希回填提交>。
-- **CI**：<待回填：run id、330/330>。
+- **提交**：task 分支 `ab80d72`（`prepare` + README 一键安装、packaging 测试）→ `1b36d26`（install 脚本 + 文档收尾）；squash 进 main `0e10223`；本节由后续文档回填提交补记。
+- **CI**：`45536172360`（task 分支 `1b36d26`）、`45536197331`（main `0e10223`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 - **当前可运行状态**：v0.1.0 + HF-2（一键安装脚本）；本地改动尚未 push（GitHub 凭据失效，待用户 `gh auth login` 后补）。
 - **遗留/坑**：`gh auth status` 显示 default token 失效、GCM 无缓存凭据，非交互 shell 无法 push；全局 `mewagent` 当前来自上次安装测试的 tarball 拷贝（0.1.0）。
 - **下次第一步**：用户 B 级复核一键安装（Windows `irm … install.ps1 | iex`、macOS/Linux `curl … install.sh | bash`）；凭据恢复后补 push、squash main、CI 复核与哈希回填。

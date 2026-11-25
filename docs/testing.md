@@ -815,6 +815,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 - 实测：`npm run typecheck` 0；`npm test` **330/330（329 pass + 1 skip）**；`npm run build` 0；`npm pack --dry-run` 86 项 / 252,448 B，含 `dist/index.js`、README、docs；脚本对本地仓库分支 `task/hf-2-git-install` 端到端 exit 0，`%TEMP%` 任意目录 `mewagent --version` → `0.1.0`、`--mock --print "你好"` 正常；全局包为真实目录拷贝（`LinkType` 为空），临时目录已清理；Git Bash 下 `bash scripts/install.sh` 同样通过。
 - 背景限制：npm 12 默认 `allow-git=none` / `allow-remote=none`，`npm install -g github:…` 需加 `--allow-git=all`（README 备选命令已注明；npm 11 及更早无需）。
 - 证据：`spikes/.out/hf2-typecheck.txt`、`hf2-full2.txt`、`hf2-build.txt`、`hf2-pack2.txt`、`hf2-install-ps1.txt`、`hf2-install-sh.txt`（均 gitignored）。
+- **CI（2026-11-25）**：`45536172360`（task 分支 `1b36d26`）、`45536197331`（main `0e10223`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 
 ---
 
