@@ -367,7 +367,7 @@ MewAgent/
 │   ├── context/            token 估算 + 按轮压缩
 │   └── ui/                 Ink TUI（App、输入框、历史、审批、diff 渲染）
 ├── tests/                  node:test 单元/集成测试（30 个文件，330 例）
-├── docs/                   spec / tasks / testing / checklist / rollback
+├── docs/                   spec / tasks / testing / checklist / rollback / v0.2
 ├── .github/workflows/ci.yml
 ├── HANDOFF.md              交接文档（阶段状态、决策、会话记录）
 ├── MewCode-TS实施方案.md    总体实施方案（S0~S4 拆解）
@@ -500,7 +500,7 @@ npm run dev -- --mock --print "用 hello 工具向 Ada 问好"
 - **恢复**：默认启动时读取上次会话并提示“已恢复 N 条消息”；`--new` 忽略历史。
 - **压缩**：发送给模型前，按“用户轮次”分组；system 永远保留，最新一轮无条件保留，从新到旧累加，直到预算（`MEWCODE_CONTEXT_TOKENS × 0.7`，默认 89600）用完，装不下的旧轮**整轮丢弃**；最新一轮自身超预算时，tool 结果截到 2000 字符、assistant 文本截到 4000 字符。
 - **可观察**：`MEWCODE_CONTEXT_TOKENS=300 MEWCODE_DEBUG=1` 时可以立刻看到 `[压缩] 丢弃 N 轮，tokens X → Y`。
-- **说明**：压缩只作用于“发给模型的副本”，UI 历史与磁盘会话始终保留完整内容；不做 LLM 摘要（v0.2 候选）。
+- **说明**：压缩只作用于“发给模型的副本”，UI 历史与磁盘会话始终保留完整内容；v0.2 计划改为 LLM 摘要压缩（见 `docs/v0.2/plan.md`），v0.1 行为保持不变。
 
 ## 错误展示
 
@@ -552,14 +552,15 @@ npm run build         # 输出 dist/
 - `.env` 只在两处查找：**当前工作目录**与用户级配置目录（`~/.mewcode/.env`，可用 `MEWCODE_HOME` 改）；从项目子目录启动时不会自动向上查找仓库根目录的 `.env`（可改用 `--workspace` 或用户级配置）。
 - 首次配置向导只在**交互式终端**弹出；`--print`、管道、CI 等非交互场景不会弹（仍可用环境变量 / `.env` 配置）。
 
-v0.2 候选（尚未排期）：
+v0.2 计划（2026-11-26 已排期，见 `docs/v0.2/plan.md`）：
 
-- MCP 工具接入；
-- 子 Agent / 并行任务；
-- 多会话管理与会话切换；
-- 基于 LLM 摘要的压缩；
-- 更细粒度的 diff（行内/词级高亮）；
+- LLM 摘要压缩（替代整轮丢弃）；
+- 多会话管理与会话切换（`--resume`）；
+- Slash 命令（`/help` `/clear` `/model`）；
+- MCP 工具接入（stdio）；
 - 发布到 npm（`npx mewagent`）。
+
+不做：多模型路由、SubAgent、Skill/Hook、Agent Teams、桌面 GUI。
 
 ## 文档索引
 
@@ -571,6 +572,7 @@ v0.2 候选（尚未排期）：
 | [docs/demo.md](docs/demo.md) | 3 分钟演示脚本（可复现） |
 | [docs/checklist.md](docs/checklist.md) | 10 条成功标准与阶段回归清单 |
 | [docs/rollback.md](docs/rollback.md) | v0.1.0 冻结锚点、快速回滚脚本、v0.2 多模型工作流 |
+| [docs/v0.2/README.md](docs/v0.2/README.md) | v0.2 文档入口：范围、27 个 task、测试手册、执行规范、发布清单（2026-11-26 规划） |
 | [HANDOFF.md](HANDOFF.md) | 交接文档：当前状态、已定决策、关键文件、会话记录 |
 | [MewCode-TS实施方案.md](MewCode-TS实施方案.md) | 总体实施方案（S0~S4 拆分与风险） |
 | [MewAgent-v0.1.0-开发复盘.md](MewAgent-v0.1.0-开发复盘.md) | v0.1.0 收尾复盘：规划、执行、设计取舍、踩坑与复现指南 |
