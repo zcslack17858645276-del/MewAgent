@@ -86,6 +86,8 @@
 - [x] 发布清单通过，打 tag `v0.1.0` 并 push（见 §5 与 HANDOFF §5.3）。
 - [x] 一键安装（HF-2，2026-11-25）。新增 `scripts/install.ps1`（UTF-8 BOM）与 `scripts/install.sh`：Node ≥ 22 检查 → git clone（无 git 时回退下载 zip/tar.gz，支持 heads/tags 两种 ref 路径）→ `npm install` + `npm run build` → `npm pack` 后全局安装（避免 npm 12 的 `npm install -g .` 建出的 junction 在清理临时目录后悬空）→ 清理旧 shim（规避 EEXIST）→ `mewagent --version` 校验；`package.json` 增 `repository`/`homepage`/`bugs`，`prepack` → `prepare`，`tests/packaging.test.ts` 同步断言；README 增「一键安装」章节与 npm 备选命令（npm 12+ 需 `--allow-git=all`）。
   - 证据：两脚本本机对本地仓库端到端通过（任意目录 `mewagent --version` = 0.1.0、`--mock --print` 正常、全局为真实目录拷贝、临时目录无残留），typecheck 0、全量 **330/330**、build 0、`npm pack` 86 项；B 级 4 条待用户（见 `docs/testing.md` HF-2 小节）。
+- [x] 一键安装修复（HF-3，2026-11-26）。`scripts/install.ps1` 兼容 `irm … | iex`：去顶层 `param()`、`Fail` 用 `throw`、逻辑收进函数且 `$ErrorActionPreference` 不污染会话、验证用安装目录内 `mewagent.cmd` 并检查 PATH 是否指向新副本；全局安装失败自动回退用户目录（`%APPDATA%\npm` / `~/.npm-global`）并打印 PATH 指引；`install.sh` 同步；README 增「权限」说明。
+  - 证据：iex 模拟端到端 exit 0（`mewagent --version` = 0.1.0、任意目录 `--mock` 正常）、`-File -Repo -Ref` 绑定生效、权限回退模拟通过、`bash -n` 与 Git Bash 端到端通过；typecheck 0、全量 **330/330**（329 pass + 1 skip）、build 0；B 级 4 条待用户（见 `docs/testing.md` HF-3）。
 
 ## 3. v0.1 十条成功标准（发布前逐条勾选）
 

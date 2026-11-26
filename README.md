@@ -62,6 +62,7 @@ mewagent --mock --print "你好"   # 没有 API key 也能先验证安装
 ```
 
 - **升级**：重新执行同一条安装命令（会重新拉取 main 并构建）；卸载：`npm uninstall -g mewagent`。
+- **权限**：如果当前账号没有全局目录（如 `/usr/local`、`C:\Program Files` 级 npm prefix）的写权限，脚本会自动改为装到用户目录（Windows `%APPDATA%\npm`，macOS/Linux `~/.npm-global`），并打印把该目录加入 `PATH` 的方法；也可以先手动 `npm config set prefix` 到自己的目录再运行。
 - **固定版本**：`MEWAGENT_REF=v0.1.0`（PowerShell 用 `$env:MEWAGENT_REF='v0.1.0'`，bash 用 `MEWAGENT_REF=v0.1.0`）。
 - **备选（直接用 npm 装 GitHub 仓库）**：
   ```bash

@@ -246,8 +246,9 @@ finish: stop
 - 新用户可照 `README.md` 从 clone 到跑通（S4-2 A 级已在克隆副本验证，B 级已由用户在另一台机器通过；README 含安装、配置、命令、架构图、加工具教程）。
 - 打包与启动（S4-3）：`package.json` 配 `bin` / `prepare`（HF-2 起；原为 `prepack`）/ `files`，入口带 shebang；`npm link`、`npx .`、含空格/中文路径启动、`npm unlink -g` 清理均在 Windows 实测（A 级；`tests/packaging.test.ts` 5 例回归）。
 - 一键安装（HF-2，2026-11-25）：`scripts/install.ps1`（UTF-8 BOM，PS 5.1）与 `scripts/install.sh`——Node ≥ 22 检查 → git clone（无 git 回退下载 `archive/refs/heads|tags/<ref>.zip|tar.gz`）→ `npm install` + `npm run build` → `npm pack` 后 `npm install -g`（避免 npm 12 的 `npm install -g .` junction 在清理临时目录后悬空）→ 清理旧 shim → `mewagent --version` 校验；`package.json` 增 `repository`/`homepage`/`bugs`；npm 12 默认禁 git/remote 依赖（`allow-git=none`），`npm install -g github:…` 需 `--allow-git=all`（npm 11 及更早无需），故以脚本为主、npm 命令为备选。
+- 一键安装修复（HF-3，2026-11-26）：`scripts/install.ps1` 去掉顶层 `param()`（`irm … | iex` 下非法），改为 `MEWAGENT_REPO`/`MEWAGENT_REF`/`MEWAGENT_NO_GLOBAL` 环境变量 + `-File` 参数双支持；`Fail` 用 `throw` 而非 `exit`（不关闭用户会话）；逻辑收进函数、`$ErrorActionPreference` 不污染调用者；验证改用安装目录内 `mewagent.cmd` 并检查 PATH 是否指向新副本；全局安装失败自动回退用户目录（Windows `%APPDATA%\npm`、POSIX `~/.npm-global`）并打印 PATH 指引，`scripts/install.sh` 同步。
 
-## 13. 阶段状态（2026-11-25）
+## 13. 阶段状态（2026-11-26）
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
@@ -284,8 +285,9 @@ finish: stop
 | hotfix | 用户级 `.env`（2026-11-24）：启动时先加载 `~/.mewcode/.env`（`MEWCODE_HOME` 可改目录）再加载项目 `.env`；缺 key/模型提示两处路径；优先级 shell 环境变量 > 项目 `.env` > 用户级 `.env` > 默认值 | ✅（`tests/config.test.ts` 35/35、全量 305/305、build 0；cc-safety-net 拦 `.env` 创建/读取，端到端已由用户 2026-11-24 实测通过） |
 | HF-1 | 首启配置向导（2026-11-24，用户追加）：交互式缺配置时弹 3 步向导（base-url / 模型 / API key），可测试连接后保存到用户级 `config.json`（0600）；`--setup` 重跑、非 TTY 不弹；`src/setup/probe.ts` 连接测试；`resolveConfig` 第 4 参与新优先级 CLI > env > 用户 config.json > 默认 | ✅（`tests/setup.test.ts` 9 例 + `tests/user-config.test.ts` 6 例 + `tests/setup-wizard.test.ts` 10 例，全量 330/330（1 skip），build 0；E2E：无 cwd `.env` 时从用户级 `config.json` 读取 model/key/base-url；B 级 4 条已由用户 2026-11-24 实测通过） |
 | HF-2 | 一键安装（2026-11-25，用户追加）：`scripts/install.ps1`/`scripts/install.sh`（Node ≥ 22、git clone 或 zip/tar.gz 回退、npm install/build、`npm pack` 后全局安装并清理旧 shim、`mewagent --version` 校验）；`package.json` 增 `repository`/`homepage`/`bugs`，`prepack`→`prepare`；README「一键安装」章节 + npm 备选命令 | ✅（A 级：两脚本本机对本地仓库端到端 exit 0、任意目录 `mewagent --version` = 0.1.0、`--mock` 正常、全局为真实目录拷贝；typecheck 0、全量 330/330、build 0；`tests/packaging.test.ts` 断言 `prepare` 且无 `prepack`；B 级 4 条待用户） |
+| HF-3 | 一键安装修复（2026-11-26，用户反馈）：`install.ps1` 兼容 `irm … \| iex`（去 `param()`/`exit`、函数作用域、安装目录内验证）；全局安装失败自动回退用户目录并提示 PATH；`install.sh` 同步 | ✅（A 级：iex 模拟 exit 0、`-File -Repo -Ref` 绑定、权限回退模拟、`bash -n` + Git Bash 端到端；typecheck 0、全量 330/330；B 级 4 条待用户） |
 | S4-4 | 10 条成功标准逐项验收 + 3 分钟演示 + 发布 v0.1.0：`docs/demo.md`（4 段演示脚本，README §7 与文档索引链接）；README 测试计数更新 30 文件/330 例；全量回归 + 真实 API 验收（首字时延/多工具/审批拒绝） | ✅（全量 330/330（329 pass + 1 skip）、typecheck 0、build 0、`--mock` 幂等、dist 一致、any 0、冒烟 `SMOKE OK`/`APPROVAL SMOKE OK`/`ALL TOOLS OK`；真实 API 首字 **1314ms**、3 次工具调用（4 轮 LLM）、审批拒绝原因回填；`INTEGRATION OK`；tag `v0.1.0` 已 push；B 级 4 条已由用户 2026-11-24 实测通过） |
-| S4 | 打磨、文档、演示、发布 v0.1.0 | ✅（tag `v0.1.0` 已 push；10 条成功标准全部打勾，见 §3；发布后追加 HF-2 一键安装，2026-11-25） |
+| S4 | 打磨、文档、演示、发布 v0.1.0 | ✅（tag `v0.1.0` 已 push；10 条成功标准全部打勾，见 §3；发布后追加 HF-2 一键安装与 HF-3 修复，2026-11-25/26） |
 
 已知边界（v0.1）：
 
