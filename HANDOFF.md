@@ -186,10 +186,11 @@ git push origin v0.1-s0
 
 Tag 计划：`v0.1-s0` → `v0.1-s1` → `v0.1-s2` → `v0.1-s3` → `v0.1.0`（S4 完成）。
 
-已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）；`v0.1-s2` —— 2026-11-24，S2 收尾提交（annotated tag，已 push；S2 全量验收见 §7 会话 22）；`v0.1-s3` —— 2026-11-24，S3 收尾提交（annotated tag，已 push；S3 全量验收见 §7 会话 27）；`v0.1.0` —— 2026-11-24，v0.1.0 发布提交（annotated tag，打在 S4-4 哈希回填提交，已 push；10 条成功标准验收见 §7 会话 34）。
+已打 tag：`v0.1-s0` —— 2026-11-23，S0 收尾提交（annotated tag，已 push 到远端；S0 全量验收见 §7 会话 8）；`v0.1-s1` —— 2026-11-23，S1 收尾提交（annotated tag，已 push；S1 全量验收见 §7 会话 14）；`v0.1-s2` —— 2026-11-24，S2 收尾提交（annotated tag，已 push；S2 全量验收见 §7 会话 22）；`v0.1-s3` —— 2026-11-24，S3 收尾提交（annotated tag，已 push；S3 全量验收见 §7 会话 27）；`v0.1.0` —— 2026-11-24，v0.1.0 发布提交（annotated tag，打在 S4-4 哈希回填提交，已 push；10 条成功标准验收见 §7 会话 34）；`v0.1.0-final` —— 2026-11-26，v0.2 开发前的冻结锚点（含 HF-2/HF-3、审计与复盘文档、回滚手册；annotated tag，已 push；远程分支 `release/v0.1.0` 指向同一提交）。
 
 ### 5.4 回滚
 
+- **v0.2 开发前的冻结锚点**：tag `v0.1.0-final` + 远程分支 `release/v0.1.0`（2026-11-26）。快速回滚：`.\scripts\rollback-to-v0.1.0.ps1 -DryRun` 预览，去掉 `-DryRun` 执行；完整场景、多模型分支/worktree 工作流见 `docs/rollback.md`。
 - 已推送的提交：`git revert <hash>`（生成反向提交，最安全）。
 - 未推送的本地提交：`git reset --hard <hash>`；执行前先 `git stash` 或建备份分支。
 - 只回滚单个文件：`git checkout <hash> -- path/to/file`。
@@ -636,6 +637,14 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **坑**：`iex` 执行内容没有脚本上下文（`param()` 非法、`exit` 会关会话、`$ErrorActionPreference` 会污染调用者）；npm 全局安装可能因 prefix 无写权限失败（用户另一台机器）；WSL 的 `bash` 不是 Git Bash（`npm` 与 `file:///D:/...` 都不可用，测试要用 `D:\git\Git\bin\bash.exe`）。
 - **下次第一步**：用户 B 级复核 irm/curl 一行安装与权限回退；之后回到 v0.2 规划。
 
+### 2026-11-26 · 会话 38（v0.1.0 冻结锚点与回滚手册）
+
+- **做了什么**：用户准备开始 v0.2（多模型协同、首次尝试），要求能快速回滚到当前完整的 v0.1.0。审计确认当前 main `c119edf` = 发布 tag `v0.1.0`（`03baaa7`）+ 7 个提交（审计、复盘、会话记录、HF-2 一键安装、HF-3 安装修复），typecheck/build 0、`npm test` 330（329 pass + 1 skip）。新增 `docs/rollback.md`（冻结锚点、脚本用法、5 种回滚场景、v0.2 多模型分支/worktree 工作流、找回被回滚工作、红线）与 `scripts/rollback-to-v0.1.0.ps1`（fetch → 备份分支 → stash -u → reset --hard → clean -fd → 打印恢复命令；支持 `-DryRun`/`-Yes`/`-Tag`；不 push、不 force、不动 tag）；更新 `HANDOFF.md` §5.3/§5.4/§8 与 `README.md` 文件树/文档索引。
+- **产出/提交**：commit `__HASH__`（"docs: 添加 v0.1.0 冻结锚点与回滚手册"）；annotated tag `v0.1.0-final`；远程分支 `release/v0.1.0`；均 push。
+- **当前可运行状态**：v0.1.0 + HF-2 + HF-3，`npm test` 330/329/1；main 与 origin 同步。
+- **遗留问题/坑**：脚本只重置当前分支、不负责发布；如果 v0.2 已经 push 到 main，必须用 `git revert` 反向提交（本项目禁止 force-push main）。
+- **下次第一步**：在 `v0.2-dev` 上建分支/worktree 开工；不直接改 main。
+
 ```text
 ### YYYY-MM-DD · 会话 N（<主题>）
 - 做了什么：
@@ -657,6 +666,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 | `docs/testing.md` | 每个 task 的测试手册（AI 自动化 + 用户手工验收） | task 完成前必读 |
 | `docs/spec.md` | v0.1 规格：目标/非目标/十条标准/架构/契约/CLI/工具/权限/TUI/阶段状态 | 动手实现前、改行为前 |
 | `docs/checklist.md` | 验收清单：通用 DoD、阶段清单、十条标准证据表、回归与发布清单 | 每个 task 收尾、阶段验收、发布 |
+| `docs/rollback.md` | v0.1.0 冻结锚点、回滚脚本用法、v0.2 多模型分支/worktree 工作流 | v0.2 开发前后、需要回滚时 |
 | `AGENTS.md` | 所有 AI 代理的统一规则（开工必读/边界/风格/DoD/红线） | 任何 AI 会话开始 |
 | `CLAUDE.md` | Claude 薄入口（指向 AGENTS.md） | 使用 Claude 时 |
 | `.github/workflows/ci.yml` | CI：`npm ci` → typecheck → test | 改构建/测试命令时 |

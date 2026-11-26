@@ -367,7 +367,7 @@ MewAgent/
 │   ├── context/            token 估算 + 按轮压缩
 │   └── ui/                 Ink TUI（App、输入框、历史、审批、diff 渲染）
 ├── tests/                  node:test 单元/集成测试（30 个文件，330 例）
-├── docs/                   spec / tasks / testing / checklist
+├── docs/                   spec / tasks / testing / checklist / rollback
 ├── .github/workflows/ci.yml
 ├── HANDOFF.md              交接文档（阶段状态、决策、会话记录）
 ├── MewCode-TS实施方案.md    总体实施方案（S0~S4 拆解）
@@ -570,6 +570,7 @@ v0.2 候选（尚未排期）：
 | [docs/testing.md](docs/testing.md) | 分级验收（A 自动化 / B 手工）与各任务结果 |
 | [docs/demo.md](docs/demo.md) | 3 分钟演示脚本（可复现） |
 | [docs/checklist.md](docs/checklist.md) | 10 条成功标准与阶段回归清单 |
+| [docs/rollback.md](docs/rollback.md) | v0.1.0 冻结锚点、快速回滚脚本、v0.2 多模型工作流 |
 | [HANDOFF.md](HANDOFF.md) | 交接文档：当前状态、已定决策、关键文件、会话记录 |
 | [MewCode-TS实施方案.md](MewCode-TS实施方案.md) | 总体实施方案（S0~S4 拆分与风险） |
 | [MewAgent-v0.1.0-开发复盘.md](MewAgent-v0.1.0-开发复盘.md) | v0.1.0 收尾复盘：规划、执行、设计取舍、踩坑与复现指南 |
