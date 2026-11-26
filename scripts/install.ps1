@@ -1,134 +1,221 @@
 ﻿# MewAgent 一行安装脚本（Windows PowerShell）
 #
-# 用法（推荐）：
+# 用法（推荐，在 PowerShell 里直接执行）：
 #   irm https://raw.githubusercontent.com/zcslack17858645276-del/MewAgent/main/scripts/install.ps1 | iex
 #
-# 可选参数（用 & { ... } 或直接调用时）：
+# 可选环境变量（可先设置再执行上面的一行命令）：
+#   $env:MEWAGENT_REPO = 'https://github.com/zcslack17858645276-del/MewAgent'
+#   $env:MEWAGENT_REF  = 'main'      # 分支或标签
+#   $env:MEWAGENT_NO_GLOBAL = '1'    # 只下载并构建，不做全局安装
+#
+# 也可以用文件方式运行（此时支持命令行参数）：
 #   .\install.ps1 -Repo <git地址> -Ref <分支/标签> -NoGlobal
 #
 # 脚本做四件事：检查 Node >= 22 → 取源码（git 优先，无 git 时下载 zip）→ 安装依赖并构建 → 全局安装并验证。
 # 不修改用户的 .env / 配置；首次运行 `mewagent` 会弹出配置向导。
+#
+# 注意：本脚本被设计为可以安全地通过 `irm ... | iex` 执行——
+#   * 不使用 param() 块（管道进 iex 时 param 会语法错误）；
+#   * 失败时 throw 而不是 exit（exit 会关闭用户的 PowerShell 会话）；
+#   * 所有逻辑在函数内，$ErrorActionPreference 等设置不会污染调用者会话。
 
-param(
-  [string]$Repo = 'https://github.com/zcslack17858645276-del/MewAgent',
-  [string]$Ref = 'main',
-  [switch]$NoGlobal
-)
+function Install-MewAgent {
+  [CmdletBinding()]
+  param(
+    [string]$Repo = 'https://github.com/zcslack17858645276-del/MewAgent',
+    [string]$Ref = 'main',
+    [switch]$NoGlobal
+  )
 
-$ErrorActionPreference = 'Stop'
+  # 只在函数作用域内生效，调用者的 $ErrorActionPreference 不受影响。
+  $ErrorActionPreference = 'Stop'
 
-function Step([string]$text) { Write-Host "==> $text" -ForegroundColor Cyan }
-function Fail([string]$text) { Write-Host "ERROR: $text" -ForegroundColor Red; exit 1 }
+  function Step([string]$text) { Write-Host "==> $text" -ForegroundColor Cyan }
+  function Warn([string]$text) { Write-Host "WARN: $text" -ForegroundColor DarkYellow }
+  function Fail([string]$text) { throw "ERROR: $text" }
 
-# 1. Node 检查
-$node = Get-Command node -ErrorAction SilentlyContinue
-if (-not $node) {
-  Fail "未找到 Node.js。请先安装 Node >= 22（推荐 winget install OpenJS.NodeJS.LTS），然后重新运行本脚本。"
-}
-$nodeVersion = (node -p "process.versions.node").Trim()
-if ([version]$nodeVersion -lt [version]'22.0.0') {
-  Fail "Node.js 版本过低：当前 $nodeVersion，需要 >= 22。请升级后重试。"
-}
-Step "Node.js $nodeVersion 可用"
-
-$npm = Get-Command npm -ErrorAction SilentlyContinue
-if (-not $npm) { Fail "未找到 npm（应随 Node 提供）。" }
-
-$tmp = Join-Path $env:TEMP ("mewagent-install-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
-New-Item -ItemType Directory -Force $tmp | Out-Null
-$src = Join-Path $tmp 'src'
-
-try {
-  # 2. 取源码
-  if (Get-Command git -ErrorAction SilentlyContinue) {
-    Step "git clone $Repo ($Ref)"
-    # 注意：不要对 git 输出做 2>&1 重定向——$ErrorActionPreference='Stop' 会把 git 的正常 stderr 当成终止错误。
-    & git clone --depth 1 --branch "$Ref" "$Repo" "$src"
-    if ($LASTEXITCODE -ne 0) { Fail "git clone 失败（检查网络/代理，或改用无 git 的 zip 方式）。" }
+  # 1. Node 检查
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $node) {
+    Fail "未找到 Node.js。请先安装 Node >= 22（推荐 winget install OpenJS.NodeJS.LTS），然后重新运行本脚本。"
   }
-  else {
-    $repoBase = $Repo.TrimEnd('/')
-    $zip = Join-Path $tmp 'src.zip'
-    $downloaded = $false
-    foreach ($kind in @('heads', 'tags')) {
-      $zipUrl = "$repoBase/archive/refs/$kind/$Ref.zip"
-      Step "未找到 git，尝试下载 $zipUrl"
-      try {
-        Invoke-WebRequest -Uri $zipUrl -OutFile $zip -UseBasicParsing
-        $downloaded = $true
-        break
-      } catch {
-        Write-Host "  （该地址不可用，继续尝试下一个）" -ForegroundColor DarkYellow
-      }
-    }
-    if (-not $downloaded) { Fail "下载源码包失败（检查网络/代理，或先安装 git）。" }
-    Expand-Archive -Path $zip -DestinationPath $tmp -Force
-    $extracted = Get-ChildItem -Path $tmp -Directory | Where-Object { $_.Name -like 'MewAgent-*' } | Select-Object -First 1
-    if (-not $extracted) { Fail "下载的源码压缩包结构不符合预期。" }
-    Move-Item -Path $extracted.FullName -Destination $src
+  $nodeVersion = (node -p "process.versions.node").Trim()
+  if ([version]$nodeVersion -lt [version]'22.0.0') {
+    Fail "Node.js 版本过低：当前 $nodeVersion，需要 >= 22。请升级后重试。"
   }
+  Step "Node.js $nodeVersion 可用"
 
-  # 3. 安装依赖 + 构建 + 全局安装
-  Push-Location $src
+  $npm = Get-Command npm -ErrorAction SilentlyContinue
+  if (-not $npm) { Fail "未找到 npm（应随 Node 提供）。" }
+
+  $tmp = Join-Path $env:TEMP ("mewagent-install-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+  New-Item -ItemType Directory -Force $tmp | Out-Null
+  $src = Join-Path $tmp 'src'
+  $keepTemp = [bool]$NoGlobal
+
   try {
-    Step "npm install（首次约 1-2 分钟）"
-    & npm install --no-audit --no-fund
-    if ($LASTEXITCODE -ne 0) { Fail "npm install 失败（检查网络/代理或 npm 镜像配置）。" }
-
-    Step "npm run build"
-    & npm run build
-    if ($LASTEXITCODE -ne 0) { Fail "构建失败。" }
-
-    if (-not $NoGlobal) {
-      # 用 npm pack 生成 tarball 再全局安装：
-      # 1) 直接 `npm install -g .` 在 npm 12 会创建指向源码目录的 junction，脚本清理临时目录后全局命令就断了；
-      # 2) tarball 安装会复制文件，但旧 shim（mewagent / mewagent.cmd / mewagent.ps1）残留会触发 EEXIST，需要先清掉。
-      Step "npm pack 后全局安装（安装为全局命令 mewagent）"
-      $tgzName = & npm pack --silent --pack-destination $tmp
-      if ($LASTEXITCODE -ne 0 -or -not $tgzName) { Fail "npm pack 失败。" }
-      $tgz = Join-Path $tmp ($tgzName | Select-Object -Last 1)
-      if (-not (Test-Path $tgz)) { Fail "找不到打包产物：$tgz" }
-
-      $prefix = (& npm config get prefix).Trim()
-      $stale = @(
-        (Join-Path $prefix 'node_modules\mewagent'),
-        (Join-Path $prefix 'mewagent'),
-        (Join-Path $prefix 'mewagent.cmd'),
-        (Join-Path $prefix 'mewagent.ps1')
-      )
-      foreach ($stalePath in $stale) {
-        if (Test-Path $stalePath) {
-          for ($i = 0; $i -lt 3; $i++) {
-            Remove-Item -Path $stalePath -Recurse -Force -ErrorAction SilentlyContinue
-            if (-not (Test-Path $stalePath)) { break }
-            Start-Sleep -Milliseconds 300
-          }
+    # 2. 取源码
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+      Step "git clone $Repo ($Ref)"
+      # 注意：不要对 git 输出做 2>&1 重定向——$ErrorActionPreference='Stop' 会把 git 的正常 stderr 当成终止错误。
+      & git clone --depth 1 --branch "$Ref" "$Repo" "$src"
+      if ($LASTEXITCODE -ne 0) { Fail "git clone 失败（检查网络/代理，或改用无 git 的 zip 方式）。" }
+    }
+    else {
+      $repoBase = $Repo.TrimEnd('/')
+      $zip = Join-Path $tmp 'src.zip'
+      $downloaded = $false
+      foreach ($kind in @('heads', 'tags')) {
+        $zipUrl = "$repoBase/archive/refs/$kind/$Ref.zip"
+        Step "未找到 git，尝试下载 $zipUrl"
+        try {
+          Invoke-WebRequest -Uri $zipUrl -OutFile $zip -UseBasicParsing
+          $downloaded = $true
+          break
+        }
+        catch {
+          Write-Host "  （该地址不可用，继续尝试下一个）" -ForegroundColor DarkYellow
         }
       }
+      if (-not $downloaded) { Fail "下载源码包失败（检查网络/代理，或先安装 git）。" }
+      Expand-Archive -Path $zip -DestinationPath $tmp -Force
+      $extracted = Get-ChildItem -Path $tmp -Directory | Where-Object { $_.Name -like 'MewAgent-*' } | Select-Object -First 1
+      if (-not $extracted) { Fail "下载的源码压缩包结构不符合预期。" }
+      Move-Item -Path $extracted.FullName -Destination $src
+    }
 
-      & npm install -g $tgz --no-audit --no-fund
-      if ($LASTEXITCODE -ne 0) { Fail "全局安装失败（检查 npm 全局目录权限；可加 -NoGlobal 只构建不安装）。" }
+    # 3. 安装依赖 + 构建
+    Push-Location $src
+    try {
+      Step "npm install（首次约 1-2 分钟）"
+      & npm install --no-audit --no-fund
+      if ($LASTEXITCODE -ne 0) { Fail "npm install 失败（检查网络/代理或 npm 镜像配置）。" }
+
+      Step "npm run build"
+      & npm run build
+      if ($LASTEXITCODE -ne 0) { Fail "构建失败。" }
+
+      if (-not $NoGlobal) {
+        # 用 npm pack 生成 tarball 再全局安装：
+        # 1) 直接 `npm install -g .` 在 npm 12 会创建指向源码目录的 junction，脚本清理临时目录后全局命令就断了；
+        # 2) tarball 安装会复制文件，但旧 shim（mewagent / mewagent.cmd / mewagent.ps1）残留会触发 EEXIST，需要先清掉。
+        Step "npm pack 后全局安装（安装为全局命令 mewagent）"
+        $tgzName = & npm pack --silent --pack-destination $tmp
+        if ($LASTEXITCODE -ne 0 -or -not $tgzName) { Fail "npm pack 失败。" }
+        $tgz = Join-Path $tmp ($tgzName | Select-Object -Last 1)
+        if (-not (Test-Path $tgz)) { Fail "找不到打包产物：$tgz" }
+
+        function Clear-MewAgentArtifacts([string]$prefix) {
+          $stale = @(
+            (Join-Path $prefix 'node_modules\mewagent'),
+            (Join-Path $prefix 'mewagent'),
+            (Join-Path $prefix 'mewagent.cmd'),
+            (Join-Path $prefix 'mewagent.ps1')
+          )
+          foreach ($stalePath in $stale) {
+            if (Test-Path $stalePath) {
+              for ($i = 0; $i -lt 3; $i++) {
+                Remove-Item -Path $stalePath -Recurse -Force -ErrorAction SilentlyContinue
+                if (-not (Test-Path $stalePath)) { break }
+                Start-Sleep -Milliseconds 300
+              }
+            }
+          }
+        }
+
+        $globalPrefix = (& npm config get prefix).Trim()
+        $installDir = $globalPrefix
+        Clear-MewAgentArtifacts $globalPrefix
+        & npm install -g $tgz --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) {
+          # 常见原因：npm 全局目录没有写权限（Linux/macOS 的 /usr/local、Windows 的 Program Files 级前缀，
+          # 或非管理员 PowerShell）。回退到用户级目录安装，并提示把它加入 PATH。
+          $userPrefix = Join-Path $env:APPDATA 'npm'
+          Warn "全局安装失败（多半是 npm 全局目录 $globalPrefix 没有写权限）。"
+          Step "改为安装到用户目录：$userPrefix"
+          New-Item -ItemType Directory -Force $userPrefix | Out-Null
+          Clear-MewAgentArtifacts $userPrefix
+          & npm install -g $tgz --prefix $userPrefix --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) {
+            Fail ("安装失败：全局目录与用户目录都不可写。可任选其一后重试：" +
+              " ① 以管理员身份重新打开 PowerShell 再运行本脚本；" +
+              " ② 在 npm 里配置用户级全局目录：npm config set prefix `"$env:APPDATA\npm`"，并确认该目录在 PATH 中；" +
+              " ③ 只下载并构建、不安装：先设置 `$env:MEWAGENT_NO_GLOBAL='1'` 再重跑。")
+          }
+          $installDir = $userPrefix
+        }
+
+        # 4. 验证（直接用刚安装的那份命令，避免 PATH 上残留旧副本干扰判断）
+        $cmdFromInstallDir = Join-Path $installDir 'mewagent.cmd'
+        if (-not (Test-Path $cmdFromInstallDir)) {
+          Fail "安装完成但未找到 mewagent 命令（检查 npm 全局 bin 是否在 PATH）。"
+        }
+        Step "验证：$cmdFromInstallDir --version"
+        & $cmdFromInstallDir --version
+        if ($LASTEXITCODE -ne 0) {
+          Fail "mewagent --version 失败：安装可能指向了已删除的源码目录，请重试或运行 npm uninstall -g mewagent 后重新安装。"
+        }
+
+        $onPath = Get-Command mewagent -ErrorAction SilentlyContinue
+        $onPathOk = $false
+        if ($onPath -and $onPath.Source) {
+          $onPathDir = Split-Path -Parent $onPath.Source
+          $onPathOk = ($onPathDir.TrimEnd('\') -ieq $installDir.TrimEnd('\'))
+        }
+        if (-not $onPathOk) {
+          Write-Host ""
+          Write-Host "安装完成，但安装目录不在 PATH 中（或 PATH 上优先命中了旧副本）：" -ForegroundColor Yellow
+          Write-Host "  $installDir"
+          Write-Host "任选其一即可开始使用："
+          Write-Host "  * 当前会话临时加入 PATH：`$env:PATH = `"$installDir;`" + `$env:PATH"
+          Write-Host "  * 永久：把 $installDir 加到「用户环境变量 Path」，然后重开终端"
+          Write-Host "  * 或直接用完整路径：& `"$cmdFromInstallDir`" --version"
+        }
+
+        Write-Host ""
+        Write-Host "安装完成。下一步：" -ForegroundColor Green
+        Write-Host "  mewagent              # 首次运行会弹出配置向导（base-url / 模型 / API key）"
+        Write-Host "  mewagent --mock       # 没有 API key 也可以先离线体验"
+        Write-Host "  升级：重新运行本脚本；卸载：npm uninstall -g mewagent"
+      }
+    }
+    finally { Pop-Location }
+  }
+  finally {
+    if (-not $keepTemp) {
+      Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue
     }
   }
-  finally { Pop-Location }
-}
-finally {
-  Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue
+
+  if ($NoGlobal) {
+    Write-Host "构建完成（未做全局安装，-NoGlobal）：$src\dist\index.js" -ForegroundColor Green
+    Write-Host "该目录保留供你自取：$tmp"
+  }
 }
 
-# 4. 验证
-if (-not $NoGlobal) {
-  $cmd = Get-Command mewagent -ErrorAction SilentlyContinue
-  if (-not $cmd) { Fail "安装完成但未找到 mewagent 命令（检查 npm 全局 bin 是否在 PATH）。" }
-  Step "验证：mewagent --version"
-  & mewagent --version
-  if ($LASTEXITCODE -ne 0) { Fail "mewagent --version 失败：全局安装可能指向了已删除的源码目录，请重试或运行 npm uninstall -g mewagent 后重新安装。" }
-  Write-Host ""
-  Write-Host "安装完成。下一步：" -ForegroundColor Green
-  Write-Host "  mewagent              # 首次运行会弹出配置向导（base-url / 模型 / API key）"
-  Write-Host "  mewagent --mock       # 没有 API key 也可以先离线体验"
-  Write-Host "  升级：重新运行本脚本；卸载：npm uninstall -g mewagent"
+# 兼容文件方式调用（powershell -File install.ps1 -Repo ... -Ref ... -NoGlobal）。
+# 通过 irm | iex 执行时 $args 为空，不会影响环境变量方式。
+$overrideRepo = $env:MEWAGENT_REPO
+$overrideRef = $env:MEWAGENT_REF
+$overrideNoGlobal = ($env:MEWAGENT_NO_GLOBAL -in @('1', 'true', 'yes', 'on'))
+for ($i = 0; $i -lt $args.Count; $i++) {
+  $arg = [string]$args[$i]
+  if ($arg -match '^-Repo:(.+)$') { $overrideRepo = $Matches[1] }
+  elseif ($arg -eq '-Repo' -and ($i + 1) -lt $args.Count) { $i++; $overrideRepo = [string]$args[$i] }
+  elseif ($arg -match '^-Ref:(.+)$') { $overrideRef = $Matches[1] }
+  elseif ($arg -eq '-Ref' -and ($i + 1) -lt $args.Count) { $i++; $overrideRef = [string]$args[$i] }
+  elseif ($arg -eq '-NoGlobal' -or $arg -eq '-NoGlobal:$true') { $overrideNoGlobal = $true }
+  elseif ($overrideRepo -eq $null -and $arg -notlike '-*') { $overrideRepo = $arg }
 }
-else {
-  Write-Host "构建完成（未做全局安装，-NoGlobal）：$src/dist/index.js" -ForegroundColor Green
+
+$invokeArgs = @{ NoGlobal = [bool]$overrideNoGlobal }
+if ($overrideRepo) { $invokeArgs['Repo'] = $overrideRepo }
+if ($overrideRef) { $invokeArgs['Ref'] = $overrideRef }
+
+try {
+  Install-MewAgent @invokeArgs
+}
+finally {
+  # 不在用户的会话里留下函数定义（重新运行时会重新定义）。
+  Remove-Item -Path 'Function:\Install-MewAgent' -ErrorAction SilentlyContinue
 }

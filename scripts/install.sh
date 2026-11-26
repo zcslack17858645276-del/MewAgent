@@ -72,16 +72,40 @@ if [ -z "$NO_GLOBAL" ]; then
   TGZ="$TMP_DIR/$TGZ_NAME"
   [ -f "$TGZ" ] || fail "找不到打包产物：$TGZ"
   npm uninstall -g mewagent >/dev/null 2>&1 || true
-  npm install -g "$TGZ" --no-audit --no-fund || fail "全局安装失败（检查 npm 全局目录权限，或设置 MEWAGENT_NO_GLOBAL=1 只构建）。"
+  INSTALL_PREFIX="$(npm config get prefix)"
+  if npm install -g "$TGZ" --no-audit --no-fund; then
+    INSTALL_PREFIX="$(npm config get prefix)"
+  else
+    # 常见原因：全局目录没有写权限（/usr/local、没加 sudo 等）。回退到用户级目录安装。
+    USER_PREFIX="$HOME/.npm-global"
+    echo "全局安装失败（多半是 $INSTALL_PREFIX 没有写权限），改为安装到用户目录：$USER_PREFIX"
+    mkdir -p "$USER_PREFIX"
+    npm install -g "$TGZ" --prefix "$USER_PREFIX" --no-audit --no-fund || fail "安装失败：全局目录与 $USER_PREFIX 都不可写。可任选其一后重试：① 用 sudo 重新运行本脚本；② npm config set prefix \"$USER_PREFIX\" 并把 \"$USER_PREFIX/bin\" 加入 PATH；③ 设置 MEWAGENT_NO_GLOBAL=1 只构建。"
+    INSTALL_PREFIX="$USER_PREFIX"
+  fi
 fi
 
 cd - >/dev/null
 
 # 4. 验证
 if [ -z "$NO_GLOBAL" ]; then
-  command -v mewagent >/dev/null 2>&1 || fail "安装完成但未找到 mewagent 命令（检查 npm 全局 bin 是否在 PATH）。"
-  step "验证：mewagent --version"
-  mewagent --version || fail "mewagent --version 失败：全局安装可能指向了已删除的源码目录，请重试。"
+  BIN="$INSTALL_PREFIX/bin/mewagent"
+  if [ -x "$BIN" ]; then
+    step "验证：$BIN --version"
+    "$BIN" --version || fail "mewagent --version 失败：安装可能指向了已删除的源码目录，请重试。"
+  else
+    command -v mewagent >/dev/null 2>&1 || fail "安装完成但未找到 mewagent 命令（检查 npm 全局 bin 是否在 PATH）。"
+    step "验证：mewagent --version"
+    mewagent --version || fail "mewagent --version 失败：安装可能指向了已删除的源码目录，请重试。"
+  fi
+  if ! command -v mewagent >/dev/null 2>&1; then
+    echo ""
+    echo "安装完成，但安装目录不在 PATH 中：$INSTALL_PREFIX/bin"
+    echo "任选其一即可开始使用："
+    echo "  * 当前会话临时加入 PATH：export PATH=\"$INSTALL_PREFIX/bin:\$PATH\""
+    echo "  * 永久：把该目录加入 ~/.bashrc / ~/.zshrc / ~/.profile 的 PATH 后重开终端"
+    echo "  * 或直接用完整路径：\"$BIN\" --version"
+  fi
   echo ""
   echo "安装完成。下一步："
   echo "  mewagent              # 首次运行会弹出配置向导（base-url / 模型 / API key）"
