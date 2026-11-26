@@ -836,6 +836,7 @@ tag `v0.1-s2` 已打并 push；跑 S0–S2 全部自动化；按 §4 S2 回归�
 - 权限回退：Windows 全局 `npm install -g` 失败时自动改装到 `%APPDATA%\npm`（先清理旧 shim，重试策略保留）；`scripts/install.sh` 同样在全局安装失败时改装 `~/.npm-global`；两者都打印「加入 PATH / 完整路径」提示。
 - 实测（本机）：① `iex` 模拟（`Get-Content -Raw scripts/install.ps1 | iex`，源指向本地 `file://` 仓库 `main`）exit 0，打印 `mewagent --version` = `0.1.0`，任意目录 `mewagent --mock --print "你好"` exit 0；② `-File install.ps1 -Repo <本地仓库> -Ref main` 参数绑定生效（用不存在仓库验证失败路径）；③ 权限回退模拟（`npm_config_prefix` 指向一个同名文件使其不可写）→ 全局安装失败后自动装到 `%APPDATA%\npm`、验证 0.1.0、打印 PATH 指引，清理后无残留；④ `bash -n scripts/install.sh` 通过，Git Bash 下 `MEWAGENT_REPO=file:///… MEWAGENT_REF=main bash scripts/install.sh` 端到端通过。
 - 证据：`spikes/.out/hf3-iex.log`、`hf3-fallback.log`、`hf3-sh.log`、`hf3-iex.err.log`（均 gitignored）。
+- **CI（2026-11-26）**：`45747561542`（task 分支 `dc59b62`）、`45747605498`（main `08fe3fd`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 
 ---
 

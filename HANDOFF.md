@@ -630,8 +630,8 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **做了什么**：用户报告 `irm … | iex` 安装失败（`iex : 所在位置 行:13 字符: 19 … 赋值表达式无效`）且另一台机器全局安装被拒绝（权限）。修复 `scripts/install.ps1`：去掉顶层 `param()`（iex 以语句块执行时非法）改为 `MEWAGENT_REPO`/`MEWAGENT_REF`/`MEWAGENT_NO_GLOBAL` 环境变量 + `-File` 参数兼容；`Fail` 改 `throw`（不再 `exit 1` 关闭用户会话）；逻辑收进 `Install-MewAgent` 函数、`finally` 清理函数定义，`$ErrorActionPreference` 只在函数作用域生效；验证改用安装目录内 `mewagent.cmd --version` 并检查 PATH 上命中的是否为本次安装。权限回退：Windows 全局安装失败自动改装 `%APPDATA%\npm`（先清旧 shim），POSIX 改装 `~/.npm-global`，均打印 PATH 指引；`scripts/install.sh` 同步回退与提示；README 增「权限」说明。
 - **验收**：typecheck 0；全量 `npm test` **330/330（329 pass + 1 skip）**；build 0；iex 模拟（`Get-Content -Raw scripts/install.ps1 | iex`，源指向本地 `file://` 仓库 main）exit 0 且 `mewagent --version` = 0.1.0、任意目录 `--mock --print` 正常；`-File -Repo -Ref` 参数绑定生效；权限回退模拟（`npm_config_prefix` 指向同名文件致不可写）→ 自动装到 `%APPDATA%\npm` 并打印 PATH 指引、清理无残留；`bash -n` + Git Bash 下 `install.sh` 端到端 exit 0。
 - **文档**：`docs/tasks.md`（新增 HF-3 行）、`docs/testing.md`（HF-3 小节）、`docs/spec.md`（§12、§13 HF-3 行）、`docs/checklist.md`（S4 新增 HF-3 条目）、`README.md`（权限说明）、本文件 L5/§1/§4/§6/§7。
-- **提交**：task 分支 `__TASK_SHA__` → squash 进 main `__MAIN_SHA__`；本节由后续文档回填提交补记。
-- **CI**：__CI_LINE__
+- **提交**：task 分支 `dc59b62` → squash 进 main `08fe3fd`；本节由后续文档回填提交补记。
+- **CI**：`45747561542`（task 分支 `dc59b62`）、`45747605498`（main `08fe3fd`）均 success，日志 `# tests 330 / # pass 330 / # fail 0`。
 - **当前可运行状态**：v0.1.0 + HF-2 + HF-3；全局 `mewagent` 0.1.0 可用。
 - **坑**：`iex` 执行内容没有脚本上下文（`param()` 非法、`exit` 会关会话、`$ErrorActionPreference` 会污染调用者）；npm 全局安装可能因 prefix 无写权限失败（用户另一台机器）；WSL 的 `bash` 不是 Git Bash（`npm` 与 `file:///D:/...` 都不可用，测试要用 `D:\git\Git\bin\bash.exe`）。
 - **下次第一步**：用户 B 级复核 irm/curl 一行安装与权限回退；之后回到 v0.2 规划。
