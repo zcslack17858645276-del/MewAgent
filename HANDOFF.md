@@ -645,8 +645,16 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **遗留问题/坑**：脚本只重置当前分支、不负责发布；如果 v0.2 已经 push 到 main，必须用 `git revert` 反向提交（本项目禁止 force-push main）。
 - **下次第一步**：在 `v0.2-dev` 上建分支/worktree 开工；不直接改 main。
 
-```text
-### YYYY-MM-DD · 会话 N（<主题>）
+### 2026-11-26 · 会话 39（v0.2 实施文档五件套）
+
+- **做了什么**：用户确认 v0.2 范围「精简版 + MCP」、不做多模型协同，要求完整一套文档。核对 v0.1.0 基线（330 测试 / 329 pass + 1 skip；src 38 文件 6,855 行；tests 30 文件 5,574 行）与发布前提（`mewagent` npm 包名 404 未注册；MCP SDK `@modelcontextprotocol/sdk@1.32.2`）。新建 `docs/v0.2/` 五件套：`README.md`（入口/范围/阶段 tag）、`plan.md`（范围/架构影响/D1–D10/27 task 排期/风险/发布）、`tasks.md`（27 个 task 看板）、`testing.md`（逐 task A/B 测试 + 阶段回归 + MCP fixture + 8 项人工测试）、`playbook.md`（单模型单人执行规范）、`checklist.md`（37 项发布验收）；同步更新 `README.md`（文件树/压缩说明/Roadmap/文档索引）、本文件 L5/§1/§8、`docs/tasks.md`（焦点/更新时间）。
+- **验证**：27 个 task ID 在 tasks.md 与 testing.md 全覆盖；文档内相对链接 0 死链；仅文档变更，未改代码。
+- **提交**：`761bdf3` "docs: 添加 v0.2 实施文档（五件套）"（9 files，+1327/−12），已 push 到 main；本节记录另提交。
+- **当前可运行状态**：v0.1.0 + HF-2 + HF-3，代码无改动，`npm test` 330（329 pass + 1 skip）。
+- **待拍板**：license 是否改 MIT、npm 包名是否用 `mewagent`、是否现在建 `v0.2-dev` 分支开工。
+- **下次第一步**：V2-0-1（基线核对 + 建 v0.2 分支）。
+
+```text### YYYY-MM-DD · 会话 N（<主题>）
 - 做了什么：
 - 产出/提交：<分支、PR、commit 范围、tag>
 - 当前可运行状态：<能跑什么、已知报错>
