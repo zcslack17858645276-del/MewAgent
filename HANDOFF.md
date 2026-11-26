@@ -640,7 +640,7 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 ### 2026-11-26 · 会话 38（v0.1.0 冻结锚点与回滚手册）
 
 - **做了什么**：用户准备开始 v0.2（多模型协同、首次尝试），要求能快速回滚到当前完整的 v0.1.0。审计确认当前 main `c119edf` = 发布 tag `v0.1.0`（`03baaa7`）+ 7 个提交（审计、复盘、会话记录、HF-2 一键安装、HF-3 安装修复），typecheck/build 0、`npm test` 330（329 pass + 1 skip）。新增 `docs/rollback.md`（冻结锚点、脚本用法、5 种回滚场景、v0.2 多模型分支/worktree 工作流、找回被回滚工作、红线）与 `scripts/rollback-to-v0.1.0.ps1`（fetch → 备份分支 → stash -u → reset --hard → clean -fd → 打印恢复命令；支持 `-DryRun`/`-Yes`/`-Tag`；不 push、不 force、不动 tag）；更新 `HANDOFF.md` §5.3/§5.4/§8 与 `README.md` 文件树/文档索引。
-- **产出/提交**：commit `__HASH__`（"docs: 添加 v0.1.0 冻结锚点与回滚手册"）；annotated tag `v0.1.0-final`；远程分支 `release/v0.1.0`；均 push。
+- **产出/提交**：commit `df7ecfe`（"docs: 添加 v0.1.0 冻结锚点与回滚手册"）；annotated tag `v0.1.0-final`；远程分支 `release/v0.1.0`；均 push。
 - **当前可运行状态**：v0.1.0 + HF-2 + HF-3，`npm test` 330/329/1；main 与 origin 同步。
 - **遗留问题/坑**：脚本只重置当前分支、不负责发布；如果 v0.2 已经 push 到 main，必须用 `git revert` 反向提交（本项目禁止 force-push main）。
 - **下次第一步**：在 `v0.2-dev` 上建分支/worktree 开工；不直接改 main。
