@@ -654,6 +654,14 @@ S0-5 已落地 `.github/workflows/ci.yml`：`push`（`main` / `task/**` / `fix/*
 - **待拍板**：license 是否改 MIT、npm 包名是否用 `mewagent`、是否现在建 `v0.2-dev` 分支开工。
 - **下次第一步**：V2-0-1（基线核对 + 建 v0.2 分支）。
 
+### 2026-11-26 · 会话 40（V2-0-1：基线核对与开工准备）
+
+- **做了什么**：按开工核对清单逐项核对 v0.1.0 基线（5 项全过）：① `git status --short` 空；② `git switch main && git pull` 已是最新，HEAD = origin/main = `6241382`；③ tag `v0.1.0-final` 存在且 `git rev-parse --short 'v0.1.0-final^{commit}'` = `8bd74fb`（`v0.1-s0`~`v0.1-s3`、`v0.1.0` 均在）；④ 环境 Node `v26.7.0` / npm `12.0.2`（CI 固定 Node 22），`npm run typecheck` 0 错，`npm test` 330（**329 pass + 1 skip + 0 fail**，约 4.5 s）；⑤ 从 `main` 建分支 `v2/V2-0-1-baseline`（未改代码）。同步更新 `docs/v0.2/tasks.md`：V2-0-1 置 `done` 并补证据行。
+- **产出/提交**：分支 `v2/V2-0-1-baseline`；文档提交 `TBD`（哈希回填于紧接的一笔）；PR 由用户在 GitHub 创建并 squash 合并，`main` 合并哈希待回填。
+- **当前可运行状态**：v0.1.0 基线可运行，`typecheck`/`build` 0 错、`npm test` 330（329 pass + 1 skip）；v0.2 代码尚未开始。
+- **遗留问题/坑**：PS 5.1 管道会吞 node:test 的 `ℹ tests/pass/fail` 统计行，需用 `cmd /c "npm test > file 2>&1"` 重定向抓数；`HANDOFF.md` 混用 CRLF(704)/LF(9)，编辑按 CRLF 归一以免整文件 diff；`docs/v0.2/tasks.md` 为纯 LF。B 级：无（V2-0-1 验收项全为 A 级）。`HANDOFF.md` L5 头部状态行仍写「下一任务：…从 V2-0-1 开工」，本 task 未改（范围只要求 §7），下次会话可顺手更新。
+- **下次第一步**：V2-0-2（ADR-0001 依赖策略，产出 `docs/adr/0001-dependency-policy.md`）。
+
 ```text### YYYY-MM-DD · 会话 N（<主题>）
 - 做了什么：
 - 产出/提交：<分支、PR、commit 范围、tag>

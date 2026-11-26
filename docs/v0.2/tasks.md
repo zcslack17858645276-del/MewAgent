@@ -8,9 +8,11 @@
 
 | ID | 任务 | 产物 | 验收要点 | 估时 | 依赖 | 状态 |
 |---|---|---|---|---|---|---|
-| V2-0-1 | 基线核对与开工准备 | HANDOFF §7 基线记录；`git status` 干净 | `v0.1.0-final` 存在且指向 `8bd74fb`；`npm test` 330（329+1skip）；记录 Node/npm 版本；确认从 `main` 开分支 | 0.5 天 | — | todo |
+| V2-0-1 | 基线核对与开工准备 | HANDOFF §7 基线记录；`git status` 干净 | `v0.1.0-final` 存在且指向 `8bd74fb`；`npm test` 330（329+1skip）；记录 Node/npm 版本；确认从 `main` 开分支 | 0.5 天 | — | done |
 | V2-0-2 | ADR-0001 依赖策略 | `docs/adr/0001-dependency-policy.md` | 写清 MCP SDK 版本/许可/体积/可移除性；口径"核心自研、周边用库"；不引入 LangChain | 0.5 天 | — | todo |
 | V2-0-3 | 压缩验收剧本 | `tests/fixtures/long-conversation.md`；关键事实清单 | 60 轮剧本含：目标、否决方案、权限顺序、文件名、待办；清单 8–10 条可人工核对；不依赖真实 API | 0.5 天 | — | todo |
+
+> **V2-0-1 证据（会话 40，2026-11-26）**：`v0.1.0-final` → `8bd74fb`；HEAD = origin/main = `6241382`；Node `v26.7.0` / npm `12.0.2`；`npm run typecheck` 0 错；`npm test` 330（329 pass + 1 skip + 0 fail）；分支 `v2/V2-0-1-baseline`；详见 HANDOFF §7 会话 40。
 
 ## V2-1 · LLM 摘要压缩（3–4 天）
 
